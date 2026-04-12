@@ -49,8 +49,11 @@ export function useNotificationSync() {
       markAllRead(projectId);
     });
 
-    socket.on('notification:count', ({ count }) => {
-      setUnreadCount(count);
+    socket.on('notification:count', ({ projectId, count }) => {
+      const { unreadByProject, unreadCount } = useNotificationStore.getState();
+      const prevCount = unreadByProject[projectId] ?? 0;
+      const nextByProject = { ...unreadByProject, [projectId]: count };
+      setUnreadCount(unreadCount - prevCount + count, nextByProject);
     });
 
     return () => {
