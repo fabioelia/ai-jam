@@ -22,13 +22,14 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   addNotification: (n) => {
     const { notifications, unreadCount, unreadByProject } = get();
+    const isUnread = !n.isRead;
     const nextByProject = { ...unreadByProject };
-    if (n.projectId) {
+    if (isUnread && n.projectId) {
       nextByProject[n.projectId] = (nextByProject[n.projectId] ?? 0) + 1;
     }
     set({
       notifications: [n, ...notifications],
-      unreadCount: unreadCount + 1,
+      unreadCount: isUnread ? unreadCount + 1 : unreadCount,
       unreadByProject: nextByProject,
     });
   },
