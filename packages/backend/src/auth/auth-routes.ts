@@ -2,11 +2,17 @@ import type { FastifyInstance } from 'fastify';
 import { eq, and, isNull, gt } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { db } from '../db/connection.js';
-import { users, passwordResetTokens } from '../db/schema.js';
+import { users, passwordResetTokens, refreshTokens } from '../db/schema.js';
 import { hashPassword, verifyPassword } from './password.js';
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '@ai-jam/shared';
 import { config } from '../config.js';
 import jwt from 'jsonwebtoken';
+
+async function storeRefreshToken(userId: string, rawToken: string): Promise<void> {
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  await db.insert(refreshTokens).values({ userId, tokenHash, expiresAt });
+}
 
 export async function authRoutes(fastify: FastifyInstance) {
   // Strict rate limits for auth endpoints to prevent brute-force attacks
@@ -46,7 +52,8 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const payload = { userId: user.id, email: user.email };
     const accessToken = fastify.jwt.sign(payload);
-    const refreshToken = jwt.sign(payload, config.jwtRefreshSecret, { expiresIn: '7d' });
+    const refreshToken = jwt.sign({ ...payload, jti: crypto.randomUUID() }, config.jwtRefreshSecret, { expiresIn: '7d' });
+    await storeRefreshToken(user.id, refreshToken);
 
     return {
       user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl, createdAt: user.createdAt.toISOString(), updatedAt: user.updatedAt.toISOString() },
@@ -74,7 +81,8 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const payload = { userId: user.id, email: user.email };
     const accessToken = fastify.jwt.sign(payload);
-    const refreshToken = jwt.sign(payload, config.jwtRefreshSecret, { expiresIn: '7d' });
+    const refreshToken = jwt.sign({ ...payload, jti: crypto.randomUUID() }, config.jwtRefreshSecret, { expiresIn: '7d' });
+    await storeRefreshToken(user.id, refreshToken);
 
     return {
       user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl, createdAt: user.createdAt.toISOString(), updatedAt: user.updatedAt.toISOString() },
@@ -90,8 +98,29 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     try {
       const payload = jwt.verify(refreshToken, config.jwtRefreshSecret) as { userId: string; email: string };
-      const accessToken = fastify.jwt.sign({ userId: payload.userId, email: payload.email });
-      return { accessToken };
+
+      // Verify token exists in DB (not already used/revoked)
+      const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+      const [stored] = await db
+        .select()
+        .from(refreshTokens)
+        .where(eq(refreshTokens.tokenHash, tokenHash))
+        .limit(1);
+
+      if (!stored) {
+        return reply.status(401).send({ error: 'Invalid refresh token' });
+      }
+
+      // Delete the old token (single-use)
+      await db.delete(refreshTokens).where(eq(refreshTokens.id, stored.id));
+
+      // Issue new token pair
+      const newPayload = { userId: payload.userId, email: payload.email };
+      const accessToken = fastify.jwt.sign(newPayload);
+      const newRefreshToken = jwt.sign({ ...newPayload, jti: crypto.randomUUID() }, config.jwtRefreshSecret, { expiresIn: '7d' });
+      await storeRefreshToken(payload.userId, newRefreshToken);
+
+      return { accessToken, refreshToken: newRefreshToken };
     } catch {
       return reply.status(401).send({ error: 'Invalid refresh token' });
     }
