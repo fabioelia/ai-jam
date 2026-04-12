@@ -100,6 +100,8 @@ const USER_ID = 'user-1';
 const PROJECT_ID = 'project-1';
 const NOTIF_ID = 'notif-1';
 
+const FEATURE_ID = 'feature-1';
+
 const NOTIFICATION = {
   id: NOTIF_ID,
   userId: USER_ID,
@@ -392,6 +394,180 @@ describe('DELETE /api/notifications/read', () => {
 
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body).deleted).toBe(0);
+  });
+});
+
+// ── Project-scoped notification endpoints ────────────────────────────────────
+
+describe('GET /api/projects/:projectId/notifications', () => {
+  it('returns paginated notifications for project scoped to user', async () => {
+    mockOffsetSelect.mockResolvedValueOnce([NOTIFICATION]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${PROJECT_ID}/notifications`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(1);
+    expect(body[0].id).toBe(NOTIF_ID);
+  });
+
+  it('applies default limit=50 and offset=0', async () => {
+    mockOffsetSelect.mockResolvedValueOnce([]);
+
+    await app.inject({ method: 'GET', url: `/api/projects/${PROJECT_ID}/notifications` });
+
+    expect(mockLimitSelect).toHaveBeenCalledWith(50);
+    expect(mockOffsetSelect).toHaveBeenCalledWith(0);
+  });
+
+  it('clamps limit to 100 max', async () => {
+    mockOffsetSelect.mockResolvedValueOnce([]);
+
+    await app.inject({
+      method: 'GET',
+      url: `/api/projects/${PROJECT_ID}/notifications?limit=500`,
+    });
+
+    expect(mockLimitSelect).toHaveBeenCalledWith(100);
+  });
+
+  it('handles NaN limit/offset gracefully', async () => {
+    mockOffsetSelect.mockResolvedValueOnce([]);
+
+    await app.inject({
+      method: 'GET',
+      url: `/api/projects/${PROJECT_ID}/notifications?limit=abc&offset=xyz`,
+    });
+
+    expect(mockLimitSelect).toHaveBeenCalledWith(50);
+    expect(mockOffsetSelect).toHaveBeenCalledWith(0);
+  });
+
+  it('passes featureId, type, and isRead filters', async () => {
+    mockOffsetSelect.mockResolvedValueOnce([NOTIFICATION]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${PROJECT_ID}/notifications?featureId=${FEATURE_ID}&type=comment_added&isRead=false`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    // Verify where was called (conditions built correctly)
+    expect(mockWhereSelect).toHaveBeenCalled();
+  });
+
+  it('returns empty array when no notifications', async () => {
+    mockOffsetSelect.mockResolvedValueOnce([]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${PROJECT_ID}/notifications`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual([]);
+  });
+});
+
+describe('GET /api/projects/:projectId/notifications/unread-count', () => {
+  it('returns count scoped to user and project', async () => {
+    mockWhereSelect.mockResolvedValueOnce([{ count: 7 }]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${PROJECT_ID}/notifications/unread-count`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.count).toBe(7);
+  });
+
+  it('returns count=0 when no unread', async () => {
+    mockWhereSelect.mockResolvedValueOnce([{ count: 0 }]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${PROJECT_ID}/notifications/unread-count`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).count).toBe(0);
+  });
+
+  it('accepts featureId query param', async () => {
+    mockWhereSelect.mockResolvedValueOnce([{ count: 3 }]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${PROJECT_ID}/notifications/unread-count?featureId=${FEATURE_ID}`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).count).toBe(3);
+    expect(mockWhereSelect).toHaveBeenCalled();
+  });
+});
+
+describe('PATCH /api/projects/:projectId/notifications/read-all', () => {
+  it('marks all project notifications read for user', async () => {
+    mockReturningUpdate.mockResolvedValueOnce([READ_NOTIFICATION, READ_NOTIFICATION]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/projects/${PROJECT_ID}/notifications/read-all`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).updated).toBe(2);
+  });
+
+  it('broadcasts notification:read-all with projectId', async () => {
+    mockReturningUpdate.mockResolvedValueOnce([READ_NOTIFICATION]);
+
+    await app.inject({
+      method: 'PATCH',
+      url: `/api/projects/${PROJECT_ID}/notifications/read-all`,
+    });
+
+    expect(mockBroadcastToUser).toHaveBeenCalledWith(
+      USER_ID,
+      'notification:read-all',
+      expect.objectContaining({ userId: USER_ID, projectId: PROJECT_ID }),
+    );
+  });
+
+  it('scopes to featureId when provided', async () => {
+    mockReturningUpdate.mockResolvedValueOnce([]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/projects/${PROJECT_ID}/notifications/read-all?featureId=${FEATURE_ID}`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).updated).toBe(0);
+    expect(mockBroadcastToUser).toHaveBeenCalledWith(
+      USER_ID,
+      'notification:read-all',
+      expect.objectContaining({ featureId: FEATURE_ID }),
+    );
+  });
+
+  it('returns updated=0 when no unread notifications', async () => {
+    mockReturningUpdate.mockResolvedValueOnce([]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/projects/${PROJECT_ID}/notifications/read-all`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).updated).toBe(0);
   });
 });
 
