@@ -64,6 +64,13 @@
       "when": 1776009204858,
       "tag": "0008_fixed_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776034636515,
+      "tag": "0009_yielding_jubilee",
+      "breakpoints": true
     }
   ]
 }

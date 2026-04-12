@@ -1,9 +1,10 @@
 import type { FastifyInstance } from 'fastify';
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull, gt } from 'drizzle-orm';
+import crypto from 'node:crypto';
 import { db } from '../db/connection.js';
-import { users } from '../db/schema.js';
+import { users, passwordResetTokens } from '../db/schema.js';
 import { hashPassword, verifyPassword } from './password.js';
-import { loginSchema, registerSchema } from '@ai-jam/shared';
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '@ai-jam/shared';
 import { config } from '../config.js';
 import jwt from 'jsonwebtoken';
 
@@ -94,5 +95,74 @@ export async function authRoutes(fastify: FastifyInstance) {
     } catch {
       return reply.status(401).send({ error: 'Invalid refresh token' });
     }
+  });
+
+  // --- Password Reset Flow ---
+
+  fastify.post('/api/auth/forgot-password', authRateLimit, async (request, reply) => {
+    const parsed = forgotPasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.flatten() });
+    }
+
+    const { email } = parsed.data;
+
+    // Always return 200 to prevent email enumeration
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (!user) {
+      return { message: 'If that email is registered, a reset link has been sent.' };
+    }
+
+    // Generate a secure random token and store its hash
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await db.insert(passwordResetTokens).values({
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    });
+
+    // In production this sends an email. For now, log the reset URL.
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${rawToken}`;
+    fastify.log.info({ resetUrl, userId: user.id }, 'Password reset requested');
+
+    return { message: 'If that email is registered, a reset link has been sent.' };
+  });
+
+  fastify.post('/api/auth/reset-password', authRateLimit, async (request, reply) => {
+    const parsed = resetPasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.flatten() });
+    }
+
+    const { token, password } = parsed.data;
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find valid, unused, non-expired token
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.tokenHash, tokenHash),
+          isNull(passwordResetTokens.usedAt),
+          gt(passwordResetTokens.expiresAt, new Date()),
+        ),
+      )
+      .limit(1);
+
+    if (!resetToken) {
+      return reply.status(400).send({ error: 'Invalid or expired reset token' });
+    }
+
+    const newHash = await hashPassword(password);
+
+    // Update password and mark token as used
+    await db.update(users).set({ passwordHash: newHash, updatedAt: new Date() }).where(eq(users.id, resetToken.userId));
+    await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, resetToken.id));
+
+    return { message: 'Password has been reset successfully.' };
   });
 }

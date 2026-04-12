@@ -69,6 +69,15 @@ export const updateEpicSchema = z.object({
   sortOrder: z.number().int().optional(),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6),
+});
+
 export const updateProfileSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   avatarUrl: z.string().max(512).nullable().optional(),
