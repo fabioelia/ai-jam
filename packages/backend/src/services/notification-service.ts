@@ -1,6 +1,6 @@
 import { db } from '../db/connection.js';
-import { notifications, projectMembers } from '../db/schema.js';
-import { eq, and, desc, count } from 'drizzle-orm';
+import { notifications, projectMembers, tickets, comments as commentsTable } from '../db/schema.js';
+import { eq, and, ne, desc, count } from 'drizzle-orm';
 import { broadcastToBoard } from '../websocket/socket-server.js';
 
 interface CreateNotificationParams {
@@ -165,6 +165,54 @@ export async function notifyProjectMembers(params: NotifyProjectMembersParams) {
   const results = await Promise.all(
     members.map((m) =>
       createNotification({ ...params, userId: m.userId }),
+    ),
+  );
+
+  return results;
+}
+
+/**
+ * Notify all project members who are stakeholders of a ticket,
+ * excluding the actor who triggered the event.
+ */
+export async function notifyTicketStakeholders(
+  ticketId: string,
+  type: string,
+  title: string,
+  body: string | null,
+  actionUrl: string | null,
+  actorUserId: string,
+) {
+  const [ticket] = await db
+    .select({ projectId: tickets.projectId, featureId: tickets.featureId })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+
+  if (!ticket) return [];
+
+  const members = await db
+    .select({ userId: projectMembers.userId })
+    .from(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.projectId, ticket.projectId),
+        ne(projectMembers.userId, actorUserId),
+      ),
+    );
+
+  const results = await Promise.all(
+    members.map((m) =>
+      createNotification({
+        userId: m.userId,
+        projectId: ticket.projectId,
+        type,
+        title,
+        body: body ?? undefined,
+        actionUrl: actionUrl ?? undefined,
+        featureId: ticket.featureId ?? undefined,
+        ticketId,
+      }),
     ),
   );
 
