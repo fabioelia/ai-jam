@@ -1,7 +1,7 @@
 import { db } from '../db/connection.js';
-import { notifications, projectMembers, tickets, comments as commentsTable, features, projects } from '../db/schema.js';
+import { notifications, notificationPreferences, projectMembers, tickets, comments as commentsTable, features, projects } from '../db/schema.js';
 import { eq, and, ne, desc, count } from 'drizzle-orm';
-import { broadcastNotificationCreated } from '../websocket/socket-server.js';
+import { broadcastToUser } from '../websocket/socket-server.js';
 import type { Notification } from '@ai-jam/shared';
 
 interface CreateNotificationParams {
@@ -26,8 +26,26 @@ interface GetNotificationsOpts {
 
 /**
  * Insert a notification and broadcast via Socket.IO.
+ * Respects notification_preferences — skips if user disabled this type for this project.
  */
 export async function createNotification(params: CreateNotificationParams) {
+  // Check if user has disabled this notification type for this project
+  const [pref] = await db
+    .select({ enabled: notificationPreferences.enabled })
+    .from(notificationPreferences)
+    .where(
+      and(
+        eq(notificationPreferences.userId, params.userId),
+        eq(notificationPreferences.projectId, params.projectId),
+        eq(notificationPreferences.notificationType, params.type),
+      ),
+    )
+    .limit(1);
+
+  if (pref && pref.enabled === 0) {
+    return null;
+  }
+
   const [notification] = await db
     .insert(notifications)
     .values({
@@ -43,7 +61,7 @@ export async function createNotification(params: CreateNotificationParams) {
     })
     .returning();
 
-  broadcastNotificationCreated(params.projectId, notification as unknown as Notification);
+  broadcastToUser(params.userId, 'notification:created', { notification });
 
   return notification;
 }
@@ -283,6 +301,7 @@ export async function notifyFeatureCreator(
   type: string,
   title: string,
   body?: string,
+  actionUrl?: string,
 ) {
   const [feature] = await db
     .select({ projectId: features.projectId, createdBy: features.createdBy })
@@ -298,6 +317,7 @@ export async function notifyFeatureCreator(
     type,
     title,
     body,
+    actionUrl,
     featureId,
   });
 }
@@ -310,6 +330,7 @@ export async function notifyProjectOwner(
   type: string,
   title: string,
   body?: string,
+  actionUrl?: string,
 ) {
   const [project] = await db
     .select({ ownerId: projects.ownerId })
@@ -325,5 +346,6 @@ export async function notifyProjectOwner(
     type,
     title,
     body,
+    actionUrl,
   });
 }

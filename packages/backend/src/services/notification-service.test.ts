@@ -24,6 +24,7 @@ vi.mock('../db/connection.js', () => ({
 
 vi.mock('../db/schema.js', () => ({
   notifications: { projectId: 'projectId', featureId: 'featureId', isRead: 'isRead', userId: 'userId', id: 'id' },
+  notificationPreferences: { userId: 'userId', projectId: 'projectId', notificationType: 'notificationType', enabled: 'enabled' },
   projectMembers: { projectId: 'projectId', userId: 'userId' },
   tickets: { id: 'id', projectId: 'projectId', featureId: 'featureId', createdBy: 'createdBy', assignedUserId: 'assignedUserId' },
   comments: { ticketId: 'ticketId', userId: 'userId' },
@@ -32,7 +33,7 @@ vi.mock('../db/schema.js', () => ({
 }));
 
 vi.mock('../websocket/socket-server.js', () => ({
-  broadcastNotificationCreated: vi.fn(),
+  broadcastToUser: vi.fn(),
 }));
 
 // Helper: build a stateful db mock for notifyTicketStakeholders
