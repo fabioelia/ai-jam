@@ -8,6 +8,7 @@ import BoardPage from './pages/BoardPage.js';
 import FeaturePlanningPage from './pages/FeaturePlanningPage.js';
 import FeatureDetailPage from './pages/FeatureDetailPage.js';
 import ProjectSettingsPage from './pages/ProjectSettingsPage.js';
+import NotificationsPage from './pages/NotificationsPage.js';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.accessToken);
@@ -25,6 +26,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <ErrorBoundary>
+                <NotificationsPage />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />
