@@ -1,7 +1,8 @@
 import { db } from '../db/connection.js';
 import { notifications, projectMembers, tickets, comments as commentsTable, features, projects } from '../db/schema.js';
 import { eq, and, ne, desc, count } from 'drizzle-orm';
-import { broadcastToBoard } from '../websocket/socket-server.js';
+import { broadcastNotificationCreated } from '../websocket/socket-server.js';
+import type { Notification } from '@ai-jam/shared';
 
 interface CreateNotificationParams {
   userId: string;
@@ -42,7 +43,7 @@ export async function createNotification(params: CreateNotificationParams) {
     })
     .returning();
 
-  broadcastToBoard(params.projectId, 'notification:created', notification);
+  broadcastNotificationCreated(params.projectId, notification as unknown as Notification);
 
   return notification;
 }
