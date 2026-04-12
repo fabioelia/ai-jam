@@ -1,6 +1,6 @@
 import { db } from '../db/connection.js';
-import { transitionGates, tickets, agentSessions } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { transitionGates, tickets, agentSessions, projects } from '../db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
 import { broadcastToBoard, broadcastToTicket } from '../websocket/socket-server.js';
 import { notifyProjectMembers } from './notification-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
@@ -14,6 +14,21 @@ const GATED_TRANSITIONS: Record<string, string> = {
 };
 
 const MAX_REJECTION_CYCLES = 3;
+
+/**
+ * Read the configurable rejection threshold from project settings.
+ * Falls back to MAX_REJECTION_CYCLES constant when column doesn't exist yet.
+ */
+async function getMaxRejectionCycles(projectId: string): Promise<number> {
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.id, projectId));
+
+  // Once the configurable threshold column lands, read it here:
+  // return (project as any)?.maxRejectionCycles ?? MAX_REJECTION_CYCLES;
+  return MAX_REJECTION_CYCLES;
+}
 
 /**
  * Check if a ticket transition requires a gatekeeper.
@@ -137,13 +152,16 @@ export async function approveTransition(gateId: string): Promise<void> {
       gate: { ...gate, result: 'approved', resolvedAt: new Date().toISOString() },
     });
 
-    await notifyProjectMembers({
+    notifyProjectMembers({
       projectId: ticket.projectId,
-      type: 'gate_approved',
-      title: `${ticket.title} approved by ${gate.gatekeeperPersona} — moving to ${gate.toStatus}`,
+      type: 'ticket_moved',
+      title: `${ticket.title} moved to ${gate.toStatus}`,
+      body: `Ticket moved from ${gate.fromStatus} to ${gate.toStatus} by ${gate.gatekeeperPersona}`,
+      actionUrl: `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
       ticketId: ticket.id,
       featureId: ticket.featureId ?? undefined,
-    });
+      metadata: { fromStatus: gate.fromStatus, toStatus: gate.toStatus, persona: gate.gatekeeperPersona },
+    }).catch(() => {});
   }
 }
 
@@ -179,6 +197,45 @@ export async function rejectTransition(gateId: string, feedback: string): Promis
       ticketId: ticket.id,
       featureId: ticket.featureId ?? undefined,
     });
+
+    // Loop detection: check if ticket has hit the rejection threshold
+    const allRejections = await db
+      .select()
+      .from(transitionGates)
+      .where(
+        and(
+          eq(transitionGates.ticketId, ticket.id),
+          eq(transitionGates.result, 'rejected'),
+        )
+      )
+      .orderBy(desc(transitionGates.resolvedAt));
+
+    const maxCycles = await getMaxRejectionCycles(ticket.projectId);
+
+    if (allRejections.length >= maxCycles) {
+      const feedbackSummary = allRejections
+        .filter((r) => r.feedback)
+        .map((r, i) => `${i + 1}. [${r.gatekeeperPersona}] ${r.feedback}`)
+        .join('\n');
+
+      const lastRejection = allRejections[0];
+
+      await notifyProjectMembers({
+        projectId: ticket.projectId,
+        type: 'loop_detected',
+        title: `${ticket.title} stuck in review loop — ${allRejections.length} rejections`,
+        body: feedbackSummary || 'No rejection feedback recorded.',
+        actionUrl: `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
+        ticketId: ticket.id,
+        featureId: ticket.featureId ?? undefined,
+        metadata: {
+          priority: 'critical',
+          rejectionCount: allRejections.length,
+          lastFeedback: lastRejection?.feedback ?? null,
+          persona: lastRejection?.gatekeeperPersona ?? null,
+        },
+      });
+    }
   }
 }
 
