@@ -15,17 +15,27 @@ import { chatSessionRoutes } from './routes/chat-sessions.js';
 import { proposalRoutes } from './routes/proposals.js';
 import { ticketNoteRoutes } from './routes/ticket-notes.js';
 import { transitionGateRoutes } from './routes/transition-gates.js';
+import { systemPromptRoutes } from './routes/system-prompts.js';
+import { scanRoutes } from './routes/scans.js';
+import { notificationRoutes } from './routes/notifications.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
+import { db } from './db/connection.js';
+import { chatSessions, agentSessions } from './db/schema.js';
+import { eq } from 'drizzle-orm';
 
 async function main() {
+  // Mark any leftover active sessions as completed — PTY processes don't survive restarts
+  await db.update(chatSessions).set({ status: 'completed' }).where(eq(chatSessions.status, 'active'));
+  await db.update(agentSessions).set({ status: 'failed', activity: 'idle', completedAt: new Date() }).where(eq(agentSessions.status, 'running'));
+
   const fastify = Fastify({
     logger: true,
   });
 
-  // CORS
+  // CORS — allow any origin in dev (backend is on 0.0.0.0 for LAN access)
   await fastify.register(cors, {
-    origin: config.frontendUrl,
+    origin: true,
     credentials: true,
   });
 
@@ -45,6 +55,9 @@ async function main() {
   await fastify.register(proposalRoutes);
   await fastify.register(ticketNoteRoutes);
   await fastify.register(transitionGateRoutes);
+  await fastify.register(systemPromptRoutes);
+  await fastify.register(scanRoutes);
+  await fastify.register(notificationRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
