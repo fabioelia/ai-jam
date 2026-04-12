@@ -280,6 +280,47 @@ export function useProjectSessions(projectId: string) {
   });
 }
 
+// -- Pending Approvals --
+
+export interface PendingProposal {
+  id: string;
+  type: 'proposal';
+  featureId: string;
+  featureTitle: string;
+  ticketTitle?: string;
+  ticketPriority?: string;
+  source: string;
+  createdAt: string;
+}
+
+export interface PendingGate {
+  id: string;
+  type: 'gate';
+  ticketId: string;
+  ticketTitle: string;
+  featureId: string;
+  featureTitle: string;
+  fromStatus: string;
+  toStatus: string;
+  gatekeeperPersona: string;
+  createdAt: string;
+}
+
+export interface PendingApprovals {
+  proposals: PendingProposal[];
+  gates: PendingGate[];
+  totalCount: number;
+}
+
+export function usePendingApprovals(projectId: string) {
+  return useQuery({
+    queryKey: ['pending-approvals', projectId],
+    queryFn: () => apiFetch<PendingApprovals>(`/projects/${projectId}/pending-approvals`),
+    enabled: !!projectId,
+    refetchInterval: 15000,
+  });
+}
+
 // -- Notifications --
 
 export interface NotificationFilters {
