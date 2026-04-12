@@ -34,6 +34,15 @@ export function disconnectSocket() {
   socket = null;
 }
 
+export function joinUser(userId: string) {
+  const s = getSocket();
+  s.emit('join:user', { userId });
+}
+
+export function leaveUser(userId: string) {
+  socket?.emit('leave:user', { userId });
+}
+
 export function joinBoard(projectId: string) {
   const s = getSocket();
   s.emit('join:board', { projectId });
