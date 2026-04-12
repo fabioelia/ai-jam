@@ -3,14 +3,14 @@ import type { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { getRuntimeClient } from '../agent-runtime/runtime-manager.js';
-import type { ServerToClientEvents, ClientToServerEvents } from '@ai-jam/shared';
+import type { ServerToClientEvents, ClientToServerEvents, Notification } from '@ai-jam/shared';
 
 let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents> | null = null;
 
 export function setupSocketServer(httpServer: HttpServer) {
   io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     cors: {
-      origin: config.frontendUrl,
+      origin: true,
       credentials: true,
     },
   });
@@ -63,20 +63,20 @@ export function setupSocketServer(httpServer: HttpServer) {
         if (client.isConnected) {
           await client.writeToSession(sessionId, data);
         }
-      } catch (err) {
-        console.error('[socket] pty:input error:', err);
+      } catch {
+        // Session not found in runtime — expected after restarts
       }
     });
 
-    // Terminal resize
+    // Terminal resize — silently ignore if session no longer exists in runtime
     socket.on('pty:resize', async ({ sessionId, cols, rows }) => {
       try {
         const client = getRuntimeClient();
         if (client.isConnected) {
           await client.resizeSession(sessionId, cols, rows);
         }
-      } catch (err) {
-        console.error('[socket] pty:resize error:', err);
+      } catch {
+        // Session not found in runtime — expected after restarts
       }
     });
 
@@ -93,8 +93,8 @@ export function setupSocketServer(httpServer: HttpServer) {
             socket.emit('pty:data', { sessionId, data: buffer });
           }
         }
-      } catch (err) {
-        console.error('[socket] pty:attach buffer replay error:', err);
+      } catch {
+        // Session not found in runtime — expected after restarts
       }
     });
 
@@ -129,4 +129,20 @@ export function broadcastToFeature(featureId: string, event: string, data: unkno
 export function broadcastToPty(sessionId: string, event: string, data: unknown) {
   if (!io) return;
   io.to(`pty:${sessionId}`).emit(event as keyof ServerToClientEvents, data as never);
+}
+
+// Notification broadcasts — all go to board:${projectId} room
+export function broadcastNotificationCreated(projectId: string, notification: Notification) {
+  if (!io) return;
+  io.to(`board:${projectId}`).emit('notification:created', { notification });
+}
+
+export function broadcastNotificationRead(projectId: string, notificationId: string, userId: string) {
+  if (!io) return;
+  io.to(`board:${projectId}`).emit('notification:read', { notificationId, userId });
+}
+
+export function broadcastNotificationCount(projectId: string, userId: string, count: number) {
+  if (!io) return;
+  io.to(`board:${projectId}`).emit('notification:count', { projectId, userId, count });
 }
