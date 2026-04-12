@@ -1,7 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useAgentSessions } from '../api/queries.js';
 import { useAuthStore } from '../stores/auth-store.js';
+import { useNotificationSync } from '../hooks/useNotificationSync.js';
 import { Skeleton } from '../components/common/Skeleton.js';
+import NotificationBell from '../components/notifications/NotificationBell.js';
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   backlog: { label: 'Backlog', color: 'bg-gray-600' },
@@ -28,6 +30,8 @@ export default function FeatureDetailPage() {
   const { data: board, isLoading: boardLoading } = useBoard(projectId!, featureId);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+
+  useNotificationSync();
 
   const feature = features?.find((f) => f.id === featureId);
 
@@ -57,6 +61,7 @@ export default function FeatureDetailPage() {
             <h1 className="text-lg font-bold text-white">{project?.name || 'Loading...'}</h1>
           </div>
           <div className="flex items-center gap-4">
+            <NotificationBell projectId={projectId!} />
             <span className="text-gray-400 text-sm">{user?.name}</span>
             <button onClick={logout} className="text-gray-500 hover:text-gray-300 text-sm">Logout</button>
           </div>

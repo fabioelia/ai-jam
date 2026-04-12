@@ -138,6 +138,89 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     },
   );
 
+  // ── Project-scoped notification endpoints (ticket spec) ─────────────────
+
+  // GET /api/projects/:projectId/notifications — paginated list with filters
+  fastify.get<{
+    Params: { projectId: string };
+    Querystring: { featureId?: string; type?: string; isRead?: string; limit?: string; offset?: string };
+  }>('/api/projects/:projectId/notifications', async (request) => {
+    const { userId } = request.user;
+    const { projectId } = request.params;
+    const { featureId, type, isRead, limit, offset } = request.query;
+
+    const conditions = [
+      eq(notifications.userId, userId),
+      eq(notifications.projectId, projectId),
+    ];
+    if (featureId) conditions.push(eq(notifications.featureId, featureId));
+    if (type) conditions.push(eq(notifications.type, type));
+    if (isRead !== undefined) conditions.push(eq(notifications.isRead, isRead === 'true' ? 1 : 0));
+
+    const take = Math.min(Math.max(parseInt(limit ?? '50', 10) || 50, 1), 100);
+    const skip = Math.max(parseInt(offset ?? '0', 10) || 0, 0);
+
+    return db
+      .select()
+      .from(notifications)
+      .where(and(...conditions))
+      .orderBy(desc(notifications.createdAt))
+      .limit(take)
+      .offset(skip);
+  });
+
+  // GET /api/projects/:projectId/notifications/unread-count
+  fastify.get<{
+    Params: { projectId: string };
+    Querystring: { featureId?: string };
+  }>('/api/projects/:projectId/notifications/unread-count', async (request) => {
+    const { userId } = request.user;
+    const { projectId } = request.params;
+    const { featureId } = request.query;
+
+    const conditions = [
+      eq(notifications.userId, userId),
+      eq(notifications.projectId, projectId),
+      eq(notifications.isRead, 0),
+    ];
+    if (featureId) conditions.push(eq(notifications.featureId, featureId));
+
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(notifications)
+      .where(and(...conditions));
+
+    return { count: row?.count ?? 0 };
+  });
+
+  // PATCH /api/projects/:projectId/notifications/read-all — bulk mark read, optional featureId
+  fastify.patch<{
+    Params: { projectId: string };
+    Querystring: { featureId?: string };
+  }>('/api/projects/:projectId/notifications/read-all', async (request) => {
+    const { userId } = request.user;
+    const { projectId } = request.params;
+    const { featureId } = request.query;
+
+    const conditions = [
+      eq(notifications.userId, userId),
+      eq(notifications.projectId, projectId),
+      eq(notifications.isRead, 0),
+    ];
+    if (featureId) conditions.push(eq(notifications.featureId, featureId));
+
+    const updated = await db
+      .update(notifications)
+      .set({ isRead: 1 })
+      .where(and(...conditions))
+      .returning();
+
+    broadcastToUser(userId, 'notification:read-all', { userId, projectId, featureId });
+    return { updated: updated.length };
+  });
+
+  // ── Notification preferences ──────────────────────────────────────────
+
   // GET /api/projects/:projectId/notification-preferences
   fastify.get<{ Params: { projectId: string } }>(
     '/api/projects/:projectId/notification-preferences',
