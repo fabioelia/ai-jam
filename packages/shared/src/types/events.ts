@@ -1,5 +1,21 @@
 import type { Ticket, Epic, Comment, TransitionGate } from './board.js';
-import type { AgentActivity } from '../enums.js';
+import type { AgentActivity, NotificationType } from '../enums.js';
+
+// Notification types for Socket.IO events
+export interface Notification {
+  id: string;
+  userId: string;
+  projectId: string | null;
+  featureId: string | null;
+  ticketId: string | null;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  actionUrl: string | null;
+  metadata: unknown;
+  isRead: number;
+  createdAt: string;
+}
 
 // Server -> Client events
 export interface ServerToClientEvents {
@@ -27,6 +43,11 @@ export interface ServerToClientEvents {
 
   // Comment events
   'comment:created': (data: { comment: Comment }) => void;
+
+  // Notification events
+  'notification:created': (data: { notification: Notification }) => void;
+  'notification:read': (data: { notificationId: string; userId: string }) => void;
+  'notification:count': (data: { projectId: string; userId: string; count: number }) => void;
 
   // Terminal PTY events
   'pty:data': (data: { sessionId: string; data: string }) => void;
