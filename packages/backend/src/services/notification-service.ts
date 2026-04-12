@@ -1,5 +1,5 @@
 import { db } from '../db/connection.js';
-import { notifications, projectMembers, tickets, comments as commentsTable } from '../db/schema.js';
+import { notifications, projectMembers, tickets, comments as commentsTable, features, projects } from '../db/schema.js';
 import { eq, and, ne, desc, count } from 'drizzle-orm';
 import { broadcastToBoard } from '../websocket/socket-server.js';
 
@@ -172,8 +172,8 @@ export async function notifyProjectMembers(params: NotifyProjectMembersParams) {
 }
 
 /**
- * Notify all project members who are stakeholders of a ticket,
- * excluding the actor who triggered the event.
+ * Notify ticket creator + assigned user, excluding the actor.
+ * Returns the set of notified user IDs (for deduplication with other notify calls).
  */
 export async function notifyTicketStakeholders(
   ticketId: string,
@@ -182,29 +182,30 @@ export async function notifyTicketStakeholders(
   body: string | null,
   actionUrl: string | null,
   actorUserId: string,
-) {
+): Promise<string[]> {
   const [ticket] = await db
-    .select({ projectId: tickets.projectId, featureId: tickets.featureId })
+    .select({
+      projectId: tickets.projectId,
+      featureId: tickets.featureId,
+      createdBy: tickets.createdBy,
+      assignedUserId: tickets.assignedUserId,
+    })
     .from(tickets)
     .where(eq(tickets.id, ticketId))
     .limit(1);
 
   if (!ticket) return [];
 
-  const members = await db
-    .select({ userId: projectMembers.userId })
-    .from(projectMembers)
-    .where(
-      and(
-        eq(projectMembers.projectId, ticket.projectId),
-        ne(projectMembers.userId, actorUserId),
-      ),
-    );
+  const recipientIds = [...new Set(
+    [ticket.createdBy, ticket.assignedUserId].filter(
+      (id): id is string => !!id && id !== actorUserId,
+    ),
+  )];
 
-  const results = await Promise.all(
-    members.map((m) =>
+  await Promise.all(
+    recipientIds.map((userId) =>
       createNotification({
-        userId: m.userId,
+        userId,
         projectId: ticket.projectId,
         type,
         title,
@@ -216,5 +217,112 @@ export async function notifyTicketStakeholders(
     ),
   );
 
-  return results;
+  return recipientIds;
+}
+
+/**
+ * Notify prior commenters on a ticket, excluding the actor and any already-notified users.
+ * Returns the set of notified user IDs.
+ */
+export async function notifyTicketCommenters(
+  ticketId: string,
+  excludeUserId: string,
+  type: string,
+  title: string,
+  body: string | null,
+  actionUrl: string | null,
+  skipUserIds: string[] = [],
+): Promise<string[]> {
+  const [ticket] = await db
+    .select({ projectId: tickets.projectId, featureId: tickets.featureId })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+
+  if (!ticket) return [];
+
+  const rows = await db
+    .selectDistinct({ userId: commentsTable.userId })
+    .from(commentsTable)
+    .where(
+      and(
+        eq(commentsTable.ticketId, ticketId),
+        ne(commentsTable.userId, excludeUserId),
+      ),
+    );
+
+  const skipSet = new Set(skipUserIds);
+  const recipientIds = rows
+    .map((r) => r.userId)
+    .filter((id) => !skipSet.has(id));
+
+  await Promise.all(
+    recipientIds.map((userId) =>
+      createNotification({
+        userId,
+        projectId: ticket.projectId,
+        type,
+        title,
+        body: body ?? undefined,
+        actionUrl: actionUrl ?? undefined,
+        featureId: ticket.featureId ?? undefined,
+        ticketId,
+      }),
+    ),
+  );
+
+  return recipientIds;
+}
+
+/**
+ * Notify the creator of a feature.
+ */
+export async function notifyFeatureCreator(
+  featureId: string,
+  type: string,
+  title: string,
+  body?: string,
+) {
+  const [feature] = await db
+    .select({ projectId: features.projectId, createdBy: features.createdBy })
+    .from(features)
+    .where(eq(features.id, featureId))
+    .limit(1);
+
+  if (!feature) return null;
+
+  return createNotification({
+    userId: feature.createdBy,
+    projectId: feature.projectId,
+    type,
+    title,
+    body,
+    featureId,
+  });
+}
+
+/**
+ * Notify the owner of a project.
+ */
+export async function notifyProjectOwner(
+  projectId: string,
+  type: string,
+  title: string,
+  body?: string,
+) {
+  const [project] = await db
+    .select({ ownerId: projects.ownerId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) return null;
+
+  return createNotification({
+    userId: project.ownerId,
+    projectId,
+    type,
+    title,
+    body,
+  });
 }

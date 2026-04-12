@@ -1,10 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/connection.js';
-import { comments } from '../db/schema.js';
+import { comments, tickets } from '../db/schema.js';
 import { createCommentSchema } from '@ai-jam/shared';
 import { broadcastToTicket } from '../websocket/socket-server.js';
 import { getSourceFromRequest } from '../utils/source-header.js';
+import { notifyTicketStakeholders, notifyTicketCommenters } from '../services/notification-service.js';
 
 export async function commentRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
@@ -29,6 +30,31 @@ export async function commentRoutes(fastify: FastifyInstance) {
     }).returning();
 
     broadcastToTicket(request.params.ticketId, 'comment:created', { comment });
+
+    // Fire-and-forget: notify stakeholders + prior commenters (deduplicated)
+    const { ticketId } = request.params;
+    (async () => {
+      const [ticket] = await db
+        .select({ title: tickets.title, projectId: tickets.projectId })
+        .from(tickets)
+        .where(eq(tickets.id, ticketId))
+        .limit(1);
+      if (!ticket) return;
+
+      const notifTitle = `New comment on ${ticket.title}`;
+      const notifBody = parsed.data.body.slice(0, 200);
+      const actionUrl = `/projects/${ticket.projectId}/board?ticket=${ticketId}`;
+
+      const notifiedIds = await notifyTicketStakeholders(
+        ticketId, 'comment_added', notifTitle, notifBody, actionUrl, userId,
+      );
+      await notifyTicketCommenters(
+        ticketId, userId, 'comment_added', notifTitle, notifBody, actionUrl, notifiedIds,
+      );
+    })().catch((err) => {
+      request.log.error(err, 'Failed to send comment notifications');
+    });
+
     return comment;
   });
 
