@@ -33,6 +33,14 @@ export function setupSocketServer(httpServer: HttpServer) {
   });
 
   io.on('connection', (socket) => {
+    socket.on('join:user', ({ userId }) => {
+      socket.join(`user:${userId}`);
+    });
+
+    socket.on('leave:user', ({ userId }) => {
+      socket.leave(`user:${userId}`);
+    });
+
     socket.on('join:board', ({ projectId }) => {
       socket.join(`board:${projectId}`);
     });
@@ -130,6 +138,11 @@ export function setupSocketServer(httpServer: HttpServer) {
 export function getIO() {
   if (!io) throw new Error('Socket.IO not initialized');
   return io;
+}
+
+export function broadcastToUser(userId: string, event: string, data: unknown) {
+  if (!io) return;
+  io.to(`user:${userId}`).emit(event as keyof ServerToClientEvents, data as never);
 }
 
 export function broadcastToBoard(projectId: string, event: string, data: unknown) {
