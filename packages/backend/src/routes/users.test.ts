@@ -134,6 +134,75 @@ describe('POST /api/users/me/avatar', () => {
   });
 });
 
+describe('PATCH /api/users/me', () => {
+  it('updates name successfully', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/users/me',
+      payload: { name: 'New Name' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body).toHaveProperty('id', 'user-1');
+  });
+
+  it('updates preferences successfully', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/users/me',
+      payload: { preferences: { theme: 'dark', locale: 'en' } },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body).toHaveProperty('id');
+  });
+
+  it('updates multiple fields at once', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/users/me',
+      payload: { name: 'Updated', avatarUrl: 'https://example.com/avatar.png' },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('clears avatarUrl with null', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/users/me',
+      payload: { avatarUrl: null },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('rejects empty body', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/users/me',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects invalid name (empty string)', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/users/me',
+      payload: { name: '' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects name exceeding max length', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/users/me',
+      payload: { name: 'x'.repeat(256) },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
 describe('DELETE /api/users/me/avatar', () => {
   it('returns 404 when no avatar exists', async () => {
     const res = await app.inject({ method: 'DELETE', url: '/api/users/me/avatar' });

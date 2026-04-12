@@ -6,8 +6,10 @@ import { useCreateFeature, useCreateTicket } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
+import { useNotificationSync } from '../hooks/useNotificationSync.js';
 import { useSessionLastSeen } from '../hooks/useSessionLastSeen.js';
 import { BoardSkeleton } from '../components/common/Skeleton.js';
+import NotificationBell from '../components/notifications/NotificationBell.js';
 import KanbanBoard from '../components/board/KanbanBoard.js';
 import TicketDetail from '../components/board/TicketDetail.js';
 import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
@@ -35,6 +37,7 @@ export default function BoardPage() {
   // Real-time sync
   useBoardSync(projectId!);
   useAgentSync(projectId!);
+  useNotificationSync();
 
   const [showAgentPanel, setShowAgentPanel] = useState(false);
 
@@ -125,6 +128,7 @@ export default function BoardPage() {
             >
               Agents
             </button>
+            <NotificationBell projectId={projectId!} />
             <button
               onClick={() => navigate(`/projects/${projectId}/settings`)}
               className="text-sm px-2.5 py-1 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 transition-colors"
