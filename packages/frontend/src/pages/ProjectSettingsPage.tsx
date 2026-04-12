@@ -95,6 +95,7 @@ function GeneralTab({ projectId }: { projectId: string }) {
   const [name, setName] = useState('');
   const [defaultBranch, setDefaultBranch] = useState('');
   const [githubToken, setGithubToken] = useState('');
+  const [maxRejectionCycles, setMaxRejectionCycles] = useState(3);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const latestScanRef = useRef<string | undefined>(undefined);
@@ -117,11 +118,12 @@ function GeneralTab({ projectId }: { projectId: string }) {
     setName(project.name);
     setDefaultBranch(project.defaultBranch);
     setGithubToken('');
+    setMaxRejectionCycles(project.maxRejectionCycles ?? 3);
     setIsEditing(true);
   }
 
   function handleSave() {
-    const data: { name: string; defaultBranch: string; githubToken?: string } = { name, defaultBranch };
+    const data: { name: string; defaultBranch: string; githubToken?: string; maxRejectionCycles: number } = { name, defaultBranch, maxRejectionCycles };
     if (githubToken) data.githubToken = githubToken;
     updateProject.mutate(data, { onSuccess: () => setIsEditing(false) });
   }
@@ -200,6 +202,18 @@ function GeneralTab({ projectId }: { projectId: string }) {
                 <p className="text-xs text-gray-600 mt-1">Personal access token with repo scope. Leave blank to keep the existing token.</p>
               </div>
             )}
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Max Rejection Cycles</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={maxRejectionCycles}
+                onChange={(e) => setMaxRejectionCycles(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
+                className="w-32 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+              />
+              <p className="text-xs text-gray-600 mt-1">How many rejection cycles before escalating to a human (1–10).</p>
+            </div>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={handleSave}
@@ -247,6 +261,10 @@ function GeneralTab({ projectId }: { projectId: string }) {
               }`}>
                 {project?.supportWorktrees ? 'enabled' : 'disabled'}
               </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Max Rejection Cycles</span>
+              <span className="text-sm text-gray-300">{project?.maxRejectionCycles ?? 3}</span>
             </div>
             {project?.repoUrl && (
               <div className="flex items-center justify-between">
