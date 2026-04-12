@@ -676,6 +676,11 @@ function SessionsSidebar({
                 <span className="text-xs text-gray-600 ml-3.5">
                   {new Date(s.createdAt).toLocaleDateString()}
                 </span>
+                {s.status === 'completed' && s.outputSummary && (
+                  <p className="text-[10px] text-gray-600 italic truncate ml-3.5" title={s.outputSummary}>
+                    {s.outputSummary.slice(0, 60)}{s.outputSummary.length > 60 ? '\u2026' : ''}
+                  </p>
+                )}
               </div>
             ))}
           </div>
