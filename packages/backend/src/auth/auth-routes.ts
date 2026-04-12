@@ -8,7 +8,26 @@ import { config } from '../config.js';
 import jwt from 'jsonwebtoken';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  fastify.post('/api/auth/register', async (request, reply) => {
+  // Strict rate limits for auth endpoints to prevent brute-force attacks
+  const authRateLimit = {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: '1 minute',
+      },
+    },
+  };
+
+  const registerRateLimit = {
+    config: {
+      rateLimit: {
+        max: 3,
+        timeWindow: '1 minute',
+      },
+    },
+  };
+
+  fastify.post('/api/auth/register', registerRateLimit, async (request, reply) => {
     const parsed = registerSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.flatten() });
@@ -34,7 +53,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     };
   });
 
-  fastify.post('/api/auth/login', async (request, reply) => {
+  fastify.post('/api/auth/login', authRateLimit, async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.flatten() });
@@ -62,7 +81,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     };
   });
 
-  fastify.post('/api/auth/refresh', async (request, reply) => {
+  fastify.post('/api/auth/refresh', authRateLimit, async (request, reply) => {
     const { refreshToken } = request.body as { refreshToken?: string };
     if (!refreshToken) {
       return reply.status(400).send({ error: 'Refresh token required' });

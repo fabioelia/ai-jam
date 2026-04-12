@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import { createServer } from 'http';
 import { config } from './config.js';
 import authPlugin from './auth/auth-plugin.js';
@@ -18,16 +19,21 @@ import { transitionGateRoutes } from './routes/transition-gates.js';
 import { systemPromptRoutes } from './routes/system-prompts.js';
 import { scanRoutes } from './routes/scans.js';
 import { notificationRoutes } from './routes/notifications.js';
+import { attentionRoutes } from './routes/attention.js';
+import { userRoutes } from './routes/users.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
+import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
 import { db } from './db/connection.js';
 import { chatSessions, agentSessions } from './db/schema.js';
 import { eq } from 'drizzle-orm';
 
 async function main() {
-  // Mark any leftover active sessions as completed — PTY processes don't survive restarts
-  await db.update(chatSessions).set({ status: 'completed' }).where(eq(chatSessions.status, 'active'));
-  await db.update(agentSessions).set({ status: 'failed', activity: 'idle', completedAt: new Date() }).where(eq(agentSessions.status, 'running'));
+  // Mark leftover running agent sessions as failed — but leave chat sessions alone.
+  // Chat session PTYs live in the agent-runtime process which survives backend restarts.
+  // Chat session status is updated by the runtime-manager when PTYs actually exit.
+  await db.update(agentSessions).set({ status: 'failed', activity: 'idle', outputSummary: 'Session interrupted by backend restart', completedAt: new Date() }).where(eq(agentSessions.status, 'running'));
+  await db.update(agentSessions).set({ status: 'failed', activity: 'idle', outputSummary: 'Session never started (pending at backend restart)', completedAt: new Date() }).where(eq(agentSessions.status, 'pending'));
 
   const fastify = Fastify({
     logger: true,
@@ -37,6 +43,12 @@ async function main() {
   await fastify.register(cors, {
     origin: true,
     credentials: true,
+  });
+
+  // Rate limiting (global default — generous; auth routes override with stricter limits)
+  await fastify.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
   });
 
   // Auth
@@ -58,6 +70,8 @@ async function main() {
   await fastify.register(systemPromptRoutes);
   await fastify.register(scanRoutes);
   await fastify.register(notificationRoutes);
+  await fastify.register(attentionRoutes);
+  await fastify.register(userRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
@@ -75,6 +89,11 @@ async function main() {
   // Connect to agent-runtime (non-blocking — will retry if not available)
   startRuntime().catch((err) => {
     console.warn('Agent runtime not available at startup:', err.message || err);
+  });
+
+  // Connect to pty-daemon for interactive sessions (non-blocking)
+  startPtyDaemon().catch((err) => {
+    console.warn('PTY daemon not available at startup:', err.message || err);
   });
 }
 
