@@ -14,6 +14,7 @@ import {
   finalizeScan,
 } from '../services/scan-service.js';
 import { createAttentionItem } from '../services/attention-service.js';
+import { notifyTicketStakeholders } from '../services/notification-service.js';
 
 let client: RuntimeClient | null = null;
 let runtimeProcess: ChildProcess | null = null;
@@ -416,6 +417,28 @@ function wireEvents(c: RuntimeClient) {
         }).catch((err) => {
           console.error('[runtime-manager] Failed to create attention item:', err);
         });
+      }
+    }
+
+    // Notify stakeholders on successful completion (skip scanner sessions — they use scan_completed)
+    if (!isFailed && session?.ticketId) {
+      try {
+        const [ticket] = await db.select({ title: tickets.title, projectId: tickets.projectId })
+          .from(tickets).where(eq(tickets.id, session.ticketId));
+        if (ticket) {
+          notifyTicketStakeholders(
+            session.ticketId,
+            'agent_completed',
+            `${session.personaType} finished on ${ticket.title}`,
+            payload.outputSummary,
+            `/projects/${ticket.projectId}/board?ticket=${session.ticketId}`,
+            'system',
+          ).catch((err) => {
+            console.error('[runtime-manager] Failed to notify stakeholders:', err);
+          });
+        }
+      } catch (err) {
+        console.error('[runtime-manager] Failed to look up ticket for notification:', err);
       }
     }
 
