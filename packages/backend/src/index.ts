@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import { createServer } from 'http';
 import { config } from './config.js';
@@ -49,6 +50,11 @@ async function main() {
   await fastify.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+  });
+
+  // Multipart file uploads (5 MB limit)
+  await fastify.register(multipart, {
+    limits: { fileSize: 5 * 1024 * 1024 },
   });
 
   // Auth

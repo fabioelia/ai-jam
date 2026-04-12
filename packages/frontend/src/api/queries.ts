@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from './client.js';
-import type { Project, Feature, BoardState, Ticket, Comment, ChatSession, ChatMessage, TicketProposal, TicketNote, TransitionGate, Notification } from '@ai-jam/shared';
+import type { Project, Feature, BoardState, Ticket, Comment, ChatSession, ChatMessage, TicketProposal, TicketNote, TransitionGate, Notification, AttentionItem } from '@ai-jam/shared';
 
 export function useProjects() {
   return useQuery({
@@ -353,5 +353,23 @@ export function useUnreadCount(projectId: string, featureId?: string) {
     queryKey: ['notifications-unread-count', projectId, featureId],
     queryFn: () => apiFetch<{ count: number }>(`/projects/${projectId}/notifications/unread-count${params}`),
     enabled: !!projectId,
+  });
+}
+
+// -- Attention Items --
+
+export function useAttentionItems(projectId: string, type?: string) {
+  const params = type ? `?type=${type}` : '';
+  return useQuery({
+    queryKey: ['attention', projectId, type],
+    queryFn: () => apiFetch<AttentionItem[]>(`/projects/${projectId}/attention${params}`),
+    enabled: !!projectId,
+  });
+}
+
+export function useAttentionCount() {
+  return useQuery({
+    queryKey: ['attention-count'],
+    queryFn: () => apiFetch<{ count: number }>('/attention/count'),
   });
 }

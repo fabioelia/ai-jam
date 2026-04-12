@@ -6,6 +6,8 @@ import { createTicketSchema, moveTicketSchema, updateTicketSchema } from '@ai-ja
 import { broadcastToBoard } from '../websocket/socket-server.js';
 import { getSourceFromRequest } from '../utils/source-header.js';
 import { notifyProjectMembers } from '../services/notification-service.js';
+import { requestGateAwareMove } from '../services/transition-service.js';
+import type { TicketStatus } from '@ai-jam/shared';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
@@ -115,6 +117,31 @@ export async function ticketRoutes(fastify: FastifyInstance) {
     }).catch(() => {});
 
     return ticket;
+  });
+
+  // Gate-aware move: checks project transition gate settings before executing.
+  // Used by agent MCP tools and orchestrator. Returns whether move was immediate or gated.
+  fastify.post<{
+    Params: { id: string };
+    Body: { toStatus: string; requestedBy?: string; agentSessionId?: string };
+  }>('/api/tickets/:id/request-move', async (request, reply) => {
+    const { toStatus, requestedBy, agentSessionId } = request.body ?? {};
+    if (!toStatus) return reply.status(400).send({ error: 'toStatus is required' });
+
+    const source = requestedBy || getSourceFromRequest(request) || 'unknown';
+
+    try {
+      const result = await requestGateAwareMove({
+        ticketId: request.params.id,
+        toStatus: toStatus as TicketStatus,
+        requestedBy: source,
+        agentSessionId,
+      });
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return reply.status(400).send({ error: message });
+    }
   });
 
   // Reorder ticket within column

@@ -1,8 +1,14 @@
+import dotenv from 'dotenv';
 import { createServer, type Socket } from 'net';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { unlinkSync, existsSync } from 'fs';
 import { SessionManager } from './session-manager.js';
+import { TicketOrchestrator } from './orchestrator.js';
+
+// Load .env from monorepo root
+const __dirname_index = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: join(__dirname_index, '..', '..', '..', '.env') });
 import type {
   RuntimeRequest,
   RuntimeResponse,
@@ -15,6 +21,14 @@ const PERSONAS_DIR = join(__dirname, '..', 'personas');
 const SOCKET_PATH = process.env.AGENT_RUNTIME_SOCKET || '/tmp/ai-jam-runtime.sock';
 const MAX_CONCURRENT = parseInt(process.env.MAX_CONCURRENT_AGENTS || '12', 10);
 
+// -- Orchestrator config --
+const ORCHESTRATOR_DISABLED = process.env.AIJAM_ORCHESTRATOR_DISABLED === '1' || process.env.AIJAM_ORCHESTRATOR_DISABLED === 'true';
+const ORCHESTRATOR_API_BASE_URL = process.env.AIJAM_API_BASE_URL || 'http://localhost:3002';
+const ORCHESTRATOR_SERVICE_TOKEN = process.env.AIJAM_SERVICE_TOKEN || '';
+const ORCHESTRATOR_SERVICE_USER_ID = process.env.AIJAM_SERVICE_USER_ID || '';
+const ORCHESTRATOR_INTERVAL_MS = parseInt(process.env.AIJAM_ORCHESTRATOR_INTERVAL_MS || '60000', 10);
+const ORCHESTRATOR_MAX_PICKS = parseInt(process.env.AIJAM_ORCHESTRATOR_MAX_PICKS || '3', 10);
+
 // -- Session Manager --
 
 const sessionManager = new SessionManager({
@@ -24,6 +38,27 @@ const sessionManager = new SessionManager({
 
 const personas = sessionManager.init();
 console.log(`[agent-runtime] Loaded ${personas.length} personas: ${personas.map((p) => p.id).join(', ')}`);
+
+// -- Orchestrator --
+
+let orchestrator: TicketOrchestrator | null = null;
+
+if (ORCHESTRATOR_DISABLED) {
+  console.log('[agent-runtime] Orchestrator explicitly disabled via AIJAM_ORCHESTRATOR_DISABLED=1');
+} else if (!ORCHESTRATOR_SERVICE_TOKEN) {
+  console.warn('[agent-runtime] AIJAM_SERVICE_TOKEN not set — orchestrator disabled');
+} else if (!ORCHESTRATOR_SERVICE_USER_ID) {
+  console.warn('[agent-runtime] AIJAM_SERVICE_USER_ID not set — orchestrator disabled');
+} else {
+  orchestrator = new TicketOrchestrator(sessionManager, {
+    apiBaseUrl: ORCHESTRATOR_API_BASE_URL,
+    serviceToken: ORCHESTRATOR_SERVICE_TOKEN,
+    serviceUserId: ORCHESTRATOR_SERVICE_USER_ID,
+    pollIntervalMs: ORCHESTRATOR_INTERVAL_MS,
+    maxPicksPerCycle: ORCHESTRATOR_MAX_PICKS,
+  });
+  // Start after the socket server is listening (see below)
+}
 
 // -- Connected clients --
 
@@ -178,12 +213,20 @@ const server = createServer((socket) => {
 server.listen(SOCKET_PATH, () => {
   console.log(`[agent-runtime] Listening on ${SOCKET_PATH}`);
   console.log(`[agent-runtime] Max concurrent agents: ${MAX_CONCURRENT}`);
+
+  // Start the orchestrator after the socket server is ready
+  if (orchestrator) {
+    orchestrator.start();
+  }
 });
 
 // -- Graceful shutdown --
 
 function shutdown() {
   console.log('\n[agent-runtime] Shutting down...');
+  if (orchestrator) {
+    orchestrator.stop();
+  }
   sessionManager.shutdown();
   server.close();
   if (existsSync(SOCKET_PATH)) {

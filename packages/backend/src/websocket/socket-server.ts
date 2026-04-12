@@ -3,6 +3,7 @@ import type { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { getRuntimeClient } from '../agent-runtime/runtime-manager.js';
+import { getPtyDaemonClient } from '../agent-runtime/pty-daemon-manager.js';
 import type { ServerToClientEvents, ClientToServerEvents, Notification } from '@ai-jam/shared';
 
 let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents> | null = null;
@@ -56,35 +57,57 @@ export function setupSocketServer(httpServer: HttpServer) {
       socket.leave(`feature:${featureId}`);
     });
 
-    // Terminal I/O: user sends keystrokes to a PTY session
+    // Terminal I/O: user sends keystrokes to a PTY session.
+    // Try pty-daemon first (interactive sessions), fall back to agent-runtime.
     socket.on('pty:input', async ({ sessionId, data }) => {
+      try {
+        const ptyClient = getPtyDaemonClient();
+        if (ptyClient.isConnected) {
+          await ptyClient.writeToSession(sessionId, data);
+          return;
+        }
+      } catch { /* not in pty-daemon */ }
       try {
         const client = getRuntimeClient();
         if (client.isConnected) {
           await client.writeToSession(sessionId, data);
         }
-      } catch {
-        // Session not found in runtime — expected after restarts
-      }
+      } catch { /* session not found — expected after restarts */ }
     });
 
-    // Terminal resize — silently ignore if session no longer exists in runtime
+    // Terminal resize — try pty-daemon first, fall back to agent-runtime
     socket.on('pty:resize', async ({ sessionId, cols, rows }) => {
+      try {
+        const ptyClient = getPtyDaemonClient();
+        if (ptyClient.isConnected) {
+          await ptyClient.resizeSession(sessionId, cols, rows);
+          return;
+        }
+      } catch { /* not in pty-daemon */ }
       try {
         const client = getRuntimeClient();
         if (client.isConnected) {
           await client.resizeSession(sessionId, cols, rows);
         }
-      } catch {
-        // Session not found in runtime — expected after restarts
-      }
+      } catch { /* session not found — expected after restarts */ }
     });
 
-    // Join a terminal session room to receive PTY output
+    // Join a terminal session room to receive PTY output.
+    // Try pty-daemon first for buffer replay, fall back to agent-runtime.
     socket.on('pty:attach', async ({ sessionId }) => {
       socket.join(`pty:${sessionId}`);
 
       // Replay buffered output so the client sees everything from session start
+      try {
+        const ptyClient = getPtyDaemonClient();
+        if (ptyClient.isConnected) {
+          const buffer = await ptyClient.getSessionBuffer(sessionId);
+          if (buffer) {
+            socket.emit('pty:data', { sessionId, data: buffer });
+            return;
+          }
+        }
+      } catch { /* not in pty-daemon */ }
       try {
         const client = getRuntimeClient();
         if (client.isConnected) {
@@ -93,9 +116,7 @@ export function setupSocketServer(httpServer: HttpServer) {
             socket.emit('pty:data', { sessionId, data: buffer });
           }
         }
-      } catch {
-        // Session not found in runtime — expected after restarts
-      }
+      } catch { /* session not found — expected after restarts */ }
     });
 
     socket.on('pty:detach', ({ sessionId }) => {

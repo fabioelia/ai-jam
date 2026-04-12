@@ -5,6 +5,8 @@
     "dev": "pnpm --filter @ai-jam/backend dev & pnpm --filter @ai-jam/frontend dev",
     "dev:backend": "pnpm --filter @ai-jam/backend dev",
     "dev:frontend": "pnpm --filter @ai-jam/frontend dev",
+    "dev:pty": "pnpm --filter @ai-jam/agent-runtime dev:pty",
+    "dev:agents": "pnpm --filter @ai-jam/agent-runtime dev",
     "build": "pnpm --filter @ai-jam/shared build && pnpm --filter @ai-jam/backend build && pnpm --filter @ai-jam/frontend build",
     "db:generate": "pnpm --filter @ai-jam/backend db:generate",
     "db:migrate": "pnpm --filter @ai-jam/backend db:migrate",
@@ -14,7 +16,8 @@
     "onlyBuiltDependencies": [
       "bcrypt",
       "esbuild",
-      "node-pty"
+      "node-pty",
+      "sharp"
     ]
   },
   "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"

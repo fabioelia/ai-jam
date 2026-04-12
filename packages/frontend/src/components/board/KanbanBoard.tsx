@@ -1,6 +1,9 @@
 import {
   DndContext,
   DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
   pointerWithin,
   type DragStartEvent,
   type DragEndEvent,
@@ -194,8 +197,13 @@ export default function KanbanBoard({ board, projectId, epicFilter, priorityFilt
     }
   }, [board, columns, setBoard]);
 
+  // Require 5px of movement before activating drag — lets clicks pass through to ticket onClick
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
+  const sensors = useSensors(pointerSensor);
+
   return (
     <DndContext
+      sensors={sensors}
       collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}

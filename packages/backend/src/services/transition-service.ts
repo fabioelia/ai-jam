@@ -3,6 +3,7 @@ import { transitionGates, tickets, agentSessions, projects } from '../db/schema.
 import { eq, and, desc } from 'drizzle-orm';
 import { broadcastToBoard, broadcastToTicket } from '../websocket/socket-server.js';
 import { notifyProjectMembers } from './notification-service.js';
+import { createAttentionItem } from './attention-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 /** Map of transitions that require a gatekeeper */
@@ -13,21 +14,15 @@ const GATED_TRANSITIONS: Record<string, string> = {
   'acceptance→done': 'acceptance_validator',
 };
 
-const MAX_REJECTION_CYCLES = 3;
+const DEFAULT_MAX_REJECTION_CYCLES = 3;
 
-/**
- * Read the configurable rejection threshold from project settings.
- * Falls back to MAX_REJECTION_CYCLES constant when column doesn't exist yet.
- */
 async function getMaxRejectionCycles(projectId: string): Promise<number> {
   const [project] = await db
-    .select()
+    .select({ maxRejectionCycles: projects.maxRejectionCycles })
     .from(projects)
     .where(eq(projects.id, projectId));
 
-  // Once the configurable threshold column lands, read it here:
-  // return (project as any)?.maxRejectionCycles ?? MAX_REJECTION_CYCLES;
-  return MAX_REJECTION_CYCLES;
+  return project?.maxRejectionCycles ?? DEFAULT_MAX_REJECTION_CYCLES;
 }
 
 /**
@@ -49,6 +44,11 @@ export async function requestTransition(
   agentSessionId?: string,
 ): Promise<string> {
   // Check rejection count to enforce cap
+  const [ticketForCheck] = await db.select().from(tickets).where(eq(tickets.id, ticketId));
+  const maxCycles = ticketForCheck
+    ? await getMaxRejectionCycles(ticketForCheck.projectId)
+    : DEFAULT_MAX_REJECTION_CYCLES;
+
   const priorRejections = await db
     .select()
     .from(transitionGates)
@@ -61,11 +61,10 @@ export async function requestTransition(
       )
     );
 
-  if (priorRejections.length >= MAX_REJECTION_CYCLES) {
+  if (priorRejections.length >= maxCycles) {
     // Escalate to human — don't create another gate, just leave ticket in current state
-    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, ticketId));
-    if (ticket) {
-      broadcastToBoard(ticket.projectId, 'board:ticket:updated', {
+    if (ticketForCheck) {
+      broadcastToBoard(ticketForCheck.projectId, 'board:ticket:updated', {
         ticketId,
         changes: { assignedPersona: 'HUMAN_ESCALATION' },
       });
@@ -76,15 +75,34 @@ export async function requestTransition(
         .where(eq(tickets.id, ticketId));
 
       await notifyProjectMembers({
-        projectId: ticket.projectId,
+        projectId: ticketForCheck.projectId,
         type: 'human_escalation',
-        title: `${ticket.title} escalated to human — ${gatekeeperPersona} exceeded retry limit`,
+        title: `${ticketForCheck.title} escalated to human — ${gatekeeperPersona} exceeded retry limit`,
         ticketId,
-        featureId: ticket.featureId ?? undefined,
+        featureId: ticketForCheck.featureId ?? undefined,
         metadata: { priority: 'critical' },
       });
+
+      // Create attention item for human escalation
+      createAttentionItem({
+        projectId: ticketForCheck.projectId,
+        featureId: ticketForCheck.featureId ?? undefined,
+        ticketId,
+        type: 'human_escalation',
+        title: `${ticketForCheck.title} — escalated to human after ${maxCycles} rejection cycles`,
+        description: `${gatekeeperPersona} exceeded retry limit for ${fromStatus} → ${toStatus}`,
+        metadata: {
+          gatekeeperPersona,
+          transitionFrom: fromStatus,
+          transitionTo: toStatus,
+          rejectionCount: priorRejections.length,
+          maxCycles,
+        },
+      }).catch((err) => {
+        console.error('[transition-service] Failed to create escalation attention item:', err);
+      });
     }
-    throw new Error(`Max rejection cycles (${MAX_REJECTION_CYCLES}) reached for ${fromStatus}→${toStatus}. Escalated to human.`);
+    throw new Error(`Max rejection cycles (${maxCycles}) reached for ${fromStatus}→${toStatus}. Escalated to human.`);
   }
 
   const [gate] = await db
@@ -105,6 +123,24 @@ export async function requestTransition(
     broadcastToBoard(ticket.projectId, 'agent:gate:result', {
       ticketId,
       gate,
+    });
+
+    // Create attention item for human review of gated transition
+    createAttentionItem({
+      projectId: ticket.projectId,
+      featureId: ticket.featureId ?? undefined,
+      ticketId,
+      type: 'transition_gate',
+      title: `${ticket.title} — ${gatekeeperPersona} gate: ${fromStatus} → ${toStatus}`,
+      metadata: {
+        gateId: gate.id,
+        transitionFrom: fromStatus,
+        transitionTo: toStatus,
+        gatekeeperPersona,
+        agentSessionId: agentSessionId ?? null,
+      },
+    }).catch((err) => {
+      console.error('[transition-service] Failed to create attention item:', err);
     });
   }
 
@@ -247,4 +283,123 @@ export async function getTransitionGates(ticketId: string) {
     .select()
     .from(transitionGates)
     .where(eq(transitionGates.ticketId, ticketId));
+}
+
+// ---------------------------------------------------------------------------
+// Project-level gate settings (transition_gates JSONB on projects table)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the gate key from two statuses: e.g. "review" + "qa" → "review_to_qa"
+ */
+function buildGateKey(fromStatus: string, toStatus: string): string {
+  return `${fromStatus}_to_${toStatus}`;
+}
+
+/**
+ * Check if a project has a gate enabled for a specific transition.
+ * Returns true if gated, false otherwise.
+ */
+export async function isTransitionGated(
+  projectId: string,
+  fromStatus: string,
+  toStatus: string,
+): Promise<boolean> {
+  const [project] = await db
+    .select({ transitionGates: projects.transitionGates })
+    .from(projects)
+    .where(eq(projects.id, projectId));
+
+  if (!project) return false;
+
+  const gateSettings = (project.transitionGates as Record<string, boolean>) ?? {};
+  return gateSettings[buildGateKey(fromStatus, toStatus)] === true;
+}
+
+export interface GateAwareMoveResult {
+  /** Whether the ticket was actually moved */
+  transitioned: boolean;
+  /** Whether a gate blocked the transition */
+  gated: boolean;
+  /** Gate record ID if gated */
+  gateId?: string;
+  /** The ticket's current status after the operation */
+  ticketStatus: string;
+  /** The requested target status */
+  requestedStatus: string;
+}
+
+/**
+ * Gate-aware ticket move. Checks project gate settings before executing.
+ *
+ * - If no gate active → moves ticket directly, returns { transitioned: true }
+ * - If gate active → creates gate record + attention item, returns { transitioned: false, gated: true }
+ */
+export async function requestGateAwareMove(params: {
+  ticketId: string;
+  toStatus: TicketStatus;
+  requestedBy: string;
+  agentSessionId?: string;
+}): Promise<GateAwareMoveResult> {
+  const { ticketId, toStatus, requestedBy, agentSessionId } = params;
+
+  // Fetch ticket
+  const [ticket] = await db.select().from(tickets).where(eq(tickets.id, ticketId));
+  if (!ticket) throw new Error('Ticket not found');
+
+  const fromStatus = ticket.status as TicketStatus;
+
+  // Same status — no-op
+  if (fromStatus === toStatus) {
+    return { transitioned: false, gated: false, ticketStatus: fromStatus, requestedStatus: toStatus };
+  }
+
+  // Check project gate settings
+  const gated = await isTransitionGated(ticket.projectId, fromStatus, toStatus);
+
+  if (!gated) {
+    // No gate — move directly
+    const [updated] = await db
+      .update(tickets)
+      .set({ status: toStatus, updatedAt: new Date() })
+      .where(eq(tickets.id, ticketId))
+      .returning();
+
+    broadcastToBoard(ticket.projectId, 'board:ticket:moved', {
+      ticketId: updated.id,
+      fromStatus,
+      toStatus,
+      sortOrder: updated.sortOrder,
+    });
+
+    notifyProjectMembers({
+      projectId: ticket.projectId,
+      type: 'ticket_moved',
+      title: `${ticket.title} moved to ${toStatus}`,
+      body: `Ticket moved from ${fromStatus} to ${toStatus} by ${requestedBy}`,
+      actionUrl: `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
+      featureId: ticket.featureId ?? undefined,
+      ticketId: ticket.id,
+      metadata: { fromStatus, toStatus, persona: requestedBy },
+    }).catch(() => {});
+
+    return { transitioned: true, gated: false, ticketStatus: toStatus, requestedStatus: toStatus };
+  }
+
+  // Gate is active — create gate record + attention item (via existing requestTransition)
+  const gateId = await requestTransition(
+    ticketId,
+    fromStatus,
+    toStatus,
+    requestedBy,
+    agentSessionId,
+  );
+
+  return {
+    transitioned: false,
+    gated: true,
+    gateId,
+    ticketStatus: fromStatus,
+    requestedStatus: toStatus,
+  };
 }

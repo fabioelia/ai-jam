@@ -7,15 +7,21 @@ import '@xterm/xterm/css/xterm.css';
 
 interface TerminalPanelProps {
   sessionId: string;
+  sessionStatus?: string;
+  onNewSession?: () => void;
+  onResumeSession?: () => void;
+  isResuming?: boolean;
 }
 
-export default function TerminalPanel({ sessionId }: TerminalPanelProps) {
+export default function TerminalPanel({ sessionId, sessionStatus, onNewSession, onResumeSession, isResuming }: TerminalPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
+  const isDead = sessionStatus === 'completed' || sessionStatus === 'failed';
+
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (isDead || !containerRef.current) return;
 
     const term = new Terminal({
       cursorBlink: true,
@@ -113,7 +119,42 @@ export default function TerminalPanel({ sessionId }: TerminalPanelProps) {
       termRef.current = null;
       fitAddonRef.current = null;
     };
-  }, [sessionId]);
+  }, [sessionId, isDead]);
+
+  if (isDead) {
+    return (
+      <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#0d1117' }}>
+        <div className="text-center">
+          <p className="text-gray-400 mb-1">
+            Session {sessionStatus === 'failed' ? 'failed' : 'ended'}.
+          </p>
+          <p className="text-gray-500 text-sm mb-4">
+            Resume picks up Claude's conversation history if available,
+            otherwise starts fresh with project context.
+          </p>
+          <div className="flex items-center gap-3 justify-center">
+            {onResumeSession && (
+              <button
+                onClick={onResumeSession}
+                disabled={isResuming}
+                className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
+              >
+                {isResuming ? 'Resuming...' : 'Resume Session'}
+              </button>
+            )}
+            {onNewSession && (
+              <button
+                onClick={onNewSession}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-medium"
+              >
+                New Session
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -4,6 +4,7 @@ import { db } from '../db/connection.js';
 import { comments } from '../db/schema.js';
 import { createCommentSchema } from '@ai-jam/shared';
 import { broadcastToTicket } from '../websocket/socket-server.js';
+import { getSourceFromRequest } from '../utils/source-header.js';
 
 export async function commentRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
@@ -19,10 +20,12 @@ export async function commentRoutes(fastify: FastifyInstance) {
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
 
     const { userId } = request.user;
+    const source = getSourceFromRequest(request);
     const [comment] = await db.insert(comments).values({
       ticketId: request.params.ticketId,
       userId,
       body: parsed.data.body,
+      source,
     }).returning();
 
     broadcastToTicket(request.params.ticketId, 'comment:created', { comment });

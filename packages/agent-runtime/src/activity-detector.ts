@@ -105,18 +105,27 @@ export class ActivityDetector extends EventEmitter {
   }
 
   /**
+   * Strip all ANSI escape sequences (SGR, CSI, OSC, etc.) from text.
+   */
+  private stripAnsi(text: string): string {
+    // eslint-disable-next-line no-control-regex
+    return text.replace(/\x1B\[[0-9;]*[A-Za-z]|\x1B\][^\x07]*\x07|\x1B\[\?[0-9;]*[A-Za-z]|\x1B[>=][0-9]*[A-Za-z]?|\r/g, '');
+  }
+
+  /**
    * Check if the output looks like Claude is waiting for input.
    * Claude CLI shows specific patterns when waiting.
    */
   private looksLikeWaiting(output: string): boolean {
-    const lastLine = output.split('\n').filter(Boolean).pop() || '';
-    const trimmed = lastLine.replace(/\x1b\[[0-9;]*m/g, '').trim();
+    const cleaned = this.stripAnsi(output);
+    const lastLine = cleaned.split('\n').filter(Boolean).pop() || '';
+    const trimmed = lastLine.trim();
 
     // Claude CLI prompt patterns
     if (trimmed.endsWith('>') || trimmed.endsWith('❯')) return true;
     if (trimmed.includes('You:') || trimmed.includes('Human:')) return true;
-    // The "waiting for input" idle state
-    if (trimmed === '' && this.lastOutputTime > 0 && Date.now() - this.lastOutputTime > this.waitingThresholdMs) {
+    // The "waiting for input" idle state — no recognizable prompt but output stopped
+    if (this.lastOutputTime > 0 && Date.now() - this.lastOutputTime > this.waitingThresholdMs) {
       return true;
     }
     return false;

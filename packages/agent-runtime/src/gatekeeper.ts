@@ -107,6 +107,7 @@ export class Gatekeeper extends EventEmitter {
 
       this.sessionManager.spawnSession({
         sessionId,
+        sessionType: 'execution',
         personaType: gatekeeperPersona,
         model,
         prompt,

@@ -1,4 +1,5 @@
 import { eq, and } from 'drizzle-orm';
+import { existsSync } from 'fs';
 import { db } from '../db/connection.js';
 import { repoWorkspaces, projects, features } from '../db/schema.js';
 import { cloneRepo, getWorkspacePath, createWorktree, getWorktreePath } from './github-service.js';
@@ -15,13 +16,62 @@ export interface WorkspaceInfo {
 
 /**
  * Ensure a workspace exists for a project.
- * Clones the repo if needed, returns the workspace info.
+ * - If the project has a localPath, verify it exists and return it directly.
+ * - If the project has a repoUrl, clone the repo if needed.
  */
 export async function ensureWorkspace(
   projectId: string,
   featureId?: string,
   branch?: string,
 ): Promise<WorkspaceInfo> {
+  // Get project
+  const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
+  if (!project) throw new Error('Project not found');
+
+  // Local path project — no cloning needed
+  if (project.localPath) {
+    if (!existsSync(project.localPath)) {
+      throw new Error(`Local path does not exist: ${project.localPath}`);
+    }
+
+    // Check for existing workspace record
+    const [existing] = await db.select().from(repoWorkspaces)
+      .where(and(eq(repoWorkspaces.projectId, projectId), eq(repoWorkspaces.featureId, featureId ?? null as unknown as string)))
+      .limit(1);
+
+    if (existing && existing.status === 'ready') {
+      return existing as WorkspaceInfo;
+    }
+
+    const workspaceId = existing?.id || uuid();
+    const targetBranch = branch || project.defaultBranch;
+
+    if (!existing) {
+      await db.insert(repoWorkspaces).values({
+        id: workspaceId,
+        projectId,
+        featureId: featureId || null,
+        branch: targetBranch,
+        localPath: project.localPath,
+        status: 'ready',
+      });
+    }
+
+    return {
+      id: workspaceId,
+      projectId,
+      featureId: featureId || null,
+      branch: targetBranch,
+      localPath: project.localPath,
+      status: 'ready',
+    };
+  }
+
+  // Remote repo project — clone if needed
+  if (!project.repoUrl) {
+    throw new Error('Project has no repo URL or local path configured');
+  }
+
   // Check for existing workspace
   const conditions = [eq(repoWorkspaces.projectId, projectId)];
   if (featureId) {
@@ -32,11 +82,6 @@ export async function ensureWorkspace(
   if (existing && existing.status === 'ready') {
     return existing as WorkspaceInfo;
   }
-
-  // Get project for repo URL and token
-  const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
-  if (!project) throw new Error('Project not found');
-  if (!project.repoUrl) throw new Error('No repo URL configured for project');
 
   const targetBranch = branch || project.defaultBranch;
 
@@ -84,6 +129,7 @@ export async function ensureWorkspace(
 
 /**
  * Ensure a git worktree exists for a feature.
+ * If the project has supportWorktrees disabled, returns the main workspace instead.
  * The main repo must already be cloned (calls ensureWorkspace first).
  * Creates a worktree at ~/.ai-jam/workspaces/{projectId}/worktrees/{featureId}/
  */
@@ -91,6 +137,15 @@ export async function ensureFeatureWorktree(
   projectId: string,
   featureId: string,
 ): Promise<WorkspaceInfo> {
+  // Get project to check worktree support
+  const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
+  if (!project) throw new Error('Project not found');
+
+  // If worktrees are disabled, just return the main workspace
+  if (!project.supportWorktrees) {
+    return ensureWorkspace(projectId, featureId);
+  }
+
   // Check for existing feature workspace
   const [existing] = await db.select()
     .from(repoWorkspaces)
@@ -107,10 +162,6 @@ export async function ensureFeatureWorktree(
   // Get feature for branch name
   const [feature] = await db.select().from(features).where(eq(features.id, featureId));
   if (!feature) throw new Error('Feature not found');
-
-  // Get project for default branch
-  const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
-  if (!project) throw new Error('Project not found');
 
   // Generate a branch name from the feature title
   const branchName = feature.repoBranch ||

@@ -5,8 +5,22 @@ import { v4 as uuid } from 'uuid';
 // Protocol types — mirrored from agent-runtime protocol.ts
 // These are the NDJSON message types shared between backend and agent-runtime
 
+interface McpContext {
+  sessionId: string;
+  projectId: string;
+  featureId: string;
+  ticketId?: string;
+  userId: string;
+  authToken: string;
+  apiBaseUrl?: string;
+  phase: 'planning' | 'execution';
+}
+
+type SessionType = 'planning' | 'execution' | 'scan';
+
 interface SpawnSessionPayload {
   sessionId: string;
+  sessionType: SessionType;
   personaType: string;
   model: string;
   prompt: string;
@@ -15,6 +29,10 @@ interface SpawnSessionPayload {
   addDirs?: string[];
   name?: string;
   interactive?: boolean;
+  systemContext?: string;
+  mcpContext?: McpContext;
+  cliSessionId?: string;
+  resumeSessionId?: string;
 }
 
 interface RuntimeRequest {
@@ -39,6 +57,7 @@ interface RuntimeEvent {
 
 export interface SessionInfo {
   sessionId: string;
+  sessionType?: SessionType;
   personaType: string;
   model: string;
   ptyInstanceId: string;

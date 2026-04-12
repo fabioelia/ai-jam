@@ -13,10 +13,15 @@ export const registerSchema = z.object({
 
 export const createProjectSchema = z.object({
   name: z.string().min(1).max(255),
-  repoUrl: z.string().url(),
+  repoUrl: z.string().optional(),
+  localPath: z.string().optional(),
   defaultBranch: z.string().max(255).optional().default('main'),
+  supportWorktrees: z.boolean().optional().default(true),
   githubToken: z.string().optional(),
-});
+}).refine(
+  (data) => data.repoUrl || data.localPath,
+  { message: 'Either repoUrl or localPath is required', path: ['repoUrl'] },
+);
 
 export const createFeatureSchema = z.object({
   title: z.string().min(1).max(500),
@@ -62,4 +67,10 @@ export const updateEpicSchema = z.object({
   description: z.string().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
   sortOrder: z.number().int().optional(),
+});
+
+export const updateProfileSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  avatarUrl: z.string().max(512).nullable().optional(),
+  preferences: z.record(z.unknown()).optional(),
 });

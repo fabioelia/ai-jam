@@ -1,8 +1,16 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { execSync } from 'child_process';
+import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { tmpdir } from 'os';
+import { fileURLToPath } from 'url';
 import { v4 as uuid } from 'uuid';
 import { ActivityDetector, type Activity } from './activity-detector.js';
+import type { SessionType } from './protocol.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Resolve a command to its full path using the user's shell environment.
@@ -32,6 +40,7 @@ function resolveCommand(cmd: string): string {
 export interface PtyInstance {
   id: string;
   sessionId: string;
+  sessionType: SessionType;
   personaType: string;
   model: string;
   process: pty.IPty;
@@ -42,8 +51,25 @@ export interface PtyInstance {
   outputBuffer: string[];
 }
 
+/**
+ * MCP context for connecting agents to the AI Jam MCP server.
+ * When provided, a per-session MCP config file is generated and
+ * passed to Claude CLI via --mcp-config.
+ */
+export interface McpContext {
+  sessionId: string;
+  projectId: string;
+  featureId: string;
+  ticketId?: string;
+  userId: string;
+  authToken: string;
+  apiBaseUrl?: string;
+  phase: 'planning' | 'execution';
+}
+
 export interface SpawnOptions {
   sessionId: string;
+  sessionType: SessionType;
   personaType: string;
   model: string;
   prompt: string;
@@ -53,6 +79,14 @@ export interface SpawnOptions {
   name?: string;
   interactive?: boolean;
   systemPromptFile?: string;
+  /** Extra context appended to the system prompt file (project/feature info). */
+  systemContext?: string;
+  /** MCP server context -- when provided, agent gets structured tools. */
+  mcpContext?: McpContext;
+  /** When set, use --session-id to pin Claude CLI's session UUID (for future resume). */
+  cliSessionId?: string;
+  /** When set, use --resume to resume a prior Claude CLI session by its UUID. */
+  resumeSessionId?: string;
 }
 
 /**
@@ -61,6 +95,8 @@ export interface SpawnOptions {
  */
 export class PtyManager extends EventEmitter {
   private instances = new Map<string, PtyInstance>();
+  /** Temp MCP config files to clean up when sessions end. */
+  private mcpConfigPaths = new Map<string, string>();
 
   /**
    * Spawn a new Claude CLI session.
@@ -95,6 +131,7 @@ export class PtyManager extends EventEmitter {
     const instance: PtyInstance = {
       id: ptyId,
       sessionId: options.sessionId,
+      sessionType: options.sessionType,
       personaType: options.personaType,
       model: options.model,
       process: proc,
@@ -127,6 +164,7 @@ export class PtyManager extends EventEmitter {
       detector.stop();
       instance.status = exitCode === 0 ? 'completed' : 'failed';
       instance.completedAt = new Date();
+      this.cleanupMcpConfig(options.sessionId);
       this.emit('exit', { sessionId: options.sessionId, ptyId, exitCode });
     });
 
@@ -159,6 +197,7 @@ export class PtyManager extends EventEmitter {
     instance.process.kill();
     instance.status = 'failed';
     instance.completedAt = new Date();
+    this.cleanupMcpConfig(sessionId);
     return true;
   }
 
@@ -220,6 +259,70 @@ export class PtyManager extends EventEmitter {
     this.instances.clear();
   }
 
+  /**
+   * Clean up a session's temporary MCP config file.
+   */
+  private cleanupMcpConfig(sessionId: string) {
+    const configPath = this.mcpConfigPaths.get(sessionId);
+    if (configPath) {
+      try {
+        if (existsSync(configPath)) unlinkSync(configPath);
+      } catch { /* ignore */ }
+      this.mcpConfigPaths.delete(sessionId);
+    }
+  }
+
+  /**
+   * Write a per-session MCP config JSON file for Claude CLI.
+   * Returns the path to the config file.
+   *
+   * Claude CLI expects a JSON file like:
+   * {
+   *   "mcpServers": {
+   *     "ai-jam": {
+   *       "command": "npx",
+   *       "args": ["tsx", "/path/to/mcp/server.ts"],
+   *       "env": { ... }
+   *     }
+   *   }
+   * }
+   */
+  private writeMcpConfig(options: SpawnOptions): string | null {
+    if (!options.mcpContext) return null;
+
+    const mcpDir = join(tmpdir(), 'ai-jam-mcp-configs');
+    mkdirSync(mcpDir, { recursive: true });
+
+    const configPath = join(mcpDir, `${options.sessionId}.json`);
+
+    // Resolve path to the MCP server entry point relative to this file
+    const serverPath = join(__dirname, 'mcp', 'server.ts');
+
+    const config = {
+      mcpServers: {
+        'ai-jam': {
+          command: 'npx',
+          args: ['tsx', serverPath],
+          env: {
+            AIJAM_SESSION_ID: options.mcpContext.sessionId,
+            AIJAM_PROJECT_ID: options.mcpContext.projectId,
+            AIJAM_FEATURE_ID: options.mcpContext.featureId,
+            AIJAM_TICKET_ID: options.mcpContext.ticketId || '',
+            AIJAM_AUTH_TOKEN: options.mcpContext.authToken,
+            AIJAM_USER_ID: options.mcpContext.userId,
+            AIJAM_API_BASE_URL: options.mcpContext.apiBaseUrl || 'http://localhost:3002',
+            AIJAM_WORKING_DIR: options.workingDirectory,
+            AIJAM_PHASE: options.mcpContext.phase,
+          },
+        },
+      },
+    };
+
+    writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    this.mcpConfigPaths.set(options.sessionId, configPath);
+    return configPath;
+  }
+
   private buildArgs(options: SpawnOptions, ptyId: string): string[] {
     const args: string[] = [
       '--dangerously-skip-permissions',
@@ -227,8 +330,20 @@ export class PtyManager extends EventEmitter {
       '--output-format', 'text',
     ];
 
+    // MCP config: write config file and add --mcp-config flag
+    const mcpConfigPath = this.writeMcpConfig(options);
+    if (mcpConfigPath) {
+      args.push('--mcp-config', mcpConfigPath);
+    }
+
+    if (options.resumeSessionId) {
+      args.push('--resume', options.resumeSessionId);
+    } else if (options.cliSessionId) {
+      args.push('--session-id', options.cliSessionId);
+    }
+
     if (options.name) {
-      args.push('--resume', options.name);
+      args.push('--name', options.name);
     }
 
     if (options.workingDirectory) {
