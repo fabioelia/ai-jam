@@ -4,6 +4,8 @@ import { db } from '../db/connection.js';
 import { tickets } from '../db/schema.js';
 import { createTicketSchema, moveTicketSchema, updateTicketSchema } from '@ai-jam/shared';
 import { broadcastToBoard } from '../websocket/socket-server.js';
+import { getSourceFromRequest } from '../utils/source-header.js';
+import { notifyProjectMembers } from '../services/notification-service.js';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
@@ -37,6 +39,7 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       if (!featureId) return reply.status(400).send({ error: 'featureId is required' });
 
       const { userId } = request.user;
+      const source = getSourceFromRequest(request);
       const [ticket] = await db.insert(tickets).values({
         projectId: request.params.projectId,
         featureId,
@@ -46,6 +49,7 @@ export async function ticketRoutes(fastify: FastifyInstance) {
         priority: parsed.data.priority || 'medium',
         storyPoints: parsed.data.storyPoints || null,
         createdBy: userId,
+        source,
       }).returning();
 
       broadcastToBoard(request.params.projectId, 'board:ticket:created', { ticket });
@@ -97,6 +101,19 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       toStatus: parsed.data.toStatus,
       sortOrder: ticket.sortOrder,
     });
+
+    const persona = current.assignedPersona || getSourceFromRequest(request) || 'unknown';
+    notifyProjectMembers({
+      projectId: ticket.projectId,
+      type: 'ticket_moved',
+      title: `${ticket.title} moved to ${parsed.data.toStatus}`,
+      body: `Ticket moved from ${current.status} to ${parsed.data.toStatus} by ${persona}`,
+      actionUrl: `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
+      featureId: ticket.featureId ?? undefined,
+      ticketId: ticket.id,
+      metadata: { fromStatus: current.status, toStatus: parsed.data.toStatus, persona },
+    }).catch(() => {});
+
     return ticket;
   });
 
