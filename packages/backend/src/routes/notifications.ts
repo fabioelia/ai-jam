@@ -9,14 +9,17 @@ export async function notificationRoutes(fastify: FastifyInstance) {
 
   // GET /api/notifications — list user notifications with optional filters
   fastify.get<{
-    Querystring: { projectId?: string; unreadOnly?: string; limit?: string; offset?: string };
+    Querystring: { projectId?: string; type?: string; unreadOnly?: string; limit?: string; offset?: string };
   }>('/api/notifications', async (request) => {
     const { userId } = request.user;
-    const { projectId, unreadOnly, limit, offset } = request.query;
+    const { projectId, type, unreadOnly, limit, offset } = request.query;
 
     const conditions = [eq(notifications.userId, userId)];
     if (projectId) {
       conditions.push(eq(notifications.projectId, projectId));
+    }
+    if (type) {
+      conditions.push(eq(notifications.type, type));
     }
     if (unreadOnly === 'true') {
       conditions.push(eq(notifications.isRead, 0));
@@ -111,6 +114,27 @@ export async function notificationRoutes(fastify: FastifyInstance) {
 
       if (result.length === 0) return reply.status(404).send({ error: 'Notification not found' });
       return { ok: true };
+    },
+  );
+
+  // DELETE /api/notifications/read — bulk delete all read notifications
+  fastify.delete<{ Body: { projectId?: string } }>(
+    '/api/notifications/read',
+    async (request) => {
+      const { userId } = request.user;
+      const { projectId } = request.body ?? {};
+
+      const conditions = [eq(notifications.userId, userId), eq(notifications.isRead, 1)];
+      if (projectId) {
+        conditions.push(eq(notifications.projectId, projectId));
+      }
+
+      const deleted = await db
+        .delete(notifications)
+        .where(and(...conditions))
+        .returning();
+
+      return { deleted: deleted.length };
     },
   );
 
