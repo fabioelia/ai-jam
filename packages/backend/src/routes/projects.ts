@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { eq, or, desc, and, sql, count, inArray } from 'drizzle-orm';
+import { eq, or, desc, asc, and, sql, count, inArray } from 'drizzle-orm';
 import { db } from '../db/connection.js';
-import { projects, projectMembers, users, features, chatSessions, agentSessions, tickets, ticketProposals, chatMessages } from '../db/schema.js';
+import { projects, projectMembers, users, features, chatSessions, agentSessions, tickets, ticketProposals, chatMessages, transitionGates } from '../db/schema.js';
 import { createProjectSchema } from '@ai-jam/shared';
 import { ensureWorkspace } from '../services/repo-workspace.js';
 
@@ -80,11 +80,124 @@ export async function projectRoutes(fastify: FastifyInstance) {
     if (body.personaModelOverrides && typeof body.personaModelOverrides === 'object') {
       updates.personaModelOverrides = body.personaModelOverrides;
     }
+    if (typeof body.maxRejectionCycles === 'number') {
+      const v = Math.round(body.maxRejectionCycles);
+      if (v < 1 || v > 10) return reply.status(400).send({ error: 'maxRejectionCycles must be between 1 and 10' });
+      updates.maxRejectionCycles = v;
+    }
 
     const [project] = await db.update(projects).set({ ...updates, updatedAt: new Date() }).where(eq(projects.id, request.params.id)).returning();
     if (!project) return reply.status(404).send({ error: 'Project not found' });
     return project;
   });
+
+  // Valid transition gate keys (derived from ticket_status enum adjacencies)
+  const VALID_GATE_KEYS = new Set([
+    'backlog_to_in_progress',
+    'in_progress_to_review',
+    'review_to_qa',
+    'qa_to_acceptance',
+    'acceptance_to_done',
+  ]);
+
+  // GET /api/projects/:projectId/settings — return project settings including transition gates
+  fastify.get<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/settings',
+    async (request, reply) => {
+      const [project] = await db
+        .select({
+          transitionGates: projects.transitionGates,
+          personaModelOverrides: projects.personaModelOverrides,
+          maxRejectionCycles: projects.maxRejectionCycles,
+        })
+        .from(projects)
+        .where(eq(projects.id, request.params.projectId))
+        .limit(1);
+
+      if (!project) return reply.status(404).send({ error: 'Project not found' });
+
+      return {
+        transitionGates: project.transitionGates ?? {},
+        personaModelOverrides: project.personaModelOverrides ?? {},
+        maxRejectionCycles: project.maxRejectionCycles,
+      };
+    }
+  );
+
+  // PATCH /api/projects/:projectId/settings — update transition gates (partial update)
+  fastify.patch<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/settings',
+    async (request, reply) => {
+      const body = request.body as Record<string, unknown>;
+
+      // Validate transitionGates if provided
+      if (body.transitionGates !== undefined) {
+        if (typeof body.transitionGates !== 'object' || body.transitionGates === null || Array.isArray(body.transitionGates)) {
+          return reply.status(400).send({ error: 'transitionGates must be an object' });
+        }
+
+        const gates = body.transitionGates as Record<string, unknown>;
+        const invalidKeys = Object.keys(gates).filter((k) => !VALID_GATE_KEYS.has(k));
+        if (invalidKeys.length > 0) {
+          return reply.status(400).send({
+            error: `Invalid transition gate keys: ${invalidKeys.join(', ')}. Valid keys: ${[...VALID_GATE_KEYS].join(', ')}`,
+          });
+        }
+
+        const nonBoolValues = Object.entries(gates).filter(([, v]) => typeof v !== 'boolean');
+        if (nonBoolValues.length > 0) {
+          return reply.status(400).send({ error: 'All transition gate values must be booleans' });
+        }
+      }
+
+      // Build updates
+      const updates: Record<string, unknown> = {};
+
+      if (body.transitionGates !== undefined) {
+        // Merge with existing gates (partial update)
+        const [existing] = await db
+          .select({ transitionGates: projects.transitionGates })
+          .from(projects)
+          .where(eq(projects.id, request.params.projectId))
+          .limit(1);
+
+        if (!existing) return reply.status(404).send({ error: 'Project not found' });
+
+        updates.transitionGates = {
+          ...((existing.transitionGates as Record<string, boolean>) ?? {}),
+          ...(body.transitionGates as Record<string, boolean>),
+        };
+      }
+
+      if (typeof body.maxRejectionCycles === 'number') {
+        const v = Math.round(body.maxRejectionCycles);
+        if (v < 1 || v > 10) return reply.status(400).send({ error: 'maxRejectionCycles must be between 1 and 10' });
+        updates.maxRejectionCycles = v;
+      }
+
+      if (body.personaModelOverrides && typeof body.personaModelOverrides === 'object') {
+        updates.personaModelOverrides = body.personaModelOverrides;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return reply.status(400).send({ error: 'No valid settings to update' });
+      }
+
+      const [project] = await db
+        .update(projects)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(projects.id, request.params.projectId))
+        .returning();
+
+      if (!project) return reply.status(404).send({ error: 'Project not found' });
+
+      return {
+        transitionGates: project.transitionGates ?? {},
+        personaModelOverrides: project.personaModelOverrides ?? {},
+        maxRejectionCycles: project.maxRejectionCycles,
+      };
+    }
+  );
 
   // Delete project
   fastify.delete<{ Params: { id: string } }>('/api/projects/:id', async (request, reply) => {
@@ -165,6 +278,92 @@ export async function projectRoutes(fastify: FastifyInstance) {
       await db.delete(projectMembers)
         .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)));
       return { ok: true };
+    }
+  );
+
+  // Pending approvals across project (proposals + transition gates awaiting human action)
+  fastify.get<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/pending-approvals',
+    async (request, reply) => {
+      const { projectId } = request.params;
+
+      // Verify project exists
+      const [project] = await db.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).limit(1);
+      if (!project) return reply.status(404).send({ error: 'Project not found' });
+
+      // Pending/edited ticket proposals with feature context
+      const proposalRows = await db
+        .select({
+          id: ticketProposals.id,
+          featureId: ticketProposals.featureId,
+          featureTitle: features.title,
+          ticketData: ticketProposals.ticketData,
+          source: ticketProposals.source,
+          createdAt: ticketProposals.createdAt,
+        })
+        .from(ticketProposals)
+        .innerJoin(features, eq(features.id, ticketProposals.featureId))
+        .where(
+          and(
+            eq(features.projectId, projectId),
+            or(eq(ticketProposals.status, 'pending'), eq(ticketProposals.status, 'edited')),
+          ),
+        )
+        .orderBy(asc(ticketProposals.createdAt));
+
+      // Pending transition gates with ticket + feature context
+      const gateRows = await db
+        .select({
+          id: transitionGates.id,
+          ticketId: transitionGates.ticketId,
+          ticketTitle: tickets.title,
+          featureId: tickets.featureId,
+          featureTitle: features.title,
+          fromStatus: transitionGates.fromStatus,
+          toStatus: transitionGates.toStatus,
+          gatekeeperPersona: transitionGates.gatekeeperPersona,
+          createdAt: transitionGates.createdAt,
+        })
+        .from(transitionGates)
+        .innerJoin(tickets, eq(tickets.id, transitionGates.ticketId))
+        .innerJoin(features, eq(features.id, tickets.featureId))
+        .where(
+          and(
+            eq(tickets.projectId, projectId),
+            eq(transitionGates.result, 'pending'),
+          ),
+        )
+        .orderBy(asc(transitionGates.createdAt));
+
+      const proposals = proposalRows.map((r) => ({
+        id: r.id,
+        type: 'proposal' as const,
+        featureId: r.featureId,
+        featureTitle: r.featureTitle,
+        ticketTitle: (r.ticketData as Record<string, unknown>)?.title as string | undefined,
+        ticketPriority: (r.ticketData as Record<string, unknown>)?.priority as string | undefined,
+        source: r.source,
+        createdAt: r.createdAt,
+      }));
+
+      const gates = gateRows.map((r) => ({
+        id: r.id,
+        type: 'gate' as const,
+        ticketId: r.ticketId,
+        ticketTitle: r.ticketTitle,
+        featureId: r.featureId,
+        featureTitle: r.featureTitle,
+        fromStatus: r.fromStatus,
+        toStatus: r.toStatus,
+        gatekeeperPersona: r.gatekeeperPersona,
+        createdAt: r.createdAt,
+      }));
+
+      return {
+        proposals,
+        gates,
+        totalCount: proposals.length + gates.length,
+      };
     }
   );
 
