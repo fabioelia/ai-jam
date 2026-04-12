@@ -15,13 +15,23 @@ export default function DashboardPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
+  const [localPath, setLocalPath] = useState('');
+  const [sourceType, setSourceType] = useState<'repo' | 'local'>('repo');
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    await createProject.mutateAsync({ name, repoUrl });
+    const data: { name: string; repoUrl?: string; localPath?: string; supportWorktrees?: boolean } = { name };
+    if (sourceType === 'repo') {
+      data.repoUrl = repoUrl;
+    } else {
+      data.localPath = localPath;
+      data.supportWorktrees = false;
+    }
+    await createProject.mutateAsync(data);
     setShowCreate(false);
     setName('');
     setRepoUrl('');
+    setLocalPath('');
   }
 
   return (
@@ -63,15 +73,53 @@ export default function DashboardPage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-300 mb-1">Repository URL</label>
-              <input
-                type="url"
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                placeholder="https://github.com/org/repo"
-                required
-              />
+              <label className="block text-sm text-gray-300 mb-2">Source</label>
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setSourceType('repo')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    sourceType === 'repo'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-gray-300'
+                  }`}
+                >
+                  Repository URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSourceType('local')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    sourceType === 'local'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-gray-300'
+                  }`}
+                >
+                  Local Directory
+                </button>
+              </div>
+              {sourceType === 'repo' ? (
+                <input
+                  type="text"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  placeholder="https://github.com/org/repo or owner/repo"
+                  required
+                />
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={localPath}
+                    onChange={(e) => setLocalPath(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    placeholder="/path/to/your/project"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Absolute path to a local git repository. Worktrees will be disabled — one feature at a time.</p>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
               <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium">
@@ -97,15 +145,36 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <button
+              <div
                 key={project.id}
-                onClick={() => navigate(`/projects/${project.id}/board`)}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-left hover:border-gray-700 transition-colors"
+                className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors"
               >
-                <h3 className="text-white font-medium mb-1">{project.name}</h3>
-                <p className="text-gray-500 text-sm truncate">{project.repoUrl}</p>
-                <p className="text-gray-600 text-xs mt-2">Branch: {project.defaultBranch}</p>
-              </button>
+                <button
+                  onClick={() => navigate(`/projects/${project.id}/board`)}
+                  className="text-left w-full"
+                >
+                  <h3 className="text-white font-medium mb-1">{project.name}</h3>
+                  <p className="text-gray-500 text-sm truncate">{project.repoUrl || project.localPath}</p>
+                  <p className="text-gray-600 text-xs mt-2">
+                    {project.localPath ? 'Local' : 'Branch: ' + project.defaultBranch}
+                  </p>
+                </button>
+                <div className="flex gap-2 mt-4 pt-3 border-t border-gray-800">
+                  <button
+                    onClick={() => navigate(`/projects/${project.id}/board`)}
+                    className="text-xs text-indigo-400 hover:text-indigo-300"
+                  >
+                    Board
+                  </button>
+                  <span className="text-gray-700">|</span>
+                  <button
+                    onClick={() => navigate(`/projects/${project.id}/settings`)}
+                    className="text-xs text-gray-400 hover:text-gray-300"
+                  >
+                    Settings
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}

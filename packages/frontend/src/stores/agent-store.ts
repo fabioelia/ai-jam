@@ -20,6 +20,7 @@ interface AgentStore {
   sessionOutput: (sessionId: string, chunk: string) => void;
   sessionCompleted: (sessionId: string, summary: string | null, failed?: boolean) => void;
   getSessionForTicket: (ticketId: string) => AgentSessionInfo | undefined;
+  getLastSessionForTicket: (ticketId: string) => AgentSessionInfo | undefined;
   clearCompleted: () => void;
 }
 
@@ -114,6 +115,18 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       }
     }
     return undefined;
+  },
+
+  getLastSessionForTicket: (ticketId) => {
+    let latest: AgentSessionInfo | undefined;
+    for (const session of get().sessions.values()) {
+      if (session.ticketId === ticketId) {
+        if (!latest || (session.status === 'running' || session.status === 'starting')) {
+          latest = session;
+        }
+      }
+    }
+    return latest;
   },
 
   clearCompleted: () => {

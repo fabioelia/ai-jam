@@ -3,8 +3,12 @@ import type { FeatureStatus, ProjectRole } from '../enums.js';
 export interface Project {
   id: string;
   name: string;
-  repoUrl: string;
+  repoUrl: string | null;
+  localPath: string | null;
   defaultBranch: string;
+  supportWorktrees: boolean;
+  personaModelOverrides: Record<string, string>;
+  maxRejectionCycles: number;
   ownerId: string;
   createdAt: string;
   updatedAt: string;
@@ -30,8 +34,10 @@ export interface Feature {
 
 export interface CreateProjectRequest {
   name: string;
-  repoUrl: string;
+  repoUrl?: string;
+  localPath?: string;
   defaultBranch?: string;
+  supportWorktrees?: boolean;
   githubToken?: string;
 }
 

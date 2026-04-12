@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/connection.js';
-import { ticketProposals, tickets, epics, features } from '../db/schema.js';
-import { broadcastToBoard, broadcastToFeature } from '../websocket/socket-server.js';
+import { ticketProposals } from '../db/schema.js';
+import { broadcastToFeature } from '../websocket/socket-server.js';
+import { getSourceFromRequest } from '../utils/source-header.js';
+import { approveProposal } from '../services/proposal-service.js';
 
 export async function proposalRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
@@ -21,6 +23,55 @@ export async function proposalRoutes(fastify: FastifyInstance) {
         .select()
         .from(ticketProposals)
         .where(and(...conditions));
+    }
+  );
+
+  // Create a proposal (used by MCP server agents)
+  fastify.post<{
+    Params: { featureId: string };
+    Body: {
+      chatSessionId: string;
+      ticketData: {
+        title: string;
+        description: string;
+        epicTitle?: string;
+        priority?: string;
+        storyPoints?: number;
+        acceptanceCriteria?: string[];
+      };
+    };
+  }>(
+    '/api/features/:featureId/proposals',
+    async (request, reply) => {
+      const { featureId } = request.params;
+      const { chatSessionId, ticketData } = request.body;
+
+      if (!chatSessionId || !ticketData?.title) {
+        return reply.status(400).send({ error: 'chatSessionId and ticketData.title are required' });
+      }
+
+      const source = getSourceFromRequest(request);
+
+      const [proposal] = await db
+        .insert(ticketProposals)
+        .values({
+          chatSessionId,
+          featureId,
+          status: 'pending',
+          ticketData,
+          source,
+        })
+        .returning();
+
+      broadcastToFeature(featureId, 'proposal:created', {
+        proposalId: proposal.id,
+        ticketData,
+      });
+
+      // Auto-approve: create real ticket immediately
+      const result = await approveProposal(proposal.id, request.user.userId, { source });
+
+      return result;
     }
   );
 
@@ -50,70 +101,12 @@ export async function proposalRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Proposal is not pending' });
       }
 
-      const data = (request.body?.ticketData || proposal.ticketData) as Record<string, unknown>;
+      const source = getSourceFromRequest(request);
 
-      // Get the feature to find projectId
-      const [feature] = await db
-        .select()
-        .from(features)
-        .where(eq(features.id, proposal.featureId));
-      if (!feature) return reply.status(404).send({ error: 'Feature not found' });
-
-      // Resolve epic if epicTitle is provided
-      let epicId: string | null = null;
-      if (data.epicTitle) {
-        const [existingEpic] = await db
-          .select()
-          .from(epics)
-          .where(and(eq(epics.featureId, proposal.featureId), eq(epics.title, data.epicTitle as string)));
-
-        if (existingEpic) {
-          epicId = existingEpic.id;
-        } else {
-          // Create the epic
-          const [newEpic] = await db
-            .insert(epics)
-            .values({
-              featureId: proposal.featureId,
-              title: data.epicTitle as string,
-              color: (data.epicColor as string) || null,
-            })
-            .returning();
-          epicId = newEpic.id;
-
-          broadcastToBoard(feature.projectId, 'board:epic:created', { epic: newEpic });
-        }
-      }
-
-      // Create the ticket
-      const [ticket] = await db
-        .insert(tickets)
-        .values({
-          featureId: proposal.featureId,
-          projectId: feature.projectId,
-          epicId,
-          title: data.title as string,
-          description: (data.description as string) || null,
-          priority: (data.priority as 'critical' | 'high' | 'medium' | 'low') || 'medium',
-          storyPoints: (data.storyPoints as number) || null,
-          createdBy: request.user.userId,
-        })
-        .returning();
-
-      // Update proposal status
-      await db
-        .update(ticketProposals)
-        .set({ status: 'approved', resolvedAt: new Date() })
-        .where(eq(ticketProposals.id, proposal.id));
-
-      // Broadcast events
-      broadcastToBoard(feature.projectId, 'board:ticket:created', { ticket });
-      broadcastToFeature(proposal.featureId, 'proposal:approved', {
-        proposalId: proposal.id,
-        ticketId: ticket.id,
+      return approveProposal(proposal.id, request.user.userId, {
+        ticketData: request.body?.ticketData,
+        source,
       });
-
-      return { proposal: { ...proposal, status: 'approved' }, ticket };
     }
   );
 

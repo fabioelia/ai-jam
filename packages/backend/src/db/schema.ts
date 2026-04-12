@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, pgEnum, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, pgEnum, primaryKey, unique } from 'drizzle-orm/pg-core';
 
 // Enums
 export const ticketStatusEnum = pgEnum('ticket_status', [
@@ -16,6 +16,7 @@ export const users = pgTable('users', {
   name: varchar('name', { length: 255 }).notNull(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   avatarUrl: varchar('avatar_url', { length: 512 }),
+  preferences: jsonb('preferences').default({}).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -24,9 +25,14 @@ export const users = pgTable('users', {
 export const projects = pgTable('projects', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  repoUrl: varchar('repo_url', { length: 512 }).notNull(),
+  repoUrl: varchar('repo_url', { length: 512 }),
+  localPath: varchar('local_path', { length: 1024 }),
   defaultBranch: varchar('default_branch', { length: 255 }).default('main').notNull(),
+  supportWorktrees: integer('support_worktrees').default(1).notNull(),
   githubTokenEncrypted: text('github_token_encrypted'),
+  personaModelOverrides: jsonb('persona_model_overrides').default({}).notNull(),
+  transitionGates: jsonb('transition_gates').default({}).notNull(),
+  maxRejectionCycles: integer('max_rejection_cycles').default(3).notNull(),
   ownerId: uuid('owner_id').notNull().references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -90,6 +96,8 @@ export const ticketProposals = pgTable('ticket_proposals', {
   proposedByMessageId: uuid('proposed_by_message_id').references(() => chatMessages.id),
   status: varchar('status', { length: 50 }).default('pending').notNull(),
   ticketData: jsonb('ticket_data').notNull(),
+  /** Origin of this record: 'human' (UI), 'mcp' (agent tool), 'api' (direct API call) */
+  source: varchar('source', { length: 20 }).default('human').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 });
@@ -121,6 +129,8 @@ export const tickets = pgTable('tickets', {
   assignedPersona: varchar('assigned_persona', { length: 100 }),
   assignedUserId: uuid('assigned_user_id').references(() => users.id, { onDelete: 'set null' }),
   createdBy: uuid('created_by').notNull().references(() => users.id),
+  /** Origin of this record: 'human' (UI), 'mcp' (agent tool), 'api' (direct API call) */
+  source: varchar('source', { length: 20 }).default('human').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -135,6 +145,8 @@ export const ticketNotes = pgTable('ticket_notes', {
   fileUris: jsonb('file_uris').default([]).notNull(),
   handoffFrom: varchar('handoff_from', { length: 255 }),
   handoffTo: varchar('handoff_to', { length: 255 }),
+  /** Origin of this record: 'human' (UI), 'mcp' (agent tool), 'api' (direct API call) */
+  source: varchar('source', { length: 20 }).default('human').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -144,6 +156,8 @@ export const comments = pgTable('comments', {
   ticketId: uuid('ticket_id').notNull().references(() => tickets.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id),
   body: text('body').notNull(),
+  /** Origin of this record: 'human' (UI), 'mcp' (agent tool), 'api' (direct API call) */
+  source: varchar('source', { length: 20 }).default('human').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -180,6 +194,85 @@ export const agentSessions = pgTable('agent_sessions', {
   startedAt: timestamp('started_at', { withTimezone: true }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// System Prompts (user-editable, per-project or global)
+export const systemPrompts = pgTable('system_prompts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  slug: varchar('slug', { length: 100 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  content: text('content').notNull(),
+  isDefault: integer('is_default').default(0).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Project Scans (LLM-driven repo analysis)
+export const projectScans = pgTable('project_scans', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  systemPromptId: uuid('system_prompt_id').references(() => systemPrompts.id, { onDelete: 'set null' }),
+  status: varchar('status', { length: 50 }).default('pending').notNull(),
+  outputSummary: text('output_summary'),
+  outputFiles: jsonb('output_files').default([]).notNull(),
+  agentSessionId: varchar('agent_session_id', { length: 255 }),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  featureId: uuid('feature_id').references(() => features.id, { onDelete: 'set null' }),
+  ticketId: uuid('ticket_id').references(() => tickets.id, { onDelete: 'set null' }),
+  type: varchar('type', { length: 100 }).notNull(),
+  title: varchar('title', { length: 500 }).notNull(),
+  body: text('body'),
+  actionUrl: varchar('action_url', { length: 1024 }),
+  contextId: varchar('context_id', { length: 255 }),
+  metadata: jsonb('metadata'),
+  isRead: integer('is_read').default(0).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Notification Preferences
+export const notificationPreferences = pgTable('notification_preferences', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  notificationType: varchar('notification_type', { length: 50 }).notNull(),
+  enabled: integer('enabled').default(1).notNull(),
+}, (table) => [
+  unique('notification_preferences_user_project_type').on(table.userId, table.projectId, table.notificationType),
+]);
+
+// Attention Items (aggregated human intervention points)
+export const attentionItemTypeEnum = pgEnum('attention_item_type', [
+  'transition_gate', 'failed_session', 'human_escalation', 'stuck_ticket', 'proposal_review',
+]);
+
+export const attentionItemStatusEnum = pgEnum('attention_item_status', [
+  'pending', 'resolved', 'dismissed',
+]);
+
+export const attentionItems = pgTable('attention_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  featureId: uuid('feature_id').references(() => features.id, { onDelete: 'set null' }),
+  ticketId: uuid('ticket_id').references(() => tickets.id, { onDelete: 'set null' }),
+  type: attentionItemTypeEnum('type').notNull(),
+  status: attentionItemStatusEnum('status').default('pending').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
 });
 
 // Persona Definitions (cached from .md files)

@@ -30,6 +30,7 @@ export interface TicketProposal {
   proposedByMessageId: string | null;
   status: ProposalStatus;
   ticketData: ProposedTicketData;
+  source: 'human' | 'mcp' | 'api';
   createdAt: string;
   resolvedAt: string | null;
 }

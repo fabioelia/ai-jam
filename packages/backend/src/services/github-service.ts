@@ -1,7 +1,10 @@
-import { Octokit } from 'octokit';
 import simpleGit, { type SimpleGit } from 'simple-git';
 import { join } from 'path';
 import { mkdirSync, existsSync } from 'fs';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 const WORKSPACES_DIR = join(process.env.HOME || '/tmp', '.ai-jam', 'workspaces');
 
@@ -26,57 +29,45 @@ export interface PullRequestResult {
 }
 
 /**
- * Parse a GitHub URL into owner/repo.
+ * Normalize a repo URL into an "owner/repo" slug.
+ * Handles:
+ *   https://github.com/owner/repo
+ *   https://github.com/owner/repo.git
+ *   git@github.com:owner/repo.git
+ *   owner/repo
  */
 export function parseRepoUrl(url: string): { owner: string; repo: string } {
-  // Handles https://github.com/owner/repo.git and git@github.com:owner/repo.git
-  const httpsMatch = url.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
-  if (httpsMatch) {
-    return { owner: httpsMatch[1], repo: httpsMatch[2] };
+  // Already owner/repo format
+  const shortMatch = url.match(/^([^/:@]+)\/([^/.]+)$/);
+  if (shortMatch) {
+    return { owner: shortMatch[1], repo: shortMatch[2] };
   }
+
+  // HTTPS or SSH github URL
+  const match = url.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
+  if (match) {
+    return { owner: match[1], repo: match[2] };
+  }
+
   throw new Error(`Cannot parse GitHub URL: ${url}`);
 }
 
 /**
- * Create an Octokit client from a GitHub token.
+ * Convert any repo URL to the "owner/repo" form that `gh repo clone` accepts.
  */
-export function createOctokit(token: string): Octokit {
-  return new Octokit({ auth: token });
+export function repoSlug(url: string): string {
+  const { owner, repo } = parseRepoUrl(url);
+  return `${owner}/${repo}`;
 }
 
 /**
- * Get repository information.
- */
-export async function getRepoInfo(octokit: Octokit, owner: string, repo: string): Promise<RepoInfo> {
-  const { data } = await octokit.rest.repos.get({ owner, repo });
-  return {
-    owner,
-    repo,
-    defaultBranch: data.default_branch,
-    description: data.description,
-    private: data.private,
-  };
-}
-
-/**
- * List branches for a repository.
- */
-export async function listBranches(octokit: Octokit, owner: string, repo: string): Promise<BranchInfo[]> {
-  const { data } = await octokit.rest.repos.listBranches({ owner, repo, per_page: 100 });
-  return data.map((b) => ({
-    name: b.name,
-    sha: b.commit.sha,
-    protected: b.protected,
-  }));
-}
-
-/**
- * Clone a repository to a local workspace directory.
- * Returns the local path. Works for public repos without a token.
+ * Clone a repository using `gh repo clone`, which automatically uses the
+ * user's `gh auth` session (no separate token needed).
+ * Falls back to plain `git clone` for non-GitHub repos.
  */
 export async function cloneRepo(
   repoUrl: string,
-  token: string | null,
+  _token: string | null, // kept for backward compat, ignored — gh handles auth
   projectId: string,
   branch?: string,
 ): Promise<string> {
@@ -94,18 +85,25 @@ export async function cloneRepo(
     return localPath;
   }
 
-  // Build clone URL — add token auth if available
-  let cloneUrl = repoUrl;
-  if (token) {
-    cloneUrl = repoUrl.replace('https://', `https://x-access-token:${token}@`);
+  // Try gh repo clone first (handles auth via gh CLI)
+  try {
+    const slug = repoSlug(repoUrl);
+    // Don't pass --branch on initial clone — let git pick the repo's default branch.
+    // We'll checkout the desired branch after if it differs.
+    await execFileAsync('gh', ['repo', 'clone', slug, localPath], { timeout: 120_000 });
+  } catch (ghErr) {
+    console.warn('[github-service] gh clone failed, falling back to git clone:', (ghErr as Error).message);
+
+    // Fallback: plain git clone (works for public repos or if git has credentials configured)
+    const git: SimpleGit = simpleGit();
+    await git.clone(repoUrl, localPath);
   }
 
-  const git: SimpleGit = simpleGit();
-  const options: string[] = [];
+  // Checkout the requested branch if specified
   if (branch) {
-    options.push('--branch', branch);
+    const git: SimpleGit = simpleGit(localPath);
+    try { await git.checkout(branch); } catch { /* branch may not exist — stay on default */ }
   }
-  await git.clone(cloneUrl, localPath, options);
 
   return localPath;
 }
@@ -137,10 +135,10 @@ export async function pushBranch(localPath: string, branchName: string): Promise
 }
 
 /**
- * Create a pull request via GitHub API.
+ * Create a pull request via gh CLI.
  */
 export async function createPullRequest(
-  octokit: Octokit,
+  _octokit: unknown,
   owner: string,
   repo: string,
   title: string,
@@ -148,18 +146,20 @@ export async function createPullRequest(
   head: string,
   base: string,
 ): Promise<PullRequestResult> {
-  const { data } = await octokit.rest.pulls.create({
-    owner,
-    repo,
-    title,
-    body,
-    head,
-    base,
-  });
+  const { stdout } = await execFileAsync('gh', [
+    'pr', 'create',
+    '--repo', `${owner}/${repo}`,
+    '--title', title,
+    '--body', body,
+    '--head', head,
+    '--base', base,
+    '--json', 'number,url,title',
+  ]);
 
+  const data = JSON.parse(stdout);
   return {
     number: data.number,
-    url: data.html_url,
+    url: data.url,
     title: data.title,
   };
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from './client.js';
-import type { Project, Feature, Ticket, Comment, ChatSession, ChatMessage } from '@ai-jam/shared';
+import type { Project, Feature, Ticket, Comment, ChatSession, ChatMessage, AttentionItem } from '@ai-jam/shared';
 import type { CreateProjectRequest, CreateFeatureRequest, CreateTicketRequest, MoveTicketRequest, CreateCommentRequest, CreateEpicRequest } from '@ai-jam/shared';
 
 export function useCreateProject() {
@@ -192,6 +192,35 @@ export function useRejectProposal(featureId: string) {
     mutationFn: (proposalId: string) =>
       apiFetch(`/proposals/${proposalId}/reject`, { method: 'POST', body: JSON.stringify({}) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['proposals', featureId] }),
+  });
+}
+
+// -- Attention Items --
+
+export function useResolveAttention(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, resolutionNote }: { id: string; resolutionNote?: string }) =>
+      apiFetch<AttentionItem>(`/attention/${id}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ resolutionNote }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['attention', projectId] });
+      qc.invalidateQueries({ queryKey: ['attention-count'] });
+    },
+  });
+}
+
+export function useDismissAttention(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<AttentionItem>(`/attention/${id}/dismiss`, { method: 'POST', body: JSON.stringify({}) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['attention', projectId] });
+      qc.invalidateQueries({ queryKey: ['attention-count'] });
+    },
   });
 }
 

@@ -5,11 +5,14 @@
 
 // -- Requests (backend -> agent-runtime) --
 
+export type SessionType = 'planning' | 'execution' | 'scan';
+
 export interface SpawnSessionRequest {
   type: 'spawn_session';
   id: string; // request correlation id
   payload: {
     sessionId: string;
+    sessionType: SessionType;
     personaType: string;
     model: string;
     prompt: string;
@@ -18,6 +21,18 @@ export interface SpawnSessionRequest {
     addDirs?: string[];
     name?: string;
     interactive?: boolean;
+    systemContext?: string;
+    /** MCP server context — when provided, agent gets structured tools via MCP. */
+    mcpContext?: {
+      sessionId: string;
+      projectId: string;
+      featureId: string;
+      ticketId?: string;
+      userId: string;
+      authToken: string;
+      apiBaseUrl?: string;
+      phase: 'planning' | 'execution';
+    };
   };
 }
 
@@ -168,6 +183,7 @@ export type RuntimeMessage = RuntimeRequest | RuntimeResponse | RuntimeEvent;
 
 export interface SessionInfo {
   sessionId: string;
+  sessionType: SessionType;
   personaType: string;
   model: string;
   ptyInstanceId: string;

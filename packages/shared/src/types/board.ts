@@ -1,4 +1,4 @@
-import type { TicketStatus, TicketPriority, GateResult } from '../enums.js';
+import type { TicketStatus, TicketPriority, GateResult, AttentionItemType, AttentionItemStatus } from '../enums.js';
 
 export interface Epic {
   id: string;
@@ -25,6 +25,7 @@ export interface Ticket {
   assignedPersona: string | null;
   assignedUserId: string | null;
   createdBy: string;
+  source: 'human' | 'mcp' | 'api';
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +39,7 @@ export interface TicketNote {
   fileUris: string[];
   handoffFrom: string | null;
   handoffTo: string | null;
+  source: 'human' | 'mcp' | 'api';
   createdAt: string;
 }
 
@@ -46,6 +48,7 @@ export interface Comment {
   ticketId: string;
   userId: string;
   body: string;
+  source: 'human' | 'mcp' | 'api';
   createdAt: string;
   updatedAt: string;
 }
@@ -61,6 +64,21 @@ export interface TransitionGate {
   agentSessionId: string | null;
   createdAt: string;
   resolvedAt: string | null;
+}
+
+export interface AttentionItem {
+  id: string;
+  projectId: string;
+  featureId: string | null;
+  ticketId: string | null;
+  type: AttentionItemType;
+  status: AttentionItemStatus;
+  title: string;
+  description: string | null;
+  metadata: unknown;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
 }
 
 export interface BoardColumn {

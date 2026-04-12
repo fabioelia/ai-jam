@@ -8,6 +8,62 @@
       "when": 1775826424217,
       "tag": "0000_cute_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775859700823,
+      "tag": "0001_glossy_sway",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775900000000,
+      "tag": "0002_add_source_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776001200000,
+      "tag": "0003_add_persona_model_overrides",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776177600000,
+      "tag": "0004_add_notification_feature_ticket_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776006010019,
+      "tag": "0005_acoustic_serpent_society",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776006708522,
+      "tag": "0006_broken_harry_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776009144386,
+      "tag": "0007_cold_marvex",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776009204858,
+      "tag": "0008_fixed_war_machine",
+      "breakpoints": true
     }
   ]
 }

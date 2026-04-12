@@ -1,21 +1,7 @@
-import type { Ticket, Epic, Comment, TransitionGate } from './board.js';
-import type { AgentActivity, NotificationType } from '../enums.js';
-
-// Notification types for Socket.IO events
-export interface Notification {
-  id: string;
-  userId: string;
-  projectId: string | null;
-  featureId: string | null;
-  ticketId: string | null;
-  type: NotificationType;
-  title: string;
-  body: string | null;
-  actionUrl: string | null;
-  metadata: unknown;
-  isRead: number;
-  createdAt: string;
-}
+import type { Ticket, Epic, Comment, TransitionGate, AttentionItem } from './board.js';
+import type { AttentionItemStatus } from '../enums.js';
+import type { AgentActivity } from '../enums.js';
+import type { Notification } from './notification.js';
 
 // Server -> Client events
 export interface ServerToClientEvents {
@@ -47,7 +33,13 @@ export interface ServerToClientEvents {
   // Notification events
   'notification:created': (data: { notification: Notification }) => void;
   'notification:read': (data: { notificationId: string; userId: string }) => void;
+  'notification:read-all': (data: { userId: string; projectId?: string }) => void;
   'notification:count': (data: { projectId: string; userId: string; count: number }) => void;
+
+  // Attention events
+  'attention:created': (data: { item: AttentionItem }) => void;
+  'attention:resolved': (data: { itemId: string; status: AttentionItemStatus }) => void;
+  'attention:count': (data: { count: number }) => void;
 
   // Terminal PTY events
   'pty:data': (data: { sessionId: string; data: string }) => void;
@@ -55,6 +47,8 @@ export interface ServerToClientEvents {
 
 // Client -> Server events
 export interface ClientToServerEvents {
+  'join:user': (data: { userId: string }) => void;
+  'leave:user': (data: { userId: string }) => void;
   'join:board': (data: { projectId: string }) => void;
   'leave:board': (data: { projectId: string }) => void;
   'join:ticket': (data: { ticketId: string }) => void;

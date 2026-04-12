@@ -3,6 +3,7 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/connection.js';
 import { ticketNotes } from '../db/schema.js';
 import { broadcastToTicket } from '../websocket/socket-server.js';
+import { getSourceFromRequest } from '../utils/source-header.js';
 
 export async function ticketNoteRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
@@ -36,6 +37,7 @@ export async function ticketNoteRoutes(fastify: FastifyInstance) {
       const { ticketId } = request.params;
       const { authorType, authorId, content, handoffFrom, handoffTo, fileUris } = request.body;
 
+      const source = getSourceFromRequest(request);
       const [note] = await db
         .insert(ticketNotes)
         .values({
@@ -46,6 +48,7 @@ export async function ticketNoteRoutes(fastify: FastifyInstance) {
           handoffFrom: handoffFrom || null,
           handoffTo: handoffTo || null,
           fileUris: fileUris || [],
+          source,
         })
         .returning();
 

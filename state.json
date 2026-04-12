@@ -1,0 +1,42 @@
+{
+  "envId": "f92cff245fca2749-180d99c7-eb104e4d",
+  "services": {
+    "postgres": {
+      "status": "running",
+      "pid": 54585,
+      "port": 5433,
+      "startedAt": 1776033841111,
+      "restarts": 0
+    },
+    "backend": {
+      "status": "running",
+      "pid": 55248,
+      "port": 3002,
+      "startedAt": 1776033847120,
+      "restarts": 0
+    },
+    "pty-daemon": {
+      "status": "running",
+      "pid": 54586,
+      "port": null,
+      "startedAt": 1776033841112,
+      "restarts": 0
+    },
+    "agent-runtime": {
+      "status": "running",
+      "pid": 54587,
+      "port": null,
+      "startedAt": 1776033841113,
+      "restarts": 0
+    },
+    "frontend": {
+      "status": "running",
+      "pid": 55266,
+      "port": 5174,
+      "startedAt": 1776033849127,
+      "restarts": 0
+    }
+  },
+  "shouldBeRunning": true,
+  "updatedAt": "2026-04-12T22:44:11.131Z"
+}

@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { eq, and, desc } from 'drizzle-orm';
+import jwt from 'jsonwebtoken';
 import { db } from '../db/connection.js';
-import { agentSessions, tickets } from '../db/schema.js';
+import { agentSessions, tickets, features } from '../db/schema.js';
+import { config } from '../config.js';
 import { getRuntimeClient, retrySession } from '../agent-runtime/runtime-manager.js';
 import { v4 as uuid } from 'uuid';
 
@@ -36,6 +38,8 @@ export async function agentSessionRoutes(fastify: FastifyInstance) {
   });
 
   // Spawn a new agent session
+  // Pass skipSpawn: true to only create the DB record (used by the orchestrator
+  // which spawns sessions itself via the session manager).
   fastify.post<{
     Body: {
       ticketId: string;
@@ -43,9 +47,10 @@ export async function agentSessionRoutes(fastify: FastifyInstance) {
       model?: string;
       prompt: string;
       workingDirectory?: string;
+      skipSpawn?: boolean;
     };
   }>('/api/agent-sessions', async (request, reply) => {
-    const { ticketId, personaType, model, prompt, workingDirectory } = request.body;
+    const { ticketId, personaType, model, prompt, workingDirectory, skipSpawn } = request.body;
 
     // Verify ticket exists
     const [ticket] = await db.select().from(tickets).where(eq(tickets.id, ticketId));
@@ -64,6 +69,12 @@ export async function agentSessionRoutes(fastify: FastifyInstance) {
       workingDirectory: workingDirectory || null,
     }).returning();
 
+    // When skipSpawn is true, just return the DB record without spawning.
+    // The caller (e.g. orchestrator) is responsible for spawning the session.
+    if (skipSpawn) {
+      return session;
+    }
+
     // Spawn via runtime client
     const client = getRuntimeClient();
     if (!client.isConnected) {
@@ -71,12 +82,37 @@ export async function agentSessionRoutes(fastify: FastifyInstance) {
     }
 
     try {
+      // Look up feature for MCP context
+      let featureId: string | undefined;
+      if (ticket.featureId) {
+        featureId = ticket.featureId;
+      }
+
+      // Generate a long-lived token for the MCP server
+      const { userId } = request.user;
+      const mcpToken = jwt.sign(
+        { userId, email: request.user.email },
+        config.jwtSecret,
+        { expiresIn: '2h' },
+      );
+
       await client.spawnSession({
         sessionId,
+        sessionType: 'execution',
         personaType,
         model: model || 'sonnet',
         prompt,
         workingDirectory: workingDirectory || process.cwd(),
+        mcpContext: featureId ? {
+          sessionId,
+          projectId: ticket.projectId,
+          featureId,
+          ticketId,
+          userId,
+          authToken: mcpToken,
+          apiBaseUrl: `http://localhost:${config.port}`,
+          phase: 'execution',
+        } : undefined,
       });
     } catch (err) {
       // Update DB to failed

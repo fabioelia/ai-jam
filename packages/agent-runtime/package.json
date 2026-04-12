@@ -4,15 +4,20 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:pty": "tsx watch src/pty-daemon.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "start:pty": "node dist/pty-daemon.js"
   },
   "dependencies": {
     "@ai-jam/shared": "workspace:*",
-    "node-pty": "^1.0.0",
-    "yaml": "^2.7.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^16.6.1",
     "gray-matter": "^4.0.3",
-    "uuid": "^11.1.0"
+    "node-pty": "1.1.0",
+    "uuid": "^11.1.0",
+    "yaml": "^2.7.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

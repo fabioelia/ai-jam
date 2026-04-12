@@ -316,6 +316,10 @@ export default function BoardPage() {
             projectId={projectId!}
             selectedFeatureId={selectedFeatureId}
             onSelectFeature={setSelectedFeatureId}
+            onTicketSelect={(ticketId) => {
+              const ticket = board?.columns.flatMap((c) => c.tickets).find((t) => t.id === ticketId);
+              if (ticket) setSelectedTicket(ticket);
+            }}
             width={sidebarWidth}
             onWidthChange={persistSidebarWidth}
           />
@@ -417,6 +421,7 @@ function SessionsSidebar({
   projectId,
   selectedFeatureId,
   onSelectFeature,
+  onTicketSelect,
   width,
   onWidthChange,
 }: {
@@ -424,6 +429,7 @@ function SessionsSidebar({
   projectId: string;
   selectedFeatureId?: string;
   onSelectFeature: (id: string | undefined) => void;
+  onTicketSelect: (ticketId: string) => void;
   width: number;
   onWidthChange: (width: number) => void;
 }) {
@@ -583,7 +589,7 @@ function SessionsSidebar({
               <div
                 key={s.id}
                 className="px-2 py-1.5 rounded-lg bg-gray-800/50 cursor-pointer"
-                onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); }}
+                onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); onTicketSelect(s.ticketId); }}
               >
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 animate-pulse ${statusDot[s.status] || statusDot.completed}`} />
@@ -608,13 +614,16 @@ function SessionsSidebar({
               <div
                 key={s.id}
                 className="px-2 py-1.5 rounded-lg hover:bg-gray-800/30 transition-colors cursor-pointer"
-                onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); }}
+                onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); onTicketSelect(s.ticketId); }}
               >
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot[s.status] || statusDot.completed}`} />
                   <span className={`text-xs ${personaColors[s.personaType] || 'text-gray-500'}`}>
                     {s.personaType.replace(/_/g, ' ')}
                   </span>
+                  {s.status === 'failed' && (
+                    <span className="text-[10px] text-red-400 bg-red-500/10 px-1 rounded">failed</span>
+                  )}
                   {isUnread(s.id, s.completedAt || s.createdAt) && (
                     <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
                   )}
@@ -626,9 +635,11 @@ function SessionsSidebar({
                   <p className="text-[10px] text-gray-600 truncate ml-3.5">{s.featureTitle}</p>
                 )}
                 <p className="text-xs text-gray-500 truncate ml-3.5">{s.ticketTitle}</p>
-                {s.outputSummary && s.status === 'completed' && (
-                  <p className="text-[10px] text-gray-600 truncate ml-3.5 italic">
-                    {s.outputSummary.slice(0, 60)}{s.outputSummary.length > 60 ? '\u2026' : ''}
+                {(s.status === 'completed' || s.status === 'failed') && (
+                  <p className={`text-[10px] ml-3.5 italic ${s.status === 'failed' ? 'text-red-400/70' : 'text-gray-600'}`} title={s.outputSummary || undefined}>
+                    {s.outputSummary
+                      ? `${s.outputSummary.slice(0, 80)}${s.outputSummary.length > 80 ? '\u2026' : ''}`
+                      : s.status === 'failed' ? 'No error details captured' : null}
                   </p>
                 )}
               </div>

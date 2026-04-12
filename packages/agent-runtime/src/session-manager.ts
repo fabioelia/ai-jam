@@ -55,20 +55,27 @@ export class SessionManager extends EventEmitter {
 
     if (options.interactive) {
       // Interactive mode: launch Claude TUI clean.
-      // Persona system prompt goes via --append-system-prompt-file (like Colony's AGENTS.md).
-      // User's initial prompt is sent via sendPromptWhenReady after TUI initializes.
+      // Persona system prompt + project/feature context go via --append-system-prompt-file.
+      // The TUI launches ready for user input — no auto-typed prompt.
       let systemPromptFile: string | undefined;
+      const promptParts: string[] = [];
       if (persona) {
+        promptParts.push(persona.systemPrompt);
+      }
+      if (options.systemContext) {
+        promptParts.push('\n\n---\n\n# Current Context\n\n' + options.systemContext);
+      }
+      if (promptParts.length > 0) {
         const promptDir = join(tmpdir(), 'ai-jam-prompts');
         mkdirSync(promptDir, { recursive: true });
         systemPromptFile = join(promptDir, `${options.sessionId}.md`);
-        writeFileSync(systemPromptFile, persona.systemPrompt);
+        writeFileSync(systemPromptFile, promptParts.join(''));
       }
 
       spawnOpts = {
         ...options,
         model,
-        prompt: '', // Don't pass prompt as CLI arg — sent after TUI ready
+        prompt: '', // No auto-typed prompt — user types first message
         systemPromptFile,
       };
     } else {
@@ -80,7 +87,20 @@ export class SessionManager extends EventEmitter {
       spawnOpts = { ...options, model, prompt: fullPrompt };
     }
 
-    const instance = this.ptyManager.spawn(spawnOpts);
+    let instance;
+    try {
+      instance = this.ptyManager.spawn(spawnOpts);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[session-manager] Failed to spawn PTY for ${options.sessionId}:`, message);
+      // Emit completed with failure so DB gets updated
+      this.emit('session:completed', {
+        sessionId: options.sessionId,
+        exitCode: 1,
+        outputSummary: `Failed to spawn CLI: ${message}`,
+      });
+      throw err;
+    }
 
     this.emit('session:started', {
       sessionId: options.sessionId,
@@ -111,6 +131,7 @@ export class SessionManager extends EventEmitter {
 
     return {
       sessionId: options.sessionId,
+      sessionType: options.sessionType,
       personaType: options.personaType,
       model,
       ptyInstanceId: instance.id,
@@ -202,6 +223,7 @@ export class SessionManager extends EventEmitter {
 
     return {
       sessionId: instance.sessionId,
+      sessionType: instance.sessionType,
       personaType: instance.personaType,
       model: instance.model,
       ptyInstanceId: instance.id,
@@ -213,11 +235,19 @@ export class SessionManager extends EventEmitter {
   }
 
   /**
+   * Maximum concurrent sessions allowed.
+   */
+  getMaxConcurrent(): number {
+    return this.maxConcurrent;
+  }
+
+  /**
    * List all sessions.
    */
   listSessions(): SessionInfo[] {
     return this.ptyManager.listAll().map((instance) => ({
       sessionId: instance.sessionId,
+      sessionType: instance.sessionType,
       personaType: instance.personaType,
       model: instance.model,
       ptyInstanceId: instance.id,
@@ -262,9 +292,25 @@ export class SessionManager extends EventEmitter {
       let outputSummary: string | null = null;
 
       if (instance) {
-        const output = instance.activityDetector.getOutput();
+        // Try activity detector first (clean text), fall back to raw PTY buffer
+        const output = instance.activityDetector.getOutput() || instance.outputBuffer.join('');
         const signals = parseSignals(output);
         outputSummary = signals['SUMMARY'] || null;
+
+        // For failures without a SUMMARY signal, extract tail of output
+        if (!outputSummary && data.exitCode !== 0) {
+          if (output) {
+            // Strip ANSI escape codes, grab last meaningful lines
+            const clean = output.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\r/g, '');
+            const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
+            const tail = lines.slice(-15).join('\n');
+            outputSummary = tail.slice(0, 500) || `Agent exited with code ${data.exitCode} (no output)`;
+          } else {
+            outputSummary = `Agent exited with code ${data.exitCode} (no output captured — CLI may have failed to launch)`;
+          }
+        }
+      } else if (data.exitCode !== 0) {
+        outputSummary = `Agent exited with code ${data.exitCode} (session already cleaned up)`;
       }
 
       this.emit('session:completed', {

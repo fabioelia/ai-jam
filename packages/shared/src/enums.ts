@@ -118,3 +118,33 @@ export const RepoWorkspaceStatus = {
 } as const;
 
 export type RepoWorkspaceStatus = (typeof RepoWorkspaceStatus)[keyof typeof RepoWorkspaceStatus];
+
+export const AttentionItemType = {
+  TRANSITION_GATE: 'transition_gate',
+  FAILED_SESSION: 'failed_session',
+  HUMAN_ESCALATION: 'human_escalation',
+  STUCK_TICKET: 'stuck_ticket',
+  PROPOSAL_REVIEW: 'proposal_review',
+} as const;
+
+export type AttentionItemType = (typeof AttentionItemType)[keyof typeof AttentionItemType];
+
+export const AttentionItemStatus = {
+  PENDING: 'pending',
+  RESOLVED: 'resolved',
+  DISMISSED: 'dismissed',
+} as const;
+
+export type AttentionItemStatus = (typeof AttentionItemStatus)[keyof typeof AttentionItemStatus];
+
+export const NotificationType = {
+  AGENT_COMPLETED: 'agent_completed',
+  TICKET_MOVED: 'ticket_moved',
+  GATE_RESULT: 'gate_result',
+  COMMENT_ADDED: 'comment_added',
+  PROPOSAL_CREATED: 'proposal_created',
+  PROPOSAL_RESOLVED: 'proposal_resolved',
+  SCAN_COMPLETED: 'scan_completed',
+} as const;
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];

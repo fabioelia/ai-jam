@@ -2,6 +2,7 @@ import { db } from '../db/connection.js';
 import { chatMessages, chatSessions, ticketProposals, epics } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { broadcastToFeature } from '../websocket/socket-server.js';
+import { approveProposal } from './proposal-service.js';
 
 /**
  * Structured action patterns Claude emits during planning.
@@ -93,7 +94,7 @@ export async function processAssistantMessage(
           storyPoints?: number;
           acceptanceCriteria?: string[];
         }>;
-        await handleProposeTickets(chatSessionId, session.featureId, message.id, ticketsData);
+        await handleProposeTickets(chatSessionId, session.featureId, message.id, session.userId, ticketsData);
         break;
       }
 
@@ -135,6 +136,7 @@ async function handleProposeTickets(
   chatSessionId: string,
   featureId: string,
   messageId: string,
+  userId: string,
   ticketsData: Array<{
     title: string;
     description: string;
@@ -171,6 +173,7 @@ async function handleProposeTickets(
         proposedByMessageId: messageId,
         status: 'pending',
         ticketData: proposalData,
+        source: 'api',
       })
       .returning();
 
@@ -178,5 +181,8 @@ async function handleProposeTickets(
       proposalId: proposal.id,
       ticketData: proposalData,
     });
+
+    // Auto-approve: create real ticket immediately
+    await approveProposal(proposal.id, userId, { source: 'api' });
   }
 }

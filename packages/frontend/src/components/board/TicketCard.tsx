@@ -18,6 +18,7 @@ interface TicketCardProps {
 export default function TicketCard({ ticket, epics, isDragging, onClick }: TicketCardProps) {
   const epic = epics?.find((e) => e.id === ticket.epicId);
   const activeAgent = useAgentStore((s) => s.getSessionForTicket(ticket.id));
+  const lastAgent = useAgentStore((s) => s.getLastSessionForTicket(ticket.id));
 
   return (
     <div
@@ -57,7 +58,7 @@ export default function TicketCard({ ticket, epics, isDragging, onClick }: Ticke
         )}
       </div>
 
-      {activeAgent && (
+      {activeAgent ? (
         <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-700/50">
           <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
           <span className="text-xs text-green-400 capitalize">
@@ -67,7 +68,24 @@ export default function TicketCard({ ticket, epics, isDragging, onClick }: Ticke
             {activeAgent.activity === 'busy' ? 'working' : activeAgent.activity}
           </span>
         </div>
-      )}
+      ) : lastAgent && (lastAgent.status === 'failed' || lastAgent.status === 'completed') ? (
+        <div className="mt-2 pt-2 border-t border-gray-700/50">
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${lastAgent.status === 'failed' ? 'bg-red-400' : 'bg-gray-500'}`} />
+            <span className={`text-xs capitalize ${lastAgent.status === 'failed' ? 'text-red-400' : 'text-gray-500'}`}>
+              {lastAgent.personaType.replace(/_/g, ' ')}
+            </span>
+            <span className={`text-xs ml-auto ${lastAgent.status === 'failed' ? 'text-red-400' : 'text-gray-600'}`}>
+              {lastAgent.status}
+            </span>
+          </div>
+          {lastAgent.summary && (
+            <p className={`text-[10px] mt-1 line-clamp-2 ${lastAgent.status === 'failed' ? 'text-red-400/70' : 'text-gray-600'}`}>
+              {lastAgent.summary}
+            </p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

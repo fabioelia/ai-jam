@@ -23,6 +23,23 @@ async function authPlugin(fastify: FastifyInstance) {
   });
 
   fastify.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Allow service token authentication (for the orchestrator and other internal services).
+    // The token is passed as a Bearer token and matched against the configured static value.
+    if (config.serviceToken) {
+      const authHeader = request.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.replace(/^Bearer\s+/i, '');
+        if (token === config.serviceToken) {
+          // Inject a synthetic service user so downstream handlers work
+          (request as unknown as { user: { userId: string; email: string } }).user = {
+            userId: process.env.AIJAM_SERVICE_USER_ID || 'service',
+            email: 'service@ai-jam.local',
+          };
+          return;
+        }
+      }
+    }
+
     try {
       await request.jwtVerify();
     } catch {
