@@ -33,6 +33,12 @@ export function setupSocketServer(httpServer: HttpServer) {
   });
 
   io.on('connection', (socket) => {
+    // Auto-join user-specific room so notifications reach this user on any page
+    const userId = socket.data.userId as string;
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
+
     socket.on('join:user', ({ userId }) => {
       socket.join(`user:${userId}`);
     });
