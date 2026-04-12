@@ -224,6 +224,20 @@ export function useDismissAttention(projectId: string) {
   });
 }
 
+// -- Notification Preferences --
+
+export function useUpdateNotificationPreferences(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (preferences: Record<string, boolean>) =>
+      apiFetch<{ preferences: Record<string, boolean> }>(`/projects/${projectId}/notification-preferences`, {
+        method: 'PUT',
+        body: JSON.stringify({ preferences }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notification-preferences', projectId] }),
+  });
+}
+
 // -- Notifications --
 
 export function useMarkRead(projectId: string) {
@@ -249,5 +263,56 @@ export function useMarkAllRead(projectId: string, featureId?: string) {
       qc.invalidateQueries({ queryKey: ['notifications', projectId] });
       qc.invalidateQueries({ queryKey: ['notifications-unread-count', projectId] });
     },
+  });
+}
+
+// -- Global notification mutations (used by NotificationsPage) --
+
+function invalidateAllNotifications(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['all-notifications'] });
+  qc.invalidateQueries({ queryKey: ['global-unread-count'] });
+  qc.invalidateQueries({ queryKey: ['notifications'] });
+  qc.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+}
+
+export function useGlobalMarkAllRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (projectId?: string) =>
+      apiFetch('/notifications/read-all', {
+        method: 'POST',
+        body: JSON.stringify(projectId ? { projectId } : {}),
+      }),
+    onSuccess: () => invalidateAllNotifications(qc),
+  });
+}
+
+export function useDeleteNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (notificationId: string) =>
+      apiFetch(`/notifications/${notificationId}`, { method: 'DELETE' }),
+    onSuccess: () => invalidateAllNotifications(qc),
+  });
+}
+
+export function useDeleteReadNotifications() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (projectId?: string) =>
+      apiFetch('/notifications/read', {
+        method: 'DELETE',
+        body: JSON.stringify(projectId ? { projectId } : {}),
+      }),
+    onSuccess: () => invalidateAllNotifications(qc),
+  });
+}
+
+export function useGlobalMarkRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (notificationId: string) =>
+      apiFetch(`/notifications/${notificationId}/read`, { method: 'PATCH' }),
+    onSuccess: () => invalidateAllNotifications(qc),
   });
 }

@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject } from '../api/queries.js';
-import { useProjectSystemPrompts, useProjectScans, useKnowledgeFiles, useKnowledgeFile, useUsers, useProjectMembers } from '../api/queries.js';
+import { useProjectSystemPrompts, useProjectScans, useKnowledgeFiles, useKnowledgeFile, useUsers, useProjectMembers, useNotificationPreferences } from '../api/queries.js';
 import type { SystemPrompt, ProjectScan } from '../api/queries.js';
-import { useUpdateProject, useDeleteProject, useUpdateSystemPrompt, useTriggerScan, useAddProjectMember, useRemoveProjectMember } from '../api/mutations.js';
+import { useUpdateProject, useDeleteProject, useUpdateSystemPrompt, useTriggerScan, useAddProjectMember, useRemoveProjectMember, useUpdateNotificationPreferences } from '../api/mutations.js';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth-store.js';
 import MarkdownEditor from '../components/common/MarkdownEditor.js';
 
-type Tab = 'general' | 'members' | 'prompts' | 'scans' | 'knowledge' | 'agents';
+type Tab = 'general' | 'members' | 'notifications' | 'prompts' | 'scans' | 'knowledge' | 'agents';
 
 export default function ProjectSettingsPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -22,6 +22,7 @@ export default function ProjectSettingsPage() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'general', label: 'General' },
     { key: 'members', label: 'Members' },
+    { key: 'notifications', label: 'Notifications' },
     { key: 'prompts', label: 'System Prompts' },
     { key: 'scans', label: 'Repo Scans' },
     { key: 'agents', label: 'Agent Models' },
@@ -70,6 +71,7 @@ export default function ProjectSettingsPage() {
 
         {activeTab === 'general' && <GeneralTab projectId={projectId!} />}
         {activeTab === 'members' && <MembersTab projectId={projectId!} />}
+        {activeTab === 'notifications' && <NotificationsTab projectId={projectId!} />}
         {activeTab === 'prompts' && <SystemPromptsTab projectId={projectId!} />}
         {activeTab === 'scans' && <ScansTab projectId={projectId!} />}
         {activeTab === 'knowledge' && <KnowledgeTab projectId={projectId!} />}
@@ -442,6 +444,76 @@ function MembersTab({ projectId }: { projectId: string }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ---- Notifications Tab ----
+
+const NOTIFICATION_TYPES = [
+  { type: 'agent_completed', label: 'Agent completed work', description: 'When an AI agent finishes a task on a ticket' },
+  { type: 'ticket_moved', label: 'Ticket status changed', description: 'When a ticket moves between columns' },
+  { type: 'gate_result', label: 'Gate approved/rejected', description: 'When a transition gate decision is made' },
+  { type: 'comment_added', label: 'New comments', description: 'When a comment is added to a ticket' },
+  { type: 'proposal_created', label: 'New ticket proposals', description: 'When new ticket proposals are generated' },
+  { type: 'proposal_resolved', label: 'Proposal approved/rejected', description: 'When a proposal decision is made' },
+  { type: 'scan_completed', label: 'Repo scan completed', description: 'When a repository scan finishes' },
+] as const;
+
+function NotificationsTab({ projectId }: { projectId: string }) {
+  const { data, isLoading } = useNotificationPreferences(projectId);
+  const updatePrefs = useUpdateNotificationPreferences(projectId);
+
+  function handleToggle(type: string, currentlyEnabled: boolean) {
+    updatePrefs.mutate({ [type]: !currentlyEnabled });
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h3 className="text-white font-medium mb-1">Notification Preferences</h3>
+        <p className="text-gray-500 text-sm">
+          Choose which notifications you receive for this project. All are enabled by default.
+        </p>
+      </div>
+
+      <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
+        {isLoading ? (
+          <div className="px-5 py-8 text-center text-gray-500">Loading preferences...</div>
+        ) : (
+          NOTIFICATION_TYPES.map(({ type, label, description }) => {
+            const enabled = data?.preferences[type] !== false;
+            return (
+              <div key={type} className="flex items-center justify-between px-5 py-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-white font-medium">{label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+                </div>
+                <button
+                  onClick={() => handleToggle(type, enabled)}
+                  disabled={updatePrefs.isPending}
+                  className={`relative ml-4 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                    enabled ? 'bg-indigo-600' : 'bg-gray-700'
+                  }`}
+                  role="switch"
+                  aria-checked={enabled}
+                  aria-label={`${label} notifications`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
+                      enabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {updatePrefs.isError && (
+        <p className="text-red-400 text-sm">{(updatePrefs.error as Error).message}</p>
+      )}
     </div>
   );
 }
