@@ -356,6 +356,48 @@ export function useUnreadCount(projectId: string, featureId?: string) {
   });
 }
 
+// -- Notification Preferences --
+
+export function useNotificationPreferences(projectId: string) {
+  return useQuery({
+    queryKey: ['notification-preferences', projectId],
+    queryFn: () => apiFetch<{ preferences: Record<string, boolean> }>(`/projects/${projectId}/notification-preferences`),
+    enabled: !!projectId,
+  });
+}
+
+// -- Global Notifications (all projects) --
+
+export interface GlobalNotificationFilters {
+  projectId?: string;
+  type?: string;
+  unreadOnly?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export function useAllNotifications(filters?: GlobalNotificationFilters) {
+  const params = new URLSearchParams();
+  if (filters?.projectId) params.set('projectId', filters.projectId);
+  if (filters?.type) params.set('type', filters.type);
+  if (filters?.unreadOnly !== undefined) params.set('unreadOnly', String(filters.unreadOnly));
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  if (filters?.offset) params.set('offset', String(filters.offset));
+  const qs = params.toString();
+
+  return useQuery({
+    queryKey: ['all-notifications', filters],
+    queryFn: () => apiFetch<Notification[]>(`/notifications${qs ? `?${qs}` : ''}`),
+  });
+}
+
+export function useGlobalUnreadCount() {
+  return useQuery({
+    queryKey: ['global-unread-count'],
+    queryFn: () => apiFetch<{ count: number; byProject: Record<string, number> }>('/notifications/unread-count'),
+  });
+}
+
 // -- Attention Items --
 
 export function useAttentionItems(projectId: string, type?: string) {
