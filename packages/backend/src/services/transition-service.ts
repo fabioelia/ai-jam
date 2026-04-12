@@ -2,6 +2,7 @@ import { db } from '../db/connection.js';
 import { transitionGates, tickets, agentSessions } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { broadcastToBoard, broadcastToTicket } from '../websocket/socket-server.js';
+import { notifyProjectMembers } from './notification-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 /** Map of transitions that require a gatekeeper */
@@ -58,6 +59,15 @@ export async function requestTransition(
         .update(tickets)
         .set({ assignedPersona: 'HUMAN_ESCALATION' })
         .where(eq(tickets.id, ticketId));
+
+      await notifyProjectMembers({
+        projectId: ticket.projectId,
+        type: 'human_escalation',
+        title: `${ticket.title} escalated to human — ${gatekeeperPersona} exceeded retry limit`,
+        ticketId,
+        featureId: ticket.featureId ?? undefined,
+        metadata: { priority: 'critical' },
+      });
     }
     throw new Error(`Max rejection cycles (${MAX_REJECTION_CYCLES}) reached for ${fromStatus}→${toStatus}. Escalated to human.`);
   }
@@ -126,6 +136,14 @@ export async function approveTransition(gateId: string): Promise<void> {
       ticketId: ticket.id,
       gate: { ...gate, result: 'approved', resolvedAt: new Date().toISOString() },
     });
+
+    await notifyProjectMembers({
+      projectId: ticket.projectId,
+      type: 'gate_approved',
+      title: `${ticket.title} approved by ${gate.gatekeeperPersona} — moving to ${gate.toStatus}`,
+      ticketId: ticket.id,
+      featureId: ticket.featureId ?? undefined,
+    });
   }
 }
 
@@ -151,6 +169,15 @@ export async function rejectTransition(gateId: string, feedback: string): Promis
     broadcastToBoard(ticket.projectId, 'agent:gate:result', {
       ticketId: ticket.id,
       gate: { ...gate, result: 'rejected', feedback, resolvedAt: new Date().toISOString() },
+    });
+
+    await notifyProjectMembers({
+      projectId: ticket.projectId,
+      type: 'gate_rejected',
+      title: `${ticket.title} rejected by ${gate.gatekeeperPersona} — ${feedback}`,
+      body: feedback,
+      ticketId: ticket.id,
+      featureId: ticket.featureId ?? undefined,
     });
   }
 }
