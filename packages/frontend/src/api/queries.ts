@@ -57,6 +57,7 @@ export function useChatSessions(featureId: string) {
     queryKey: ['chat-sessions', featureId],
     queryFn: () => apiFetch<ChatSession[]>(`/features/${featureId}/chat-sessions`),
     enabled: !!featureId,
+    refetchInterval: 5000,
   });
 }
 
@@ -92,6 +93,119 @@ export function useTransitionGates(ticketId: string) {
   });
 }
 
+// -- System Prompts --
+
+export interface SystemPrompt {
+  id: string;
+  projectId: string | null;
+  slug: string;
+  name: string;
+  description: string | null;
+  content: string;
+  isDefault: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useSystemPrompts() {
+  return useQuery({
+    queryKey: ['system-prompts'],
+    queryFn: () => apiFetch<SystemPrompt[]>('/system-prompts'),
+  });
+}
+
+export function useProjectSystemPrompts(projectId: string) {
+  return useQuery({
+    queryKey: ['system-prompts', projectId],
+    queryFn: () => apiFetch<SystemPrompt[]>(`/projects/${projectId}/system-prompts`),
+    enabled: !!projectId,
+  });
+}
+
+// -- Scans --
+
+export interface ProjectScan {
+  id: string;
+  projectId: string;
+  systemPromptId: string | null;
+  status: string;
+  outputSummary: string | null;
+  outputFiles: string[];
+  agentSessionId: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export function useProjectScans(projectId: string, hasRunningScan?: boolean) {
+  return useQuery({
+    queryKey: ['scans', projectId],
+    queryFn: () => apiFetch<ProjectScan[]>(`/projects/${projectId}/scans`),
+    enabled: !!projectId,
+    refetchInterval: hasRunningScan ? 3000 : false,
+  });
+}
+
+// -- Knowledge Files --
+
+export interface KnowledgeFileInfo {
+  filename: string;
+  path: string;
+}
+
+export interface KnowledgeFileContent {
+  filename: string;
+  content: string;
+}
+
+export function useKnowledgeFiles(projectId: string) {
+  return useQuery({
+    queryKey: ['knowledge', projectId],
+    queryFn: () => apiFetch<KnowledgeFileInfo[]>(`/projects/${projectId}/knowledge`),
+    enabled: !!projectId,
+  });
+}
+
+export function useKnowledgeFile(projectId: string, filename: string) {
+  return useQuery({
+    queryKey: ['knowledge', projectId, filename],
+    queryFn: () => apiFetch<KnowledgeFileContent>(`/projects/${projectId}/knowledge/${filename}`),
+    enabled: !!projectId && !!filename,
+  });
+}
+
+// -- Users & Members --
+
+export interface UserInfo {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface ProjectMember {
+  userId: string;
+  role: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+}
+
+export function useUsers() {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: () => apiFetch<UserInfo[]>('/users'),
+  });
+}
+
+export function useProjectMembers(projectId: string) {
+  return useQuery({
+    queryKey: ['project-members', projectId],
+    queryFn: () => apiFetch<ProjectMember[]>(`/projects/${projectId}/members`),
+    enabled: !!projectId,
+  });
+}
+
 export function useAgentSessions(ticketId: string) {
   return useQuery({
     queryKey: ['agent-sessions', ticketId],
@@ -105,5 +219,63 @@ export function useAgentSessions(ticketId: string) {
       outputSummary: string | null;
     }>>(`/agent-sessions?ticketId=${ticketId}`),
     enabled: !!ticketId,
+  });
+}
+
+// -- Project Sessions (combined planning + execution + scans) --
+
+export interface PlanningSession {
+  id: string;
+  type: 'planning';
+  featureId: string;
+  featureTitle: string;
+  status: string;
+  createdAt: string;
+  approvedProposalCount: number;
+  totalProposalCount: number;
+  messageCount: number;
+  lastActivityAt: string;
+  lastActorRole: string | null;
+}
+
+export interface ExecutionSession {
+  id: string;
+  type: 'execution';
+  ticketId: string;
+  ticketTitle: string;
+  featureId: string;
+  featureTitle: string;
+  personaType: string;
+  status: string;
+  activity: string;
+  outputSummary: string | null;
+  startedAt: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface ScanSession {
+  id: string;
+  type: 'scan';
+  personaType: string;
+  status: string;
+  activity: string;
+  outputSummary: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface ProjectSessions {
+  planning: PlanningSession[];
+  execution: ExecutionSession[];
+  scans: ScanSession[];
+}
+
+export function useProjectSessions(projectId: string) {
+  return useQuery({
+    queryKey: ['project-sessions', projectId],
+    queryFn: () => apiFetch<ProjectSessions>(`/projects/${projectId}/sessions`),
+    enabled: !!projectId,
+    refetchInterval: 10000,
   });
 }
