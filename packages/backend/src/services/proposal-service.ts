@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../db/connection.js';
 import { ticketProposals, tickets, epics, features } from '../db/schema.js';
 import { broadcastToBoard, broadcastToFeature } from '../websocket/socket-server.js';
+import { notifyFeatureCreator } from './notification-service.js';
 
 /**
  * Approve a proposal and create the corresponding ticket in backlog.
@@ -84,6 +85,12 @@ export async function approveProposal(
     proposalId: proposal.id,
     ticketId: ticket.id,
   });
+
+  notifyFeatureCreator(
+    proposal.featureId,
+    'proposal_resolved',
+    `Proposal approved: ${data.title}`,
+  );
 
   return { proposal: { ...proposal, status: 'approved' as const }, ticket };
 }

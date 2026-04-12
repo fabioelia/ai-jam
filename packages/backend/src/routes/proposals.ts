@@ -5,6 +5,7 @@ import { ticketProposals } from '../db/schema.js';
 import { broadcastToFeature } from '../websocket/socket-server.js';
 import { getSourceFromRequest } from '../utils/source-header.js';
 import { approveProposal } from '../services/proposal-service.js';
+import { notifyFeatureCreator } from '../services/notification-service.js';
 
 export async function proposalRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
@@ -67,6 +68,12 @@ export async function proposalRoutes(fastify: FastifyInstance) {
         proposalId: proposal.id,
         ticketData,
       });
+
+      notifyFeatureCreator(
+        featureId,
+        'proposal_created',
+        `New ticket proposed: ${ticketData.title}`,
+      );
 
       // Auto-approve: create real ticket immediately
       const result = await approveProposal(proposal.id, request.user.userId, { source });
@@ -131,6 +138,12 @@ export async function proposalRoutes(fastify: FastifyInstance) {
       broadcastToFeature(proposal.featureId, 'proposal:rejected', {
         proposalId: proposal.id,
       });
+
+      notifyFeatureCreator(
+        proposal.featureId,
+        'proposal_resolved',
+        `Proposal rejected: ${(proposal.ticketData as Record<string, unknown>).title}`,
+      );
 
       return { ...proposal, status: 'rejected' };
     }

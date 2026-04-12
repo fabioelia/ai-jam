@@ -5,6 +5,7 @@ import { db } from '../db/connection.js';
 import { projectScans, projects, systemPrompts, agentSessions } from '../db/schema.js';
 import { getRuntimeClient } from '../agent-runtime/runtime-manager.js';
 import { ensureWorkspace } from './repo-workspace.js';
+import { notifyProjectOwner } from './notification-service.js';
 import { v4 as uuid } from 'uuid';
 
 const WORKSPACES_DIR = join(process.env.HOME || '/tmp', '.ai-jam', 'workspaces');
@@ -154,6 +155,8 @@ export async function finalizeScan(
   }).where(eq(projectScans.id, scanId));
 
   console.log(`[scan-service] Scan ${scanId.slice(0, 8)} finalized: ${summary}`);
+
+  notifyProjectOwner(projectId, 'scan_completed', 'Repo scan completed', summary);
 }
 
 /**
@@ -269,6 +272,7 @@ export async function triggerScan(projectId: string, systemPromptId?: string) {
     await db.update(agentSessions)
       .set({ status: 'failed', activity: 'idle', completedAt: new Date() })
       .where(eq(agentSessions.id, agentSessionId));
+    notifyProjectOwner(projectId, 'scan_completed', 'Repo scan failed', 'Agent runtime not connected');
     throw new Error('Agent runtime not connected');
   }
 
@@ -291,6 +295,7 @@ export async function triggerScan(projectId: string, systemPromptId?: string) {
     await db.update(agentSessions)
       .set({ status: 'failed', activity: 'idle', completedAt: new Date() })
       .where(eq(agentSessions.id, agentSessionId));
+    notifyProjectOwner(projectId, 'scan_completed', 'Repo scan failed', (err as Error).message);
     throw err;
   }
 
