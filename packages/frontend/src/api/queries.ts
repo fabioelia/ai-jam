@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from './client.js';
-import type { Project, Feature, BoardState, Ticket, Comment, ChatSession, ChatMessage, TicketProposal, TicketNote, TransitionGate } from '@ai-jam/shared';
+import type { Project, Feature, BoardState, Ticket, Comment, ChatSession, ChatMessage, TicketProposal, TicketNote, TransitionGate, Notification } from '@ai-jam/shared';
 
 export function useProjects() {
   return useQuery({
@@ -277,5 +277,40 @@ export function useProjectSessions(projectId: string) {
     queryFn: () => apiFetch<ProjectSessions>(`/projects/${projectId}/sessions`),
     enabled: !!projectId,
     refetchInterval: 10000,
+  });
+}
+
+// -- Notifications --
+
+export interface NotificationFilters {
+  featureId?: string;
+  type?: string;
+  isRead?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export function useNotifications(projectId: string, opts?: NotificationFilters) {
+  const params = new URLSearchParams();
+  if (opts?.featureId) params.set('featureId', opts.featureId);
+  if (opts?.type) params.set('type', opts.type);
+  if (opts?.isRead !== undefined) params.set('isRead', String(opts.isRead));
+  if (opts?.limit) params.set('limit', String(opts.limit));
+  if (opts?.offset) params.set('offset', String(opts.offset));
+  const qs = params.toString();
+
+  return useQuery({
+    queryKey: ['notifications', projectId, opts],
+    queryFn: () => apiFetch<Notification[]>(`/projects/${projectId}/notifications${qs ? `?${qs}` : ''}`),
+    enabled: !!projectId,
+  });
+}
+
+export function useUnreadCount(projectId: string, featureId?: string) {
+  const params = featureId ? `?featureId=${featureId}` : '';
+  return useQuery({
+    queryKey: ['notifications-unread-count', projectId, featureId],
+    queryFn: () => apiFetch<{ count: number }>(`/projects/${projectId}/notifications/unread-count${params}`),
+    enabled: !!projectId,
   });
 }
