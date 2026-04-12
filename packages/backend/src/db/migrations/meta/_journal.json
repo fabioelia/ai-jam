@@ -71,6 +71,13 @@
       "when": 1776034636515,
       "tag": "0009_yielding_jubilee",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776035019725,
+      "tag": "0010_solid_xavin",
+      "breakpoints": true
     }
   ]
 }
