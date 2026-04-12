@@ -5,7 +5,7 @@ import { tickets } from '../db/schema.js';
 import { createTicketSchema, moveTicketSchema, updateTicketSchema } from '@ai-jam/shared';
 import { broadcastToBoard } from '../websocket/socket-server.js';
 import { getSourceFromRequest } from '../utils/source-header.js';
-import { notifyTicketStakeholders } from '../services/notification-service.js';
+import { notifyProjectMembers } from '../services/notification-service.js';
 import { requestGateAwareMove } from '../services/transition-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
@@ -104,14 +104,16 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       sortOrder: ticket.sortOrder,
     });
 
-    notifyTicketStakeholders(
-      ticket.id,
-      'ticket_moved',
-      `${ticket.title} moved to ${parsed.data.toStatus}`,
-      null,
-      `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
-      request.user.userId,
-    ).catch(() => {});
+    notifyProjectMembers({
+      projectId: ticket.projectId,
+      type: 'ticket_moved',
+      title: `${ticket.title} moved to ${parsed.data.toStatus}`,
+      body: `Ticket moved from ${current.status} to ${parsed.data.toStatus} by ${request.user.userId}`,
+      actionUrl: `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
+      ticketId: ticket.id,
+      featureId: ticket.featureId ?? undefined,
+      metadata: { fromStatus: current.status, toStatus: parsed.data.toStatus, persona: request.user.userId },
+    }).catch(() => {});
 
     return ticket;
   });
