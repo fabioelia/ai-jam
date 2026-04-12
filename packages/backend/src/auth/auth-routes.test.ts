@@ -29,6 +29,8 @@ beforeAll(async () => {
   app.post('/api/auth/login', authRateLimit, async () => ({ ok: true }));
   app.post('/api/auth/register', registerRateLimit, async () => ({ ok: true }));
   app.post('/api/auth/refresh', authRateLimit, async () => ({ ok: true }));
+  app.post('/api/auth/forgot-password', authRateLimit, async () => ({ ok: true }));
+  app.post('/api/auth/reset-password', authRateLimit, async () => ({ ok: true }));
   app.get('/api/health', async () => ({ status: 'ok' }));
 
   await app.ready();
@@ -75,6 +77,24 @@ describe('rate limiting on auth endpoints', () => {
       expect(res.statusCode).toBe(200);
     }
     const res = await app.inject({ method: 'POST', url: '/api/auth/refresh', payload: {} });
+    expect(res.statusCode).toBe(429);
+  });
+
+  it('rejects forgot-password after exceeding 5 requests/min', async () => {
+    for (let i = 0; i < 5; i++) {
+      const res = await app.inject({ method: 'POST', url: '/api/auth/forgot-password', payload: {} });
+      expect(res.statusCode).toBe(200);
+    }
+    const res = await app.inject({ method: 'POST', url: '/api/auth/forgot-password', payload: {} });
+    expect(res.statusCode).toBe(429);
+  });
+
+  it('rejects reset-password after exceeding 5 requests/min', async () => {
+    for (let i = 0; i < 5; i++) {
+      const res = await app.inject({ method: 'POST', url: '/api/auth/reset-password', payload: {} });
+      expect(res.statusCode).toBe(200);
+    }
+    const res = await app.inject({ method: 'POST', url: '/api/auth/reset-password', payload: {} });
     expect(res.statusCode).toBe(429);
   });
 
