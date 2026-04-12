@@ -189,7 +189,7 @@ describe('POST /api/auth/refresh — token rotation', () => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     }]);
 
-    await app.inject({
+    const res = await app.inject({
       method: 'POST',
       url: '/api/auth/refresh',
       payload: { refreshToken: token },
@@ -204,6 +204,13 @@ describe('POST /api/auth/refresh — token rotation', () => {
       expiresAt: expect.any(Date),
     });
     expect(insertArgs.tokenHash).toHaveLength(64);
+
+    // Stored hash must match the new refresh token returned to client
+    const body = JSON.parse(res.body);
+    expect(insertArgs.tokenHash).toBe(hashToken(body.refreshToken));
+    // New token differs from the submitted one
+    expect(body.refreshToken).not.toBe(token);
+    expect(insertArgs.tokenHash).not.toBe(hashToken(token));
   });
 
   it('new accessToken contains correct user payload', async () => {
