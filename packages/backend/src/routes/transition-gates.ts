@@ -1,13 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/connection.js';
-import { transitionGates } from '../db/schema.js';
+import { transitionGates, tickets } from '../db/schema.js';
 import {
   requestTransition,
   approveTransition,
   rejectTransition,
   getTransitionGates,
 } from '../services/transition-service.js';
+import { notifyTicketStakeholders } from '../services/notification-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 export async function transitionGateRoutes(fastify: FastifyInstance) {
@@ -59,7 +60,30 @@ export async function transitionGateRoutes(fastify: FastifyInstance) {
     '/api/transition-gates/:id/approve',
     async (request, reply) => {
       try {
+        const [gate] = await db
+          .select()
+          .from(transitionGates)
+          .where(eq(transitionGates.id, request.params.id));
+        if (!gate) return reply.status(404).send({ error: 'Gate not found' });
+
         await approveTransition(request.params.id);
+
+        const [ticket] = await db
+          .select({ projectId: tickets.projectId })
+          .from(tickets)
+          .where(eq(tickets.id, gate.ticketId));
+
+        if (ticket) {
+          notifyTicketStakeholders(
+            gate.ticketId,
+            'gate_result',
+            `Gate approved: ${gate.fromStatus} → ${gate.toStatus}`,
+            null,
+            `/projects/${ticket.projectId}/board?ticket=${gate.ticketId}`,
+            request.user.userId,
+          ).catch(() => {});
+        }
+
         return { ok: true };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -76,7 +100,30 @@ export async function transitionGateRoutes(fastify: FastifyInstance) {
       if (!feedback) return reply.status(400).send({ error: 'feedback is required' });
 
       try {
+        const [gate] = await db
+          .select()
+          .from(transitionGates)
+          .where(eq(transitionGates.id, request.params.id));
+        if (!gate) return reply.status(404).send({ error: 'Gate not found' });
+
         await rejectTransition(request.params.id, feedback);
+
+        const [ticket] = await db
+          .select({ projectId: tickets.projectId })
+          .from(tickets)
+          .where(eq(tickets.id, gate.ticketId));
+
+        if (ticket) {
+          notifyTicketStakeholders(
+            gate.ticketId,
+            'gate_result',
+            `Gate rejected: ${gate.fromStatus} → ${gate.toStatus}`,
+            feedback,
+            `/projects/${ticket.projectId}/board?ticket=${gate.ticketId}`,
+            request.user.userId,
+          ).catch(() => {});
+        }
+
         return { ok: true };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
