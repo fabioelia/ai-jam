@@ -9,6 +9,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed:personas": "tsx src/db/seed-personas.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "drizzle-orm": "^0.38.0",
     "fastify": "^5.2.0",
     "fastify-plugin": "^5.1.0",
+    "gray-matter": "^4.0.3",
     "jsonwebtoken": "^9.0.3",
     "octokit": "^4.1.0",
     "pg": "^8.13.0",
