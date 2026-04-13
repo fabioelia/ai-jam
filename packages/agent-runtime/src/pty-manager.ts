@@ -118,7 +118,9 @@ export class PtyManager extends EventEmitter {
     }
 
     const claudePath = resolveCommand('claude');
-    const proc = pty.spawn(claudePath, args, {
+    // Workaround for node-pty posix_spawn issue on macOS arm64
+    // Use shell wrapper instead of direct spawn
+    const shellProc = pty.spawn('sh', ['-c', `${claudePath} ${args.join(' ')}`], {
       name: 'xterm-256color',
       cols: options.interactive ? 120 : 200,
       rows: options.interactive ? 40 : 50,
