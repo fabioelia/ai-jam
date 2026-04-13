@@ -1,6 +1,6 @@
 {
-  "id": "c6a0fce0-6a0f-44d4-8238-00cc262acbf2",
-  "prevId": "89d917d2-15b6-4c9e-a510-5af0bd62b219",
+  "id": "6edb2bd1-5adb-4e88-b78a-60ae3bfc6f2a",
+  "prevId": "c6a0fce0-6a0f-44d4-8238-00cc262acbf2",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -685,6 +685,88 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.notification_preferences": {
+      "name": "notification_preferences",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notification_type": {
+          "name": "notification_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "notification_preferences_user_id_users_id_fk": {
+          "name": "notification_preferences_user_id_users_id_fk",
+          "tableFrom": "notification_preferences",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_preferences_project_id_projects_id_fk": {
+          "name": "notification_preferences_project_id_projects_id_fk",
+          "tableFrom": "notification_preferences",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "notification_preferences_user_project_type": {
+          "name": "notification_preferences_user_project_type",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id",
+            "project_id",
+            "notification_type"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.notifications": {
       "name": "notifications",
       "schema": "",
@@ -741,6 +823,12 @@
         "action_url": {
           "name": "action_url",
           "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "context_id": {
+          "name": "context_id",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },

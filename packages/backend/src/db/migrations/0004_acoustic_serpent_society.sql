@@ -14,14 +14,9 @@ CREATE TABLE "notifications" (
 );
 --> statement-breakpoint
 ALTER TABLE "projects" ALTER COLUMN "repo_url" DROP NOT NULL;--> statement-breakpoint
-ALTER TABLE "comments" ADD COLUMN "source" varchar(20) DEFAULT 'human' NOT NULL;--> statement-breakpoint
 ALTER TABLE "projects" ADD COLUMN "local_path" varchar(1024);--> statement-breakpoint
 ALTER TABLE "projects" ADD COLUMN "support_worktrees" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
-ALTER TABLE "projects" ADD COLUMN "persona_model_overrides" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
 ALTER TABLE "projects" ADD COLUMN "max_rejection_cycles" integer DEFAULT 3 NOT NULL;--> statement-breakpoint
-ALTER TABLE "ticket_notes" ADD COLUMN "source" varchar(20) DEFAULT 'human' NOT NULL;--> statement-breakpoint
-ALTER TABLE "ticket_proposals" ADD COLUMN "source" varchar(20) DEFAULT 'human' NOT NULL;--> statement-breakpoint
-ALTER TABLE "tickets" ADD COLUMN "source" varchar(20) DEFAULT 'human' NOT NULL;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_feature_id_features_id_fk" FOREIGN KEY ("feature_id") REFERENCES "public"."features"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint

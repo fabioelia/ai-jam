@@ -1,6 +1,6 @@
 {
-  "id": "d15edfd5-f949-4789-8b42-31eb18ec8c35",
-  "prevId": "13a5fa74-7de8-434a-a877-37c17f55d886",
+  "id": "89d917d2-15b6-4c9e-a510-5af0bd62b219",
+  "prevId": "d15edfd5-f949-4789-8b42-31eb18ec8c35",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -121,6 +121,149 @@
           "tableTo": "tickets",
           "columnsFrom": [
             "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.attention_items": {
+      "name": "attention_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "feature_id": {
+          "name": "feature_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "attention_item_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "attention_item_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolved_by": {
+          "name": "resolved_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "attention_items_project_id_projects_id_fk": {
+          "name": "attention_items_project_id_projects_id_fk",
+          "tableFrom": "attention_items",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "attention_items_feature_id_features_id_fk": {
+          "name": "attention_items_feature_id_features_id_fk",
+          "tableFrom": "attention_items",
+          "tableTo": "features",
+          "columnsFrom": [
+            "feature_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "attention_items_ticket_id_tickets_id_fk": {
+          "name": "attention_items_ticket_id_tickets_id_fk",
+          "tableFrom": "attention_items",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "attention_items_resolved_by_users_id_fk": {
+          "name": "attention_items_resolved_by_users_id_fk",
+          "tableFrom": "attention_items",
+          "tableTo": "users",
+          "columnsFrom": [
+            "resolved_by"
           ],
           "columnsTo": [
             "id"
@@ -997,6 +1140,13 @@
           "notNull": true,
           "default": "'{}'::jsonb"
         },
+        "transition_gates": {
+          "name": "transition_gates",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
         "max_rejection_cycles": {
           "name": "max_rejection_cycles",
           "type": "integer",
@@ -1776,6 +1926,26 @@
     }
   },
   "enums": {
+    "public.attention_item_status": {
+      "name": "attention_item_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "resolved",
+        "dismissed"
+      ]
+    },
+    "public.attention_item_type": {
+      "name": "attention_item_type",
+      "schema": "public",
+      "values": [
+        "transition_gate",
+        "failed_session",
+        "human_escalation",
+        "stuck_ticket",
+        "proposal_review"
+      ]
+    },
     "public.ticket_priority": {
       "name": "ticket_priority",
       "schema": "public",

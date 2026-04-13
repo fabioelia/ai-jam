@@ -1,6 +1,6 @@
 {
-  "id": "89d917d2-15b6-4c9e-a510-5af0bd62b219",
-  "prevId": "d15edfd5-f949-4789-8b42-31eb18ec8c35",
+  "id": "c6a0fce0-6a0f-44d4-8238-00cc262acbf2",
+  "prevId": "89d917d2-15b6-4c9e-a510-5af0bd62b219",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1892,6 +1892,13 @@
           "type": "varchar(512)",
           "primaryKey": false,
           "notNull": false
+        },
+        "preferences": {
+          "name": "preferences",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         },
         "created_at": {
           "name": "created_at",
