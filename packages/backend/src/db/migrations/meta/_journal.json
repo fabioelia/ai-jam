@@ -71,6 +71,13 @@
       "when": 1776035019725,
       "tag": "0009_solid_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776036019725,
+      "tag": "0010_system_prompts",
+      "breakpoints": true
     }
   ]
 }
