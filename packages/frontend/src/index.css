@@ -16,12 +16,67 @@
   50% { transform: scale(1.3); }
 }
 
+/* Fade in animation */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Slide in from bottom */
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Slide in from right */
+@keyframes slide-in-from-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Zoom in */
+@keyframes zoom-in-95 {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Subtle pulse for active items */
+@keyframes subtle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 @utility animate-bell-ring {
   animation: bell-ring 0.6s ease-in-out;
 }
 
 @utility animate-badge-pulse {
   animation: badge-pulse 0.6s ease-in-out 2;
+}
+
+@utility animate-in {
+  animation-name: fade-in;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@utility animate-slide-in-from-bottom {
+  animation: slide-in-from-bottom 0.2s ease-out;
+  animation-fill-mode: forwards;
+}
+
+@utility animate-slide-in-from-right {
+  animation: slide-in-from-right 0.3s ease-out;
+  animation-fill-mode: forwards;
+}
+
+@utility animate-zoom-in-95 {
+  animation: zoom-in-95 0.2s ease-out;
+  animation-fill-mode: forwards;
+}
+
+@utility animate-subtle-pulse {
+  animation: subtle-pulse 2s ease-in-out infinite;
 }
 
 /* Markdown preview styling */
