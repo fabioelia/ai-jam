@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useComments, useTicketNotes, useTransitionGates, useAgentSessions } from '../../api/queries.js';
+import { useComments, useTicketNotes, useTransitionGates, useAgentSessions, useDependencyChain } from '../../api/queries.js';
 import { useCreateComment } from '../../api/mutations.js';
 import { apiFetch } from '../../api/client.js';
 import { getSocket, joinTicket, leaveTicket } from '../../api/socket.js';
@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/auth-store.js';
 import { useBoardStore } from '../../stores/board-store.js';
 import CommentThread from './CommentThread.js';
 import HandoffTimeline from './HandoffTimeline.js';
+import DependencyChain from './DependencyChain.js';
 import type { Ticket, Epic, Comment, TicketPriority } from '@ai-jam/shared';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -34,17 +35,37 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
   const { data: ticketNotes } = useTicketNotes(ticket.id);
   const { data: transitionGates } = useTransitionGates(ticket.id);
   const { data: agentSessionsData } = useAgentSessions(ticket.id);
+  const { data: dependencyChain } = useDependencyChain(ticket.id, 5);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(ticket.title);
   const [editDesc, setEditDesc] = useState(ticket.description || '');
   const [editPriority, setEditPriority] = useState(ticket.priority);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [isBlocked, setIsBlocked] = useState<boolean>(false);
+
+  // State for tracking which ticket is currently displayed in the detail view
+  const [currentTicketId, setCurrentTicketId] = useState(ticket.id);
 
   // Sync server comments
   useEffect(() => {
     if (serverComments) setComments(serverComments);
   }, [serverComments]);
+
+  // Check if ticket is blocked by dependencies
+  useEffect(() => {
+    async function checkBlockedStatus() {
+      if (ticket.dependencies && ticket.dependencies.length > 0) {
+        try {
+          const response = await apiFetch(`/tickets/${ticket.id}/blocked-status`);
+          setIsBlocked(response.blocked);
+        } catch (err) {
+          console.error('Failed to check blocked status:', err);
+        }
+      }
+    }
+    checkBlockedStatus();
+  }, [ticket.id, ticket.dependencies]);
 
   // Real-time comment updates
   useEffect(() => {
@@ -200,6 +221,51 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
                 <p className="text-white">{new Date(ticket.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
+
+            {/* Dependencies */}
+            {ticket.dependencies && ticket.dependencies.length > 0 && (
+              <div className="border-t border-gray-800 pt-4">
+                <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                  🔗 Dependencies ({ticket.dependencies.length})
+                </h3>
+                {isBlocked ? (
+                  <div className="flex items-start gap-2 text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
+                    <span className="shrink-0">⚠️</span>
+                    <span>This ticket is blocked by incomplete dependencies.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 text-sm text-green-400 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                    <span className="shrink-0">✅</span>
+                    <span>All dependencies are complete. This ticket is ready to start.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Dependency Chain */}
+            {(dependencyChain && (dependencyChain.upstream.length > 0 || dependencyChain.downstream.length > 0)) && (
+              <div className="border-t border-gray-800 pt-4">
+                <h3 className="text-sm font-medium text-gray-300 mb-3">
+                  Dependency Chain
+                </h3>
+                <DependencyChain
+                  chain={dependencyChain}
+                  onTicketClick={(ticketId) => {
+                    // Open the clicked ticket in the detail view
+                    apiFetch<Ticket>(`/tickets/${ticketId}`)
+                      .then((clickedTicket) => {
+                        setCurrentTicketId(ticketId);
+                        // Note: This would require restructuring to support navigation
+                        // For now, we could emit an event or use a callback
+                        console.log('Navigate to ticket:', clickedTicket);
+                      })
+                      .catch((err) => {
+                        console.error('Failed to load ticket:', err);
+                      });
+                  }}
+                />
+              </div>
+            )}
 
             {/* Agent Activity / Handoff Timeline */}
             {(ticketNotes?.length || transitionGates?.length || agentSessionsData?.length) ? (

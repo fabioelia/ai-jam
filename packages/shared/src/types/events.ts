@@ -13,6 +13,10 @@ export interface ServerToClientEvents {
   'board:epic:created': (data: { epic: Epic }) => void;
   'board:epic:updated': (data: { epicId: string; changes: Partial<Epic> }) => void;
 
+  // Dependency events
+  'dependency:blocked': (data: { ticketId: string; incompleteBlockers: string[] }) => void;
+  'dependency:unblocked': (data: { ticketId: string; blockersCompleted: string[] }) => void;
+
   // Agent events
   'agent:session:started': (data: { sessionId: string; ticketId: string | null; personaType: string }) => void;
   'agent:session:activity': (data: { sessionId: string; activity: AgentActivity }) => void;

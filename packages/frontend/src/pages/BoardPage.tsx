@@ -13,6 +13,7 @@ import NotificationBell from '../components/notifications/NotificationBell.js';
 import KanbanBoard from '../components/board/KanbanBoard.js';
 import TicketDetail from '../components/board/TicketDetail.js';
 import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
+import ClaudeTicketModal from '../components/board/ClaudeTicketModal.js';
 import type { Ticket } from '@ai-jam/shared';
 
 const SIDEBAR_STORAGE_KEY = 'ai-jam:sidebar-width';
@@ -60,8 +61,10 @@ export default function BoardPage() {
   const [showNewFeature, setShowNewFeature] = useState(false);
   const [featureTitle, setFeatureTitle] = useState('');
   const [showNewTicket, setShowNewTicket] = useState(false);
+  const [showClaudeTicket, setShowClaudeTicket] = useState(false);
   const [ticketTitle, setTicketTitle] = useState('');
   const [ticketDesc, setTicketDesc] = useState('');
+  const [ticketDependencies, setTicketDependencies] = useState<string[]>([]);
 
   async function handleCreateFeature(e: React.FormEvent) {
     e.preventDefault();
@@ -78,10 +81,12 @@ export default function BoardPage() {
       title: ticketTitle,
       description: ticketDesc || undefined,
       featureId: selectedFeatureId,
+      dependencies: ticketDependencies,
     });
     setShowNewTicket(false);
     setTicketTitle('');
     setTicketDesc('');
+    setTicketDependencies([]);
   }
 
   // Unique assigned personas for filter dropdown
@@ -253,12 +258,21 @@ export default function BoardPage() {
         <div className="flex-1" />
 
         {selectedFeatureId && (
-          <button
-            onClick={() => setShowNewTicket(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-          >
-            + Ticket
-          </button>
+          <>
+            <button
+              onClick={() => setShowClaudeTicket(true)}
+              className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5"
+            >
+              <span>✨</span>
+              Ticket with Claude
+            </button>
+            <button
+              onClick={() => setShowNewTicket(true)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+            >
+              + Ticket
+            </button>
+          </>
         )}
       </div>
 
@@ -303,6 +317,61 @@ export default function BoardPage() {
               placeholder="Description (optional)"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 h-24 resize-none"
             />
+            {/* Dependency Selector */}
+            {board && (
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Dependencies (optional)</label>
+                <div className="max-h-40 overflow-y-auto bg-gray-800 border border-gray-700 rounded-lg p-2 space-y-1">
+                  {board.columns.flatMap(col => col.tickets).map(t => (
+                    <label key={t.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ticketDependencies.includes(t.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setTicketDependencies([...ticketDependencies, t.id]);
+                          } else {
+                            setTicketDependencies(ticketDependencies.filter(id => id !== t.id));
+                          }
+                        }}
+                        className="rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-gray-900"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            t.status === 'done' ? 'bg-green-500' :
+                            t.status === 'in_progress' ? 'bg-blue-500' :
+                            t.status === 'review' ? 'bg-purple-500' :
+                            t.status === 'qa' ? 'bg-yellow-500' :
+                            t.status === 'acceptance' ? 'bg-orange-500' : 'bg-gray-500'
+                          }`} />
+                          <span className="text-sm text-white truncate">{t.title}</span>
+                        </div>
+                        {t.priority !== 'medium' && (
+                          <span className="text-xs text-gray-500 capitalize">{t.priority}</span>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                  {board.columns.every(col => col.tickets.length === 0) && (
+                    <p className="text-sm text-gray-500 text-center py-4">No tickets available</p>
+                  )}
+                </div>
+                {ticketDependencies.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+                    <span>🔗</span>
+                    <span>{ticketDependencies.length} dependency{ticketDependencies.length > 1 ? 'ies' : ''} selected</span>
+                    <button
+                      type="button"
+                      onClick={() => setTicketDependencies([])}
+                      className="text-red-400 hover:text-red-300 ml-auto"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setShowNewTicket(false)} className="text-gray-400 px-3 py-1.5 text-sm">Cancel</button>
               <button type="submit" className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm">Create</button>
@@ -364,6 +433,15 @@ export default function BoardPage() {
           ticket={selectedTicket}
           epics={board?.epics || []}
           onClose={() => setSelectedTicket(null)}
+        />
+      )}
+
+      {/* Claude Ticket Modal */}
+      {showClaudeTicket && selectedFeatureId && (
+        <ClaudeTicketModal
+          projectId={projectId!}
+          featureId={selectedFeatureId}
+          onClose={() => setShowClaudeTicket(false)}
         />
       )}
     </div>

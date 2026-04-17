@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from './client.js';
-import type { Project, Feature, BoardState, Ticket, Comment, ChatSession, ChatMessage, TicketProposal, TicketNote, TransitionGate, Notification, AttentionItem } from '@ai-jam/shared';
+import type { Project, Feature, BoardState, Ticket, Comment, ChatSession, ChatMessage, TicketProposal, TicketNote, TransitionGate, Notification, AttentionItem, DependencyChain } from '@ai-jam/shared';
 
 export function useProjects() {
   return useQuery({
@@ -413,5 +413,42 @@ export function useAttentionCount() {
   return useQuery({
     queryKey: ['attention-count'],
     queryFn: () => apiFetch<{ count: number }>('/attention/count'),
+  });
+}
+
+// -- Dependency queries --
+
+export interface BlockedStatusResponse {
+  blocked: boolean;
+}
+
+export interface BlockedTicketsResponse {
+  blocks: Ticket[];
+}
+
+export function useTicketBlockedStatus(ticketId: string) {
+  return useQuery({
+    queryKey: ['ticket-blocked-status', ticketId],
+    queryFn: () => apiFetch<BlockedStatusResponse>(`/tickets/${ticketId}/blocked-status`),
+    enabled: !!ticketId,
+  });
+}
+
+export function useTicketBlocks(ticketId: string) {
+  return useQuery({
+    queryKey: ['ticket-blocks', ticketId],
+    queryFn: () => apiFetch<BlockedTicketsResponse>(`/tickets/${ticketId}/blocks`),
+    enabled: !!ticketId,
+  });
+}
+
+export function useDependencyChain(ticketId: string, maxDepth?: number) {
+  return useQuery({
+    queryKey: ['dependency-chain', ticketId, maxDepth],
+    queryFn: () => {
+      const params = maxDepth ? `?maxDepth=${maxDepth}` : '';
+      return apiFetch<DependencyChain>(`/tickets/${ticketId}/dependency-chain${params}`);
+    },
+    enabled: !!ticketId,
   });
 }

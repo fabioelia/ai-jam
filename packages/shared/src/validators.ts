@@ -35,6 +35,7 @@ export const createTicketSchema = z.object({
   epicId: z.string().uuid().optional(),
   priority: z.enum(['critical', 'high', 'medium', 'low']).optional().default('medium'),
   storyPoints: z.number().int().positive().optional(),
+  dependencies: z.array(z.string().uuid()).default([]),
 });
 
 export const moveTicketSchema = z.object({
@@ -50,6 +51,7 @@ export const updateTicketSchema = z.object({
   storyPoints: z.number().int().positive().nullable().optional(),
   assignedPersona: z.string().max(100).nullable().optional(),
   assignedUserId: z.string().uuid().nullable().optional(),
+  dependencies: z.array(z.string().uuid()).optional(),
 });
 
 export const createCommentSchema = z.object({
@@ -82,4 +84,21 @@ export const updateProfileSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   avatarUrl: z.string().max(512).nullable().optional(),
   preferences: z.record(z.unknown()).optional(),
+});
+
+export const createClaudeTicketSchema = z.object({
+  userPrompt: z.string().min(10).max(10000),
+  projectId: z.string().uuid(),
+  featureId: z.string().uuid(),
+  attachments: z.array(z.object({
+    id: z.string().uuid(),
+    type: z.enum(['image', 'document']),
+    mimeType: z.string(),
+    url: z.string(),
+  })).default([]),
+});
+
+export const uploadAttachmentSchema = z.object({
+  file: z.any(),
+  type: z.enum(['image', 'document']).optional().default('document'),
 });

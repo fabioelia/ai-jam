@@ -131,6 +131,12 @@ export const tickets = pgTable('tickets', {
   createdBy: uuid('created_by').notNull().references(() => users.id),
   /** Origin of this record: 'human' (UI), 'mcp' (agent tool), 'api' (direct API call) */
   source: varchar('source', { length: 20 }).default('human').notNull(),
+  /** Array of ticket IDs that this ticket depends on (blocking dependencies) */
+  dependencies: uuid('dependencies').array().default([]).notNull(),
+  /** Claude integration fields */
+  claudeConversationId: varchar('claude_conversation_id', { length: 255 }),
+  claudeMessageCount: integer('claude_message_count').default(0).notNull(),
+  claudeCost: integer('claude_cost').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

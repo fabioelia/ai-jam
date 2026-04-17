@@ -92,7 +92,19 @@ export class SessionManager extends EventEmitter {
       instance = this.ptyManager.spawn(spawnOpts);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : '';
       console.error(`[session-manager] Failed to spawn PTY for ${options.sessionId}:`, message);
+      console.error(`[session-manager] Error stack:`, stack);
+      console.error(`[session-manager] Spawn options:`, JSON.stringify({
+        sessionId: options.sessionId,
+        sessionType: options.sessionType,
+        personaType: options.personaType,
+        model: options.model,
+        workingDirectory: options.workingDirectory,
+        interactive: options.interactive,
+        hasPrompt: !!options.prompt,
+        addDirs: options.addDirs,
+      }));
       // Emit completed with failure so DB gets updated
       this.emit('session:completed', {
         sessionId: options.sessionId,
