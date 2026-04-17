@@ -13,6 +13,7 @@ import NotificationBell from '../components/notifications/NotificationBell.js';
 import KanbanBoard from '../components/board/KanbanBoard.js';
 import TicketDetail from '../components/board/TicketDetail.js';
 import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
+import FiltersPopover from '../components/board/FiltersPopover.js';
 import type { Ticket } from '@ai-jam/shared';
 
 const SIDEBAR_STORAGE_KEY = 'ai-jam:sidebar-width';
@@ -32,6 +33,7 @@ export default function BoardPage() {
   const [personaFilter, setPersonaFilter] = useState<string | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
   const [groupByEpic, setGroupByEpic] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const { data: board, isLoading: boardLoading } = useBoard(projectId!, selectedFeatureId);
 
   // Real-time sync
@@ -143,7 +145,7 @@ export default function BoardPage() {
 
       {/* Toolbar */}
       <div className="border-b border-gray-800 bg-gray-900/50 px-6 py-2 flex items-center gap-3 shrink-0">
-        {/* Feature selector */}
+        {/* Feature Context */}
         <select
           value={selectedFeatureId || ''}
           onChange={(e) => setSelectedFeatureId(e.target.value || undefined)}
@@ -173,70 +175,47 @@ export default function BoardPage() {
 
         <div className="w-px h-5 bg-gray-700" />
 
-        {/* Epic filter */}
-        {board && board.epics.length > 0 && (
-          <select
-            value={epicFilter || ''}
-            onChange={(e) => setEpicFilter(e.target.value || undefined)}
-            className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500"
-          >
-            <option value="">All Epics</option>
-            {board.epics.map((e) => (
-              <option key={e.id} value={e.id}>{e.title}</option>
-            ))}
-          </select>
-        )}
-
-        {/* Priority filter */}
-        <select
-          value={priorityFilter || ''}
-          onChange={(e) => setPriorityFilter(e.target.value || undefined)}
-          className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500"
-        >
-          <option value="">All Priorities</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-
-        {/* Persona / assignee filter */}
-        {assignedPersonas.length > 0 && (
-          <select
-            value={personaFilter || ''}
-            onChange={(e) => setPersonaFilter(e.target.value || undefined)}
-            className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500"
-          >
-            <option value="">All Assignees</option>
-            {assignedPersonas.map((p) => (
-              <option key={p} value={p}>{p.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
-        )}
-
-        {/* Search */}
+        {/* Filters Button */}
         <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tickets..."
-            className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500 w-48"
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className={`text-sm px-2.5 py-1.5 rounded-lg border transition-colors ${
+              filtersOpen
+                ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            Filters
+            {(epicFilter || priorityFilter || personaFilter || searchQuery) && (
+              <span className="ml-1.5 bg-red-500/20 text-red-400 text-xs px-1.5 py-0.5 rounded-full">
+                {[epicFilter, priorityFilter, personaFilter, searchQuery].filter(Boolean).length}
+              </span>
+            )}
+          </button>
+
+          <FiltersPopover
+            isOpen={filtersOpen}
+            onClose={() => setFiltersOpen(false)}
+            epics={board?.epics || []}
+            personas={assignedPersonas}
+            epicFilter={epicFilter}
+            priorityFilter={priorityFilter}
+            personaFilter={personaFilter}
+            searchQuery={searchQuery}
+            onEpicFilterChange={setEpicFilter}
+            onPriorityFilterChange={setPriorityFilter}
+            onPersonaFilterChange={setPersonaFilter}
+            onSearchChange={setSearchQuery}
+            onClearAll={() => {
+              setEpicFilter(undefined);
+              setPriorityFilter(undefined);
+              setPersonaFilter(undefined);
+              setSearchQuery('');
+            }}
           />
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs"
-            >
-              &times;
-            </button>
-          )}
         </div>
 
-        {/* Group by epic toggle */}
+        {/* View Toggle */}
         {board && board.epics.length > 0 && (
           <button
             onClick={() => setGroupByEpic(!groupByEpic)}
@@ -252,6 +231,7 @@ export default function BoardPage() {
 
         <div className="flex-1" />
 
+        {/* Primary Actions */}
         {selectedFeatureId && (
           <button
             onClick={() => setShowNewTicket(true)}
