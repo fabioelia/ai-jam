@@ -26,6 +26,7 @@ export interface Ticket {
   assignedUserId: string | null;
   createdBy: string;
   source: 'human' | 'mcp' | 'api';
+  dependencies: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -112,4 +113,14 @@ export interface CreateEpicRequest {
   title: string;
   description?: string;
   color?: string;
+}
+
+export interface DependencyChainNode {
+  ticket: Ticket;
+  depth: number;
+}
+
+export interface DependencyChain {
+  upstream: DependencyChainNode[];
+  downstream: DependencyChainNode[];
 }

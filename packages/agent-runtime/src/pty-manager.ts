@@ -1,16 +1,12 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { execSync } from 'child_process';
-import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
+import { writeFileSync, mkdirSync, unlinkSync, existsSync, rmSync } from 'fs';
+import { join } from 'path';
 import { tmpdir } from 'os';
-import { fileURLToPath } from 'url';
 import { v4 as uuid } from 'uuid';
 import { ActivityDetector, type Activity } from './activity-detector.js';
 import type { SessionType } from './protocol.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 /**
  * Resolve a command to its full path using the user's shell environment.
@@ -118,15 +114,29 @@ export class PtyManager extends EventEmitter {
     }
 
     const claudePath = resolveCommand('claude');
-    // Workaround for node-pty posix_spawn issue on macOS arm64
-    // Use shell wrapper instead of direct spawn
-    const shellProc = pty.spawn('sh', ['-c', `${claudePath} ${args.join(' ')}`], {
-      name: 'xterm-256color',
-      cols: options.interactive ? 120 : 200,
-      rows: options.interactive ? 40 : 50,
-      cwd: options.workingDirectory,
-      env,
-    });
+    console.log(`[pty-manager] Spawning: ${claudePath} ${args.join(' ')}`);
+
+    let shellProc;
+    try {
+      // Try spawning Claude CLI directly (node-pty@1.2.0-beta.12 should work)
+      shellProc = pty.spawn(claudePath, args, {
+        name: 'xterm-256color',
+        cols: options.interactive ? 120 : 200,
+        rows: options.interactive ? 40 : 50,
+        cwd: options.workingDirectory,
+        env,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : '';
+      console.error(`[pty-manager] pty.spawn failed:`, message);
+      console.error(`[pty-manager] Error stack:`, stack);
+      console.error(`[pty-manager] Command: ${claudePath}`);
+      console.error(`[pty-manager] Args: ${args.join(' ')}`);
+      console.error(`[pty-manager] Working dir: ${options.workingDirectory}`);
+      console.error(`[pty-manager] Cwd exists:`, existsSync(options.workingDirectory));
+      throw err;
+    }
 
     const detector = new ActivityDetector();
 
@@ -136,7 +146,7 @@ export class PtyManager extends EventEmitter {
       sessionType: options.sessionType,
       personaType: options.personaType,
       model: options.model,
-      process: proc,
+      process: shellProc,
       activityDetector: detector,
       status: 'starting',
       startedAt: new Date(),
@@ -147,7 +157,7 @@ export class PtyManager extends EventEmitter {
     this.instances.set(options.sessionId, instance);
 
     // Wire up output
-    proc.onData((data: string) => {
+    shellProc.onData((data: string) => {
       instance.outputBuffer.push(data);
       if (instance.outputBuffer.length > 5000) {
         instance.outputBuffer = instance.outputBuffer.slice(-2500);
@@ -162,7 +172,7 @@ export class PtyManager extends EventEmitter {
     });
 
     // Wire up exit
-    proc.onExit(({ exitCode }) => {
+    shellProc.onExit(({ exitCode }) => {
       detector.stop();
       instance.status = exitCode === 0 ? 'completed' : 'failed';
       instance.completedAt = new Date();

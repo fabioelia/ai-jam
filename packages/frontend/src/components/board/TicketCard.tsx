@@ -1,4 +1,5 @@
 import { useAgentStore } from '../../stores/agent-store.js';
+import { useTicketBlockedStatus } from '../../api/queries.js';
 import type { Ticket, Epic } from '@ai-jam/shared';
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -20,13 +21,25 @@ export default function TicketCard({ ticket, epics, isDragging, onClick }: Ticke
   const activeAgent = useAgentStore((s) => s.getSessionForTicket(ticket.id));
   const lastAgent = useAgentStore((s) => s.getLastSessionForTicket(ticket.id));
 
+  // Check if ticket is blocked by dependencies
+  const { data: blockedStatus } = useTicketBlockedStatus(ticket.id);
+  const isBlocked = blockedStatus?.blocked && ticket.dependencies && ticket.dependencies.length > 0;
+
   return (
     <div
       onClick={onClick}
       className={`bg-gray-800 border rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-gray-600 transition-colors select-none ${
         isDragging ? 'shadow-xl ring-2 ring-indigo-500 scale-105' : ''
-      } ${activeAgent ? 'border-green-600/50' : 'border-gray-700'} ${onClick ? 'cursor-pointer' : ''}`}
+      } ${activeAgent ? 'border-green-600/50' : 'border-gray-700'} ${isBlocked ? 'border-yellow-600/50' : ''} ${onClick ? 'cursor-pointer' : ''}`}
     >
+      {/* Blocked indicator */}
+      {isBlocked && (
+        <div className="flex items-center gap-1.5 mb-1.5 text-xs text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+          <span className="shrink-0">⚠️</span>
+          <span>Blocked</span>
+        </div>
+      )}
+
       {/* Epic badge */}
       {epic && (
         <div className="flex items-center gap-1.5 mb-1.5">
@@ -41,6 +54,11 @@ export default function TicketCard({ ticket, epics, isDragging, onClick }: Ticke
       <p className="text-white text-sm font-medium mb-2 line-clamp-2">{ticket.title}</p>
 
       <div className="flex items-center gap-2 flex-wrap">
+        {ticket.dependencies && ticket.dependencies.length > 0 && (
+          <span className="text-xs text-gray-400 bg-gray-700 px-1.5 py-0.5 rounded flex items-center gap-1">
+            🔗 {ticket.dependencies.length}
+          </span>
+        )}
         <span className={`text-xs px-1.5 py-0.5 rounded ${PRIORITY_COLORS[ticket.priority] || ''}`}>
           {ticket.priority}
         </span>
