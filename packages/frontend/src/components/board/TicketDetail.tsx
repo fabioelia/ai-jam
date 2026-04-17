@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useComments, useTicketNotes, useTransitionGates, useAgentSessions } from '../../api/queries.js';
-import { useCreateComment } from '../../api/mutations.js';
+import { useCreateComment, useMoveTicket, useDeleteTicket } from '../../api/mutations.js';
 import { apiFetch } from '../../api/client.js';
 import { getSocket, joinTicket, leaveTicket } from '../../api/socket.js';
 import { useAuthStore } from '../../stores/auth-store.js';
 import { useBoardStore } from '../../stores/board-store.js';
 import CommentThread from './CommentThread.js';
 import HandoffTimeline from './HandoffTimeline.js';
-import type { Ticket, Epic, Comment, TicketPriority } from '@ai-jam/shared';
+import type { Ticket, Epic, Comment, TicketPriority, TicketStatus } from '@ai-jam/shared';
 
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS: Record<TicketStatus, string> = {
   backlog: 'Backlog',
   in_progress: 'In Progress',
   review: 'Review',
@@ -17,6 +18,8 @@ const STATUS_LABELS: Record<string, string> = {
   acceptance: 'Acceptance',
   done: 'Done',
 };
+
+const STATUS_OPTIONS: TicketStatus[] = ['backlog', 'in_progress', 'review', 'qa', 'acceptance', 'done'];
 
 const PRIORITY_OPTIONS: TicketPriority[] = ['critical', 'high', 'medium', 'low'];
 
@@ -27,18 +30,23 @@ interface TicketDetailProps {
 }
 
 export default function TicketDetail({ ticket, epics, onClose }: TicketDetailProps) {
+  const { projectId } = useParams<{ projectId: string }>();
   const user = useAuthStore((s) => s.user);
   const updateTicketStore = useBoardStore((s) => s.updateTicket);
+  const removeTicketStore = useBoardStore((s) => s.removeTicket);
   const { data: serverComments, refetch: refetchComments } = useComments(ticket.id);
   const createComment = useCreateComment(ticket.id);
   const { data: ticketNotes } = useTicketNotes(ticket.id);
   const { data: transitionGates } = useTransitionGates(ticket.id);
   const { data: agentSessionsData } = useAgentSessions(ticket.id);
+  const moveTicket = useMoveTicket(projectId!);
+  const deleteTicket = useDeleteTicket(projectId!);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(ticket.title);
   const [editDesc, setEditDesc] = useState(ticket.description || '');
   const [editPriority, setEditPriority] = useState(ticket.priority);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
 
   // Sync server comments
@@ -93,6 +101,26 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
     }
   }
 
+  async function handleStatusChange(status: TicketStatus) {
+    if (status === ticket.status) return;
+    try {
+      await moveTicket.mutateAsync({ ticketId: ticket.id, toStatus: status });
+      updateTicketStore(ticket.id, { status });
+    } catch (err) {
+      console.error('Failed to change ticket status:', err);
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      await deleteTicket.mutateAsync(ticket.id);
+      removeTicketStore(ticket.id);
+      onClose();
+    } catch (err) {
+      console.error('Failed to delete ticket:', err);
+    }
+  }
+
   const epic = epics.find((e) => e.id === ticket.epicId);
 
   return (
@@ -105,9 +133,15 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
-              {STATUS_LABELS[ticket.status] || ticket.status}
-            </span>
+            <select
+              value={ticket.status}
+              onChange={(e) => handleStatusChange(e.target.value as TicketStatus)}
+              className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded focus:outline-none focus:border-indigo-500 border border-transparent focus:bg-gray-600"
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+              ))}
+            </select>
             {epic && (
               <span className="text-xs text-gray-400 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: epic.color || '#6b7280' }} />
@@ -115,7 +149,16 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
               </span>
             )}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-lg">&times;</button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-gray-500 hover:text-red-400 text-sm"
+              title="Delete ticket"
+            >
+              Delete
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-white text-lg">&times;</button>
+          </div>
         </div>
 
         {/* Content */}
@@ -230,6 +273,32 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
             </div>
           </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center">
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm mx-4">
+              <h3 className="text-white font-semibold mb-2">Delete Ticket</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Are you sure you want to delete "{ticket.title}"? This action cannot be undone.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

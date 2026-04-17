@@ -23,6 +23,13 @@ export default function CommentThread({ comments, currentUserId, onAddComment }:
     }
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  }
+
   return (
     <div className="space-y-3">
       {/* Comment list */}
@@ -47,21 +54,24 @@ export default function CommentThread({ comments, currentUserId, onAddComment }:
       )}
 
       {/* Add comment form */}
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="text"
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Add a comment..."
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+          onKeyDown={handleKeyDown}
+          placeholder="Add a comment... (Cmd/Ctrl+Enter to send)"
+          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 resize-none min-h-[60px]"
+          rows={2}
         />
-        <button
-          type="submit"
-          disabled={!body.trim() || submitting}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50 shrink-0"
-        >
-          Send
-        </button>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={!body.trim() || submitting}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 shrink-0"
+          >
+            Send
+          </button>
+        </div>
       </form>
     </div>
   );

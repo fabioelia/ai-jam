@@ -60,6 +60,15 @@ export function useMoveTicket(projectId: string) {
   });
 }
 
+export function useDeleteTicket(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ticketId: string) =>
+      apiFetch(`/tickets/${ticketId}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['board', projectId] }),
+  });
+}
+
 export function useCreateComment(ticketId: string) {
   const qc = useQueryClient();
   return useMutation({
