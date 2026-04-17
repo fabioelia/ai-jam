@@ -26,6 +26,7 @@ import { attachmentRoutes } from './routes/attachments.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
+import { startQueueProcessor, stopQueueProcessor } from './services/queue-processor.js';
 import { db } from './db/connection.js';
 import { chatSessions, agentSessions } from './db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -103,7 +104,23 @@ async function main() {
   startPtyDaemon().catch((err) => {
     console.warn('PTY daemon not available at startup:', err.message || err);
   });
+
+  // Start queue processor for agent session queuing (non-blocking)
+  startQueueProcessor().catch((err) => {
+    console.warn('Queue processor failed to start:', err.message || err);
+  });
 }
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('[shutdown] SIGTERM received, stopping services...');
+  stopQueueProcessor();
+});
+
+process.on('SIGINT', () => {
+  console.log('[shutdown] SIGINT received, stopping services...');
+  stopQueueProcessor();
+});
 
 main().catch((err) => {
   console.error('Failed to start server:', err);

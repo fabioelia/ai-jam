@@ -9,6 +9,10 @@ export const ticketPriorityEnum = pgEnum('ticket_priority', [
   'critical', 'high', 'medium', 'low',
 ]);
 
+export const agentSessionStatusEnum = pgEnum('agent_session_status', [
+  'pending', 'queued', 'spawning', 'running', 'paused', 'completed', 'failed',
+]);
+
 // Users
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -33,6 +37,7 @@ export const projects = pgTable('projects', {
   personaModelOverrides: jsonb('persona_model_overrides').default({}).notNull(),
   transitionGates: jsonb('transition_gates').default({}).notNull(),
   maxRejectionCycles: integer('max_rejection_cycles').default(3).notNull(),
+  maxConcurrentAgents: integer('max_concurrent_agents').default(3).notNull(),
   ownerId: uuid('owner_id').notNull().references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -65,6 +70,7 @@ export const features = pgTable('features', {
   description: text('description'),
   repoBranch: varchar('repo_branch', { length: 255 }),
   status: varchar('status', { length: 50 }).default('draft').notNull(),
+  maxConcurrentAgents: integer('max_concurrent_agents'),
   createdBy: uuid('created_by').notNull().references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -188,11 +194,13 @@ export const agentSessions = pgTable('agent_sessions', {
   ticketId: uuid('ticket_id').references(() => tickets.id, { onDelete: 'set null' }),
   personaType: varchar('persona_type', { length: 100 }).notNull(),
   ptyInstanceId: varchar('pty_instance_id', { length: 255 }),
-  status: varchar('status', { length: 50 }).default('pending').notNull(),
+  status: agentSessionStatusEnum('status').default('pending').notNull(),
   activity: varchar('activity', { length: 50 }).default('idle').notNull(),
   prompt: text('prompt'),
   outputSummary: text('output_summary'),
   workingDirectory: varchar('working_directory', { length: 512 }),
+  queuePosition: integer('queue_position'),
+  queuedAt: timestamp('queued_at', { withTimezone: true }),
   retryCount: integer('retry_count').default(0).notNull(),
   maxRetries: integer('max_retries').default(2).notNull(),
   costTokensIn: integer('cost_tokens_in').default(0).notNull(),
