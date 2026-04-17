@@ -123,18 +123,30 @@ export default function BoardPage() {
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [ticketTitle, setTicketTitle] = useState('');
   const [ticketDesc, setTicketDesc] = useState('');
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
-  // Keyboard shortcuts: Escape to close modals
+  // Keyboard shortcuts: Escape to close modals, ? for shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
       if (e.key === 'Escape') {
         if (showNewFeature) setShowNewFeature(false);
         if (showNewTicket) setShowNewTicket(false);
+        if (showShortcuts) setShowShortcuts(false);
+      }
+
+      if (e.key === '?' && !e.shiftKey) {
+        e.preventDefault();
+        setShowShortcuts(!showShortcuts);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showNewFeature, showNewTicket]);
+  }, [showNewFeature, showNewTicket, showShortcuts]);
 
   async function handleCreateFeature(e: React.FormEvent) {
     e.preventDefault();
@@ -175,41 +187,68 @@ export default function BoardPage() {
       <header className="border-b border-gray-800 bg-gray-900 shrink-0">
         <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white text-sm">
-              &larr; Projects
+            <button
+              onClick={() => navigate('/')}
+              className="text-gray-400 hover:text-white text-sm font-medium transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-800"
+              aria-label="Back to projects"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Projects
             </button>
             <h1 className="text-lg font-bold text-white">{project?.name || 'Loading...'}</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowSessionsSidebar(!showSessionsSidebar)}
-              className={`text-sm px-2.5 py-1 rounded-lg border transition-colors ${
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 ${
                 showSessionsSidebar
                   ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
               }`}
+              aria-label={showSessionsSidebar ? 'Hide sessions' : 'Show sessions'}
             >
               Sessions
             </button>
             <button
               onClick={() => setShowAgentPanel(!showAgentPanel)}
-              className={`text-sm px-2.5 py-1 rounded-lg border transition-colors ${
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 ${
                 showAgentPanel
                   ? 'bg-green-600/20 border-green-500 text-green-300'
-                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
               }`}
+              aria-label={showAgentPanel ? 'Hide agents' : 'Show agents'}
             >
               Agents
             </button>
             <NotificationBell projectId={projectId!} />
             <button
               onClick={() => navigate(`/projects/${projectId}/settings`)}
-              className="text-sm px-2.5 py-1 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 transition-colors"
+              className="text-sm px-3 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600 transition-all duration-150"
+              aria-label="Project settings"
             >
               Settings
             </button>
-            <span className="text-gray-400 text-sm">{user?.name}</span>
-            <button onClick={logout} className="text-gray-500 hover:text-gray-300 text-sm">Logout</button>
+            <button
+              onClick={() => setShowShortcuts(true)}
+              className="text-sm px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-600 transition-all duration-150"
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts (?)"
+            >
+              <kbd className="text-xs font-mono">?</kbd>
+            </button>
+            <div className="w-px h-5 bg-gray-700" />
+            <div className="flex items-center gap-3">
+              <span className="text-gray-400 text-sm">{user?.name}</span>
+              <button
+                onClick={logout}
+                className="text-gray-500 hover:text-red-400 text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-red-500/10"
+                aria-label="Logout"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -404,6 +443,26 @@ export default function BoardPage() {
         </Modal>
       )}
 
+      {/* Keyboard Shortcuts Dialog */}
+      {showShortcuts && (
+        <Modal onClose={() => setShowShortcuts(false)}>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-semibold text-lg">Keyboard Shortcuts</h2>
+              <kbd className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">?</kbd>
+            </div>
+            <div className="space-y-3">
+              <ShortcutItem keys={['Esc']} description="Close modals or dialogs" />
+              <ShortcutItem keys={['?', 'Shift']} description="Toggle this shortcuts dialog" />
+              <ShortcutItem keys={['/']} description="Focus search in filters" />
+            </div>
+            <div className="pt-3 border-t border-gray-800">
+              <p className="text-xs text-gray-500 italic">More shortcuts coming soon</p>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* Sessions Sidebar + Board + Agent Panel */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sessions Sidebar */}
@@ -510,6 +569,23 @@ function formatDuration(startedAt: string, completedAt?: string | null): string 
   return `${hrs}h ${mins % 60}m`;
 }
 
+// ---- Shortcut Item Component ----
+
+function ShortcutItem({ keys, description }: { keys: string[]; description: string }) {
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <div className="flex gap-1">
+        {keys.map((key) => (
+          <kbd key={key} className="text-xs text-gray-400 bg-gray-800 border border-gray-700 px-2 py-1 rounded font-mono">
+            {key}
+          </kbd>
+        ))}
+      </div>
+      <span className="text-sm text-gray-400">{description}</span>
+    </div>
+  );
+}
+
 // ---- Sessions Sidebar ----
 
 const statusDot: Record<string, string> = {
@@ -611,200 +687,91 @@ function SessionsSidebar({
   return (
     <div className="shrink-0 border-r border-gray-800 bg-gray-900 flex relative" style={{ width }}>
       <div className="flex-1 overflow-y-auto flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-800">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-white">Sessions</h3>
-          {selectedFeatureId && (
-            <button
-              onClick={handleNewPlanning}
-              className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded"
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-gray-800">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">Sessions</h3>
+            {selectedFeatureId && (
+              <button
+                onClick={handleNewPlanning}
+                className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-lg font-medium transition-colors"
+              >
+                + Plan
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Collapsible Sections */}
+        <div className="flex-1">
+          {/* Planning sessions */}
+          <SessionSection
+            title="Planning"
+            count={planning.length}
+            isExpanded={shouldShowSection('planning')}
+            onToggle={() => toggleSection('planning')}
+          >
+            {planning.length === 0 ? (
+              <EmptyState message="No planning sessions" />
+            ) : (
+              <div className="space-y-0.5">
+                {planning.map((s) => (
+                  <PlanningSessionItem
+                    key={s.id}
+                    session={s}
+                    isUnread={isUnread(s.id, s.lastActivityAt || s.createdAt)}
+                    onClick={() => handlePlanningClick(s)}
+                    isActive={s.status === 'active'}
+                  />
+                ))}
+              </div>
+            )}
+          </SessionSection>
+
+          {/* Execution sessions */}
+          <SessionSection
+            title="Execution"
+            count={execution.length}
+            isExpanded={shouldShowSection('execution')}
+            onToggle={() => toggleSection('execution')}
+          >
+            {execution.length === 0 ? (
+              <EmptyState message="No agent sessions" />
+            ) : (
+              <div className="space-y-0.5">
+                {execution.map((s) => (
+                  <ExecutionSessionItem
+                    key={s.id}
+                    session={s}
+                    isUnread={isUnread(s.id, s.completedAt || s.createdAt)}
+                    onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); onTicketSelect(s.ticketId); }}
+                  />
+                ))}
+              </div>
+            )}
+          </SessionSection>
+
+          {/* Scan sessions */}
+          {scans.length > 0 && (
+            <SessionSection
+              title="Scans"
+              count={scans.length}
+              isExpanded={shouldShowSection('scans')}
+              onToggle={() => toggleSection('scans')}
             >
-              + Plan
-            </button>
+              <div className="space-y-0.5">
+                {scans.map((s) => (
+                  <ScanSessionItem
+                    key={s.id}
+                    session={s}
+                    isUnread={isUnread(s.id, s.completedAt || s.createdAt)}
+                    onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); navigate(`/projects/${projectId}/settings`); }}
+                  />
+                ))}
+              </div>
+            </SessionSection>
           )}
         </div>
-      </div>
-
-      {/* Planning sessions */}
-      <div className="px-3 py-3">
-        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Planning</h4>
-        {activePlanning.length === 0 && pastPlanning.length === 0 ? (
-          <p className="text-xs text-gray-600 italic px-1">No planning sessions</p>
-        ) : (
-          <div className="space-y-1">
-            {activePlanning.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => handlePlanningClick(s)}
-                className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-gray-800 group transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot[s.status] || statusDot.completed}`} />
-                  <span className="text-sm text-gray-200 truncate group-hover:text-white">
-                    {s.featureTitle}
-                  </span>
-                  {isUnread(s.id, s.lastActivityAt || s.createdAt) && (
-                    <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
-                  )}
-                </div>
-                <div className="ml-3.5 space-y-0.5">
-                  {s.totalProposalCount != null && s.totalProposalCount > 0 && (
-                    <p className="text-xs text-gray-500">
-                      {s.approvedProposalCount ?? 0}/{s.totalProposalCount} tickets created
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 text-xs text-gray-600">
-                    {s.lastActorRole && (
-                      <span>Last: {s.lastActorRole === 'user' ? 'you' : 'Claude'}</span>
-                    )}
-                    {s.lastActivityAt ? (
-                      <span>{relativeTime(s.lastActivityAt)}</span>
-                    ) : (
-                      <span>active</span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
-            {pastPlanning.slice(0, 10).map((s) => (
-              <button
-                key={s.id}
-                onClick={() => handlePlanningClick(s)}
-                className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-gray-800 group transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot[s.status] || statusDot.completed}`} />
-                  <span className="text-sm text-gray-400 truncate group-hover:text-gray-300">
-                    {s.featureTitle}
-                  </span>
-                  {isUnread(s.id, s.lastActivityAt || s.createdAt) && (
-                    <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
-                  )}
-                </div>
-                <div className="ml-3.5 space-y-0.5">
-                  {s.totalProposalCount != null && s.totalProposalCount > 0 && (
-                    <p className="text-xs text-gray-600">
-                      {s.approvedProposalCount ?? 0}/{s.totalProposalCount} tickets created
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 text-xs text-gray-600">
-                    {s.lastActorRole && (
-                      <span>Last: {s.lastActorRole === 'user' ? 'you' : 'Claude'}</span>
-                    )}
-                    <span>{s.lastActivityAt ? relativeTime(s.lastActivityAt) : new Date(s.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Execution sessions */}
-      <div className="px-3 py-3 border-t border-gray-800">
-        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Execution</h4>
-        {activeExecution.length === 0 && pastExecution.length === 0 ? (
-          <p className="text-xs text-gray-600 italic px-1">No agent sessions</p>
-        ) : (
-          <div className="space-y-1">
-            {activeExecution.map((s) => (
-              <div
-                key={s.id}
-                className="px-2 py-1.5 rounded-lg bg-gray-800/50 cursor-pointer"
-                onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); onTicketSelect(s.ticketId); }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 animate-pulse ${statusDot[s.status] || statusDot.completed}`} />
-                  <span className={`text-xs font-medium ${personaColors[s.personaType] || 'text-gray-400'}`}>
-                    {s.personaType.replace(/_/g, ' ')}
-                  </span>
-                  {isUnread(s.id, s.completedAt || s.createdAt) && (
-                    <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
-                  )}
-                  {s.startedAt && (
-                    <span className="text-xs text-gray-600 ml-auto">{formatDuration(s.startedAt, s.completedAt)}</span>
-                  )}
-                </div>
-                {s.featureTitle && (
-                  <p className="text-[10px] text-gray-600 truncate ml-3.5">{s.featureTitle}</p>
-                )}
-                <p className="text-xs text-gray-400 truncate ml-3.5">{s.ticketTitle}</p>
-                <span className="text-xs text-gray-600 ml-3.5">{s.activity}</span>
-              </div>
-            ))}
-            {pastExecution.slice(0, 15).map((s) => (
-              <div
-                key={s.id}
-                className="px-2 py-1.5 rounded-lg hover:bg-gray-800/30 transition-colors cursor-pointer"
-                onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); onTicketSelect(s.ticketId); }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot[s.status] || statusDot.completed}`} />
-                  <span className={`text-xs ${personaColors[s.personaType] || 'text-gray-500'}`}>
-                    {s.personaType.replace(/_/g, ' ')}
-                  </span>
-                  {s.status === 'failed' && (
-                    <span className="text-[10px] text-red-400 bg-red-500/10 px-1 rounded">failed</span>
-                  )}
-                  {isUnread(s.id, s.completedAt || s.createdAt) && (
-                    <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
-                  )}
-                  {s.startedAt && (
-                    <span className="text-xs text-gray-600 ml-auto">{formatDuration(s.startedAt, s.completedAt)}</span>
-                  )}
-                </div>
-                {s.featureTitle && (
-                  <p className="text-[10px] text-gray-600 truncate ml-3.5">{s.featureTitle}</p>
-                )}
-                <p className="text-xs text-gray-500 truncate ml-3.5">{s.ticketTitle}</p>
-                {(s.status === 'completed' || s.status === 'failed') && (
-                  <p className={`text-[10px] ml-3.5 italic ${s.status === 'failed' ? 'text-red-400/70' : 'text-gray-600'}`} title={s.outputSummary || undefined}>
-                    {s.outputSummary
-                      ? `${s.outputSummary.slice(0, 80)}${s.outputSummary.length > 80 ? '\u2026' : ''}`
-                      : s.status === 'failed' ? 'No error details captured' : null}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Scan sessions */}
-      {scans.length > 0 && (
-        <div className="px-3 py-3 border-t border-gray-800">
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Scans</h4>
-          <div className="space-y-1">
-            {scans.map((s) => (
-              <div
-                key={s.id}
-                className="px-2 py-1.5 rounded-lg hover:bg-gray-800/30 transition-colors cursor-pointer"
-                onClick={() => { markSeen(s.id); forceUpdate((n) => n + 1); navigate(`/projects/${projectId}/settings`); }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.status === 'running' ? 'animate-pulse ' : ''}${statusDot[s.status] || statusDot.completed}`} />
-                  <span className="text-xs text-yellow-400">repo scanner</span>
-                  {isUnread(s.id, s.completedAt || s.createdAt) && (
-                    <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
-                  )}
-                  <span className={`text-xs ml-auto ${s.status === 'completed' ? 'text-gray-600' : s.status === 'failed' ? 'text-red-400' : 'text-blue-400'}`}>
-                    {s.status}
-                  </span>
-                </div>
-                <span className="text-xs text-gray-600 ml-3.5">
-                  {new Date(s.createdAt).toLocaleDateString()}
-                </span>
-                {s.status === 'completed' && s.outputSummary && (
-                  <p className="text-[10px] text-gray-600 italic truncate ml-3.5" title={s.outputSummary}>
-                    {s.outputSummary.slice(0, 60)}{s.outputSummary.length > 60 ? '\u2026' : ''}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       </div>
       {/* Drag handle */}
       <div
@@ -816,6 +783,197 @@ function SessionsSidebar({
           <span className="block w-0.5 h-0.5 rounded-full bg-gray-400" />
           <span className="block w-0.5 h-0.5 rounded-full bg-gray-400" />
           <span className="block w-0.5 h-0.5 rounded-full bg-gray-400" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Session Sidebar Sub-components ----
+
+function SessionSection({
+  title,
+  count,
+  isExpanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  count: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-gray-800/50">
+      <button
+        onClick={onToggle}
+        className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-800/30 transition-colors group"
+      >
+        <div className="flex items-center gap-2">
+          <svg
+            className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider group-hover:text-gray-300">
+            {title}
+          </span>
+        </div>
+        {count > 0 && (
+          <span className="text-xs text-gray-600 bg-gray-800/50 px-1.5 py-0.5 rounded-full">
+            {count}
+          </span>
+        )}
+      </button>
+      {isExpanded && <div className="px-2 pb-2">{children}</div>}
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="py-4 text-center">
+      <p className="text-xs text-gray-600 italic">{message}</p>
+    </div>
+  );
+}
+
+function PlanningSessionItem({
+  session,
+  isUnread,
+  onClick,
+  isActive,
+}: {
+  session: PlanningSession;
+  isUnread: boolean;
+  onClick: () => void;
+  isActive: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left px-2 py-2 rounded-lg hover:bg-gray-800/50 group transition-all duration-150"
+    >
+      <div className="flex items-start gap-2">
+        <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-green-400 animate-pulse' : 'bg-gray-600 group-hover:bg-gray-500'} transition-colors`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`text-sm truncate ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'} transition-colors`}>
+              {session.featureTitle}
+            </span>
+            {isUnread && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />}
+          </div>
+          {session.totalProposalCount != null && session.totalProposalCount > 0 && (
+            <p className="text-xs text-gray-600 mt-0.5">
+              {session.approvedProposalCount ?? 0}/{session.totalProposalCount} tickets created
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-1">
+            {session.lastActorRole && (
+              <span className="text-[10px] text-gray-600 bg-gray-800/30 px-1.5 py-0.5 rounded">
+                {session.lastActorRole === 'user' ? 'You' : 'Claude'}
+              </span>
+            )}
+            <span className="text-[10px] text-gray-600">
+              {session.lastActivityAt ? relativeTime(session.lastActivityAt) : 'active'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ExecutionSessionItem({
+  session,
+  isUnread,
+  onClick,
+}: {
+  session: ExecutionSession;
+  isUnread: boolean;
+  onClick: () => void;
+}) {
+  const isActive = session.status === 'running' || session.status === 'pending';
+  return (
+    <div
+      onClick={onClick}
+      className={`px-2 py-2 rounded-lg cursor-pointer transition-all duration-150 ${
+        isActive ? 'bg-gray-800/50' : 'hover:bg-gray-800/30'
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-green-400 animate-pulse' : session.status === 'failed' ? 'bg-red-400' : 'bg-gray-600'} transition-colors`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-xs font-medium ${personaColors[session.personaType] || 'text-gray-500'}`}>
+              {session.personaType.replace(/_/g, ' ')}
+            </span>
+            {session.status === 'failed' && (
+              <span className="text-[10px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded font-medium">
+                failed
+              </span>
+            )}
+            {isUnread && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />}
+            {session.startedAt && (
+              <span className="text-[10px] text-gray-600 ml-auto">{formatDuration(session.startedAt, session.completedAt)}</span>
+            )}
+          </div>
+          {session.featureTitle && (
+            <p className="text-[10px] text-gray-600 truncate mt-1">{session.featureTitle}</p>
+          )}
+          <p className={`text-xs truncate mt-0.5 ${session.status === 'failed' ? 'text-red-400/80' : 'text-gray-400'}`}>
+            {session.ticketTitle}
+          </p>
+          {session.activity && session.activity !== 'idle' && (
+            <p className="text-[10px] text-gray-600 truncate mt-0.5 italic">{session.activity}</p>
+          )}
+          {(session.status === 'completed' || session.status === 'failed') && session.outputSummary && (
+            <p className={`text-[10px] mt-1 italic truncate ${session.status === 'failed' ? 'text-red-400/70' : 'text-gray-600'}`} title={session.outputSummary}>
+              {session.outputSummary.slice(0, 70)}{session.outputSummary.length > 70 ? '\u2026' : ''}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScanSessionItem({
+  session,
+  isUnread,
+  onClick,
+}: {
+  session: ScanSession;
+  isUnread: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      className="px-2 py-2 rounded-lg hover:bg-gray-800/30 transition-all duration-150 cursor-pointer"
+    >
+      <div className="flex items-start gap-2">
+        <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${session.status === 'running' ? 'bg-yellow-400 animate-pulse' : session.status === 'completed' ? 'bg-gray-500' : 'bg-red-400'} transition-colors`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-yellow-400">repo scanner</span>
+            {isUnread && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />}
+            <span className={`text-[10px] ml-auto ${session.status === 'completed' ? 'text-gray-600' : session.status === 'failed' ? 'text-red-400' : 'text-blue-400'}`}>
+              {session.status}
+            </span>
+          </div>
+          <p className="text-[10px] text-gray-600 mt-1">
+            {new Date(session.createdAt).toLocaleDateString()}
+          </p>
+          {session.status === 'completed' && session.outputSummary && (
+            <p className="text-[10px] text-gray-600 italic truncate mt-0.5" title={session.outputSummary}>
+              {session.outputSummary.slice(0, 50)}{session.outputSummary.length > 50 ? '\u2026' : ''}
+            </p>
+          )}
         </div>
       </div>
     </div>
