@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
@@ -15,6 +15,65 @@ import TicketDetail from '../components/board/TicketDetail.js';
 import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
 import FiltersPopover from '../components/board/FiltersPopover.js';
 import type { Ticket } from '@ai-jam/shared';
+
+// ---- Modal Component ----
+function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousActiveElement.current = document.activeElement as HTMLElement;
+    const modal = modalRef.current;
+    if (modal) {
+      modal.focus();
+    }
+    return () => {
+      if (previousActiveElement.current) {
+        previousActiveElement.current.focus();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const modal = modalRef.current;
+      if (!modal) return;
+      const focusableElements = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0] as HTMLElement;
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    };
+    document.addEventListener('keydown', handleTab);
+    return () => document.removeEventListener('keydown', handleTab);
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const SIDEBAR_STORAGE_KEY = 'ai-jam:sidebar-width';
 
@@ -64,6 +123,18 @@ export default function BoardPage() {
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [ticketTitle, setTicketTitle] = useState('');
   const [ticketDesc, setTicketDesc] = useState('');
+
+  // Keyboard shortcuts: Escape to close modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showNewFeature) setShowNewFeature(false);
+        if (showNewTicket) setShowNewTicket(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showNewFeature, showNewTicket]);
 
   async function handleCreateFeature(e: React.FormEvent) {
     e.preventDefault();
@@ -244,51 +315,93 @@ export default function BoardPage() {
 
       {/* Modals */}
       {showNewFeature && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <form onSubmit={handleCreateFeature} className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md space-y-4">
-            <h2 className="text-white font-semibold">New Feature</h2>
-            <input
-              type="text"
-              value={featureTitle}
-              onChange={(e) => setFeatureTitle(e.target.value)}
-              placeholder="Feature title"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-              autoFocus
-              required
-            />
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setShowNewFeature(false)} className="text-gray-400 px-3 py-1.5 text-sm">Cancel</button>
-              <button type="submit" className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm">Create</button>
+        <Modal onClose={() => setShowNewFeature(false)}>
+          <form onSubmit={handleCreateFeature} className="space-y-4">
+            <div>
+              <h2 className="text-white font-semibold text-lg">New Feature</h2>
+              <p className="text-gray-500 text-sm mt-1">Create a new feature to start planning and tracking work.</p>
+            </div>
+            <div>
+              <label htmlFor="feature-title" className="block text-sm font-medium text-gray-400 mb-1.5">Feature Title</label>
+              <input
+                id="feature-title"
+                type="text"
+                value={featureTitle}
+                onChange={(e) => setFeatureTitle(e.target.value)}
+                placeholder="e.g., User authentication system"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                autoFocus
+                required
+              />
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowNewFeature(false)}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!featureTitle.trim()}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Create Feature
+              </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {showNewTicket && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <form onSubmit={handleCreateTicket} className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md space-y-4">
-            <h2 className="text-white font-semibold">New Ticket</h2>
-            <input
-              type="text"
-              value={ticketTitle}
-              onChange={(e) => setTicketTitle(e.target.value)}
-              placeholder="Ticket title"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-              autoFocus
-              required
-            />
-            <textarea
-              value={ticketDesc}
-              onChange={(e) => setTicketDesc(e.target.value)}
-              placeholder="Description (optional)"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 h-24 resize-none"
-            />
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setShowNewTicket(false)} className="text-gray-400 px-3 py-1.5 text-sm">Cancel</button>
-              <button type="submit" className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm">Create</button>
+        <Modal onClose={() => setShowNewTicket(false)}>
+          <form onSubmit={handleCreateTicket} className="space-y-4">
+            <div>
+              <h2 className="text-white font-semibold text-lg">New Ticket</h2>
+              <p className="text-gray-500 text-sm mt-1">Add a task to the current feature board.</p>
+            </div>
+            <div>
+              <label htmlFor="ticket-title" className="block text-sm font-medium text-gray-400 mb-1.5">Ticket Title</label>
+              <input
+                id="ticket-title"
+                type="text"
+                value={ticketTitle}
+                onChange={(e) => setTicketTitle(e.target.value)}
+                placeholder="e.g., Implement login form"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                autoFocus
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="ticket-desc" className="block text-sm font-medium text-gray-400 mb-1.5">Description</label>
+              <textarea
+                id="ticket-desc"
+                value={ticketDesc}
+                onChange={(e) => setTicketDesc(e.target.value)}
+                placeholder="Describe the work to be done..."
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all h-28 resize-none"
+              />
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowNewTicket(false)}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!ticketTitle.trim()}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Create Ticket
+              </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {/* Sessions Sidebar + Board + Agent Panel */}
@@ -325,7 +438,24 @@ export default function BoardPage() {
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500">Select or create a feature to see the board.</p>
+              <div className="text-center max-w-md px-6">
+                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                  </svg>
+                </div>
+                <h3 className="text-white font-semibold text-lg mb-2">No feature selected</h3>
+                <p className="text-gray-500 mb-6">Select a feature from the dropdown above or create a new one to get started.</p>
+                <button
+                  onClick={() => setShowNewFeature(true)}
+                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Feature
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -420,6 +550,7 @@ function SessionsSidebar({
   const navigate = useNavigate();
   const isDragging = useRef(false);
   const { isUnread, markSeen } = useSessionLastSeen();
+  const [expandedSection, setExpandedSection] = useState<'planning' | 'execution' | 'scans' | 'all'>('all');
   const [, forceUpdate] = useState(0);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -447,6 +578,14 @@ function SessionsSidebar({
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }, [width, onWidthChange]);
+
+  const toggleSection = useCallback((section: 'planning' | 'execution' | 'scans') => {
+    setExpandedSection((prev) => prev === section ? 'all' : section);
+  }, []);
+
+  const shouldShowSection = useCallback((section: 'planning' | 'execution' | 'scans') => {
+    return expandedSection === 'all' || expandedSection === section;
+  }, [expandedSection]);
 
   const planning = sessions?.planning || [];
   const execution = sessions?.execution || [];
