@@ -70,7 +70,8 @@ async function callClaudeCLI({
   systemPrompt: string;
   model?: string;
 }): Promise<ClaudeCLIResponse> {
-  const args = ['--model', model || config.claudeModel || 'claude-3-5-sonnet-20241022', '--output-format', 'json', '--print'];
+  const modelName = model || config.claudeModel || 'claude-sonnet-4-7';
+  const args = ['--model', modelName, '--output-format', 'json', '--print'];
 
   if (systemPrompt) {
     args.push('--system-prompt', systemPrompt);
@@ -99,10 +100,10 @@ async function callClaudeCLI({
         try {
           const parsed = JSON.parse(stdout.trim());
           resolve({
-            content: parsed.text || parsed.content || stdout.trim(),
+            content: parsed.result || stdout.trim(),
             usage: {
-              inputTokens: parsed.usage?.input_tokens || 0,
-              outputTokens: parsed.usage?.output_tokens || 0,
+              inputTokens: parsed.modelUsage?.[modelName]?.inputTokens || 0,
+              outputTokens: parsed.modelUsage?.[modelName]?.outputTokens || 0,
             },
           });
         } catch {
@@ -134,7 +135,8 @@ async function callClaudeCLIStream({
   model?: string;
   onChunk: (chunk: string) => void;
 }): Promise<ClaudeCLIResponse> {
-  const args = ['--model', model || config.claudeModel || 'claude-3-5-sonnet-20241022', '--output-format', 'stream-json', '--print', '--include-partial-messages'];
+  const modelName = model || config.claudeModel || 'claude-sonnet-4-7';
+  const args = ['--model', modelName, '--output-format', 'stream-json', '--print', '--include-partial-messages', '--verbose'];
 
   if (systemPrompt) {
     args.push('--system-prompt', systemPrompt);
@@ -162,10 +164,10 @@ async function callClaudeCLIStream({
             fullContent += parsed.delta.text;
             onChunk(parsed.delta.text);
           }
-          if (parsed.type === 'message_stop' && parsed.usage) {
+          if (parsed.type === 'message_stop' && parsed.modelUsage?.[modelName]) {
             usage = {
-              inputTokens: parsed.usage.input_tokens || 0,
-              outputTokens: parsed.usage.output_tokens || 0,
+              inputTokens: parsed.modelUsage[modelName].inputTokens || 0,
+              outputTokens: parsed.modelUsage[modelName].outputTokens || 0,
             };
           }
         }
@@ -439,13 +441,27 @@ async function generateTicket(
   };
 }
 
+function extractJSONFromMarkdown(content: string): string | null {
+  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
+
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return jsonMatch[0];
+  }
+
+  return null;
+}
+
 function extractTicketFromResponse(content: string): TicketData {
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const jsonText = extractJSONFromMarkdown(content);
+    if (!jsonText) {
       throw new Error('No JSON found in response');
     }
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonText);
     return {
       title: parsed.title || 'Untitled Ticket',
       description: parsed.description || '',
@@ -514,11 +530,11 @@ ${ticket.description ? `**Ticket Description:**\n${ticket.description}` : ''}`;
 
 function extractCategorizationFromResponse(content: string): TicketCategorization {
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const jsonText = extractJSONFromMarkdown(content);
+    if (!jsonText) {
       throw new Error('No JSON found in response');
     }
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonText);
     return {
       labels: parsed.labels || [],
       suggestedColumn: parsed.suggestedColumn || 'backlog',
