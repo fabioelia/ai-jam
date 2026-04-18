@@ -450,3 +450,12 @@ export function useAttentionCount() {
     queryFn: () => apiFetch<{ count: number }>('/attention/count'),
   });
 }
+
+export function useCurrentUser(options?: Partial<UseQueryOptions>) {
+  return useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => apiFetch<any>('/users/me'),
+    ...defaultQueryOptions,
+    ...options,
+  });
+}

@@ -9,6 +9,7 @@ import ErrorDisplay from '../components/common/ErrorDisplay.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import QuickStartGuide from '../components/common/QuickStartGuide.js';
+import UserAvatar from '../components/common/UserAvatar.js';
 import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
 
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   const createProject = useCreateProject();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
@@ -99,7 +101,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowHelp(true)}
-              className="text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 px-3 py-1.5 rounded-lg text-sm transition-colors"
+              className="text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 hover:shadow-sm hover:shadow-indigo-500/10 active:bg-indigo-500/20 active:scale-95"
               aria-label="Help"
               title="Help (Cmd+H)"
             >
@@ -107,13 +109,7 @@ export default function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </button>
-            <span className="text-gray-400 text-sm">{user?.name}</span>
-            <button
-              onClick={logout}
-              className="text-gray-500 hover:text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-sm transition-colors"
-            >
-              Logout
-            </button>
+            <UserAvatar size="md" />
           </div>
         </div>
       </header>
@@ -233,7 +229,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="text-gray-400 hover:text-gray-300 px-5 py-2.5 rounded-xl text-sm transition-colors hover:bg-gray-800 w-full sm:w-auto text-center"
+                className="text-gray-400 hover:text-gray-300 px-5 py-2.5 rounded-xl text-sm transition-all duration-200 hover:bg-gray-800 hover:shadow-sm active:bg-gray-700 active:scale-95 w-full sm:w-auto text-center"
               >
                 Cancel
               </button>

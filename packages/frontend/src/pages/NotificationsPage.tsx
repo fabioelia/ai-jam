@@ -11,6 +11,7 @@ import { useNotificationStore } from '../stores/notification-store.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { NotificationType } from '@ai-jam/shared';
 import type { Notification } from '@ai-jam/shared';
+import UserAvatar from '../components/common/UserAvatar.js';
 import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
 
@@ -195,7 +196,7 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/')}
-              className="text-gray-400 hover:text-white text-sm flex items-center gap-1 transition-colors"
+              className="text-gray-400 hover:text-white text-sm flex items-center gap-1 transition-all duration-200 hover:bg-gray-800 px-2 py-1.5 rounded-lg active:bg-gray-700 active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -205,10 +206,7 @@ export default function NotificationsPage() {
             <h1 className="text-xl font-bold text-white">Notifications</h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-gray-400 text-sm">{user?.name}</span>
-            <button onClick={logout} className="text-gray-500 hover:text-gray-300 text-sm">
-              Logout
-            </button>
+            <UserAvatar size="md" />
           </div>
         </div>
       </header>
@@ -225,7 +223,7 @@ export default function NotificationsPage() {
           {hasFilters && (
             <button
               onClick={resetFilters}
-              className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-all duration-200 hover:bg-gray-800 px-2 py-1 rounded active:bg-gray-700"
+              className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-all duration-200 hover:bg-gray-800 hover:shadow-sm px-2 py-1 rounded active:bg-gray-700 active:scale-95"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -291,7 +289,7 @@ export default function NotificationsPage() {
             <button
               onClick={handleMarkAllRead}
               disabled={markAllReadMutation.isPending}
-              className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50 flex items-center gap-1 transition-all duration-200 px-2 py-1 rounded hover:bg-indigo-500/10 active:bg-indigo-500/20 active:scale-95"
+              className="text-xs text-indigo-400 hover:text-indigo-300 active:text-indigo-200 disabled:opacity-50 flex items-center gap-1 transition-all duration-200 px-2 py-1 rounded hover:bg-indigo-500/10 active:bg-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/10 active:scale-95"
               title="Mark all notifications as read (M)"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -303,7 +301,7 @@ export default function NotificationsPage() {
               <button
                 onClick={handleDeleteRead}
                 disabled={deleteReadMutation.isPending}
-                className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 flex items-center gap-1 transition-all duration-200 px-2 py-1 rounded hover:bg-red-500/10 active:bg-red-500/20 active:scale-95"
+                className="text-xs text-red-400 hover:text-red-300 active:text-red-200 disabled:opacity-50 flex items-center gap-1 transition-all duration-200 px-2 py-1 rounded hover:bg-red-500/10 active:bg-red-500/20 hover:shadow-md hover:shadow-red-500/10 active:scale-95"
                 title="Delete all read notifications (D)"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -317,24 +315,24 @@ export default function NotificationsPage() {
           {/* Keyboard shortcuts hint */}
           <div className="mt-3 pt-3 border-t border-gray-800 flex items-center gap-4 text-xs text-gray-600 flex-wrap">
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">↑</kbd>
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">↓</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-gray-400 font-mono shadow-sm">↑</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-gray-400 font-mono shadow-sm">↓</kbd>
               <span>Navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Enter</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-gray-400 font-mono shadow-sm">Enter</kbd>
               <span>Open</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">M</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-gray-400 font-mono shadow-sm">M</kbd>
               <span>Mark all read</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">D</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-gray-400 font-mono shadow-sm">D</kbd>
               <span>Delete read</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-gray-400 font-mono">Esc</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-gray-400 font-mono shadow-sm">Esc</kbd>
               <span>Clear filters</span>
             </span>
           </div>
@@ -356,21 +354,21 @@ export default function NotificationsPage() {
           </div>
         ) : displayed.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-in scale-in duration-300">
+              <svg className="w-8 h-8 text-gray-600 animate-in fade-in duration-300 delay-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-400 mb-2">
+            <h3 className="text-lg font-medium text-gray-400 mb-2 animate-in fade-in duration-300 delay-200">
               {hasFilters ? 'No notifications match your filters' : 'No notifications yet'}
             </h3>
-            <p className="text-sm text-gray-600 max-w-md mx-auto">
+            <p className="text-sm text-gray-600 max-w-md mx-auto animate-in fade-in duration-300 delay-300">
               {hasFilters ? 'Try adjusting your filters to see more results.' : 'You\'ll see updates here when there\'s activity in your projects.'}
             </p>
             {hasFilters && (
               <button
                 onClick={resetFilters}
-                className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98]"
+                className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98] animate-in fade-in duration-300 delay-300"
               >
                 Clear all filters
               </button>
@@ -417,8 +415,8 @@ export default function NotificationsPage() {
                             role="listitem"
                             className={`w-full text-left px-4 py-3 flex gap-3 items-start rounded-xl border transition-all duration-200 ${
                               n.isRead
-                                ? 'bg-gray-900/30 border-gray-800/50 hover:bg-gray-800/50 hover:border-gray-700/50 hover:shadow-md hover:shadow-gray-900/10 hover:-translate-y-0.5'
-                                : 'bg-gray-900/80 border-gray-700 hover:bg-gray-800/80 hover:border-gray-600 hover:shadow-md hover:shadow-gray-900/10 hover:-translate-y-0.5'
+                                ? 'bg-gray-900/30 border-gray-800/50 hover:bg-gray-800/50 hover:border-gray-700/50 hover:shadow-md hover:shadow-gray-900/10 hover:-translate-y-0.5 active:bg-gray-800/70 active:scale-[0.995]'
+                                : 'bg-gray-900/80 border-gray-700 hover:bg-gray-800/80 hover:border-gray-600 hover:shadow-md hover:shadow-gray-900/10 hover:-translate-y-0.5 active:bg-gray-800/90 active:scale-[0.995]'
                             } ${isFocused ? 'ring-2 ring-indigo-500/50 border-indigo-500/30' : ''}`}
                           >
                             {/* Type icon */}

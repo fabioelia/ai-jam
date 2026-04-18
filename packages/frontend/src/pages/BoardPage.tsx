@@ -19,6 +19,7 @@ import FiltersPopover from '../components/board/FiltersPopover.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
+import UserAvatar from '../components/common/UserAvatar.js';
 import type { Ticket } from '@ai-jam/shared';
 import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
@@ -300,19 +301,7 @@ export default function BoardPage() {
                 </button>
               </HelpTooltip>
               <div className="w-px h-5 bg-gray-700" />
-              <div className="flex items-center gap-3">
-                <span className="text-gray-400 text-sm">{user?.name}</span>
-                <button
-                  onClick={logout}
-                  className="text-gray-500 hover:text-red-400 text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-red-500/10 flex items-center gap-1.5"
-                  aria-label="Logout"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Logout
-                </button>
-              </div>
+              <UserAvatar size="md" />
             </div>
 
             {/* Mobile menu button */}
@@ -383,17 +372,8 @@ export default function BoardPage() {
                 Keyboard Shortcuts
               </button>
               <div className="border-t border-gray-800 my-2" />
-              <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-gray-400 text-sm">{user?.name}</span>
-                <button
-                  onClick={() => { logout(); setShowMobileMenu(false); }}
-                  className="text-gray-500 hover:text-red-400 text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-red-500/10 flex items-center gap-1.5"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Logout
-                </button>
+              <div className="px-3 py-2">
+                <UserAvatar size="md" showDropdown={false} />
               </div>
             </div>
           </div>

@@ -9,6 +9,7 @@ import FeaturePlanningPage from './pages/FeaturePlanningPage.js';
 import FeatureDetailPage from './pages/FeatureDetailPage.js';
 import ProjectSettingsPage from './pages/ProjectSettingsPage.js';
 import NotificationsPage from './pages/NotificationsPage.js';
+import UserSettingsPage from './pages/UserSettingsPage.js';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.accessToken);
@@ -35,6 +36,16 @@ export default function App() {
             <ProtectedRoute>
               <ErrorBoundary>
                 <NotificationsPage />
+              </ErrorBoundary>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <ErrorBoundary>
+                <UserSettingsPage />
               </ErrorBoundary>
             </ProtectedRoute>
           }

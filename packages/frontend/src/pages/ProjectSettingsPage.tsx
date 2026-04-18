@@ -7,6 +7,7 @@ import { useUpdateProject, useDeleteProject, useUpdateSystemPrompt, useTriggerSc
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth-store.js';
 import MarkdownEditor from '../components/common/MarkdownEditor.js';
+import UserAvatar from '../components/common/UserAvatar.js';
 import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
 
@@ -49,8 +50,7 @@ export default function ProjectSettingsPage() {
             <h1 className="text-xl font-bold text-white">Settings</h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-gray-400 text-sm">{user?.name}</span>
-            <button onClick={logout} className="text-gray-500 hover:text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-sm transition-colors">Logout</button>
+            <UserAvatar size="md" />
           </div>
         </div>
       </header>
@@ -161,7 +161,7 @@ function GeneralTab({ projectId }: { projectId: string }) {
           {!isEditing && (
             <button
               onClick={startEdit}
-              className="text-gray-400 hover:text-white text-xs px-3 py-1.5 border border-gray-700 rounded-lg hover:border-gray-600"
+              className="text-gray-400 hover:text-white text-xs px-3 py-1.5 border border-gray-700 rounded-lg hover:border-gray-600 hover:bg-gray-800 hover:shadow-sm active:bg-gray-700 active:scale-95 transition-all duration-200"
             >
               Edit
             </button>
@@ -236,7 +236,7 @@ function GeneralTab({ projectId }: { projectId: string }) {
               <button
                 onClick={handleSave}
                 disabled={updateProject.isPending}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-all hover:shadow-lg hover:shadow-indigo-500/20 active:scale-95"
               >
                 {updateProject.isPending ? 'Saving...' : 'Save Changes'}
               </button>
@@ -346,7 +346,7 @@ function GeneralTab({ projectId }: { projectId: string }) {
             </div>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="text-red-400 hover:text-red-300 text-sm px-4 py-2 border border-red-900 rounded-lg hover:border-red-700"
+              className="text-red-400 hover:text-red-300 text-sm px-4 py-2 border border-red-900 rounded-lg hover:border-red-700 hover:bg-red-500/10 hover:shadow-lg hover:shadow-red-500/20 active:bg-red-500/20 active:scale-95 transition-all duration-200"
             >
               Delete Project
             </button>
@@ -431,7 +431,7 @@ function MembersTab({ projectId }: { projectId: string }) {
           <button
             onClick={handleAdd}
             disabled={!selectedUserId || addMember.isPending}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 hover:shadow-lg hover:shadow-indigo-500/20 active:bg-indigo-700 active:scale-95 transition-all duration-200"
           >
             {addMember.isPending ? 'Adding...' : 'Add'}
           </button>
@@ -494,7 +494,7 @@ function MembersTab({ projectId }: { projectId: string }) {
                           });
                         }}
                         disabled={removeMember.isPending}
-                        className="text-gray-500 hover:text-red-400 text-xs transition-colors"
+                        className="text-gray-500 hover:text-red-400 hover:bg-red-500/10 text-xs px-2 py-1 rounded transition-colors active:bg-red-500/20 active:scale-95"
                       >
                         Remove
                       </button>
@@ -558,7 +558,7 @@ function NotificationsTab({ projectId }: { projectId: string }) {
                 <button
                   onClick={() => handleToggle(type, enabled)}
                   disabled={updatePrefs.isPending}
-                  className={`relative ml-4 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                  className={`relative ml-4 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 hover:opacity-90 active:scale-95 ${
                     enabled ? 'bg-indigo-600' : 'bg-gray-700'
                   }`}
                   role="switch"
@@ -684,17 +684,17 @@ function PromptCard({
           <div className="flex items-center gap-2 shrink-0 ml-4">
             <button
               onClick={() => setShowPreview(!showPreview)}
-              className={`text-xs px-3 py-1.5 border rounded-lg transition-colors ${
+              className={`text-xs px-3 py-1.5 border rounded-lg transition-colors active:scale-95 ${
                 showPreview
-                  ? 'border-indigo-500/40 text-indigo-400 bg-indigo-500/10'
-                  : 'border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                  ? 'border-indigo-500/40 text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20'
+                  : 'border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600 hover:bg-gray-800'
               }`}
             >
               {showPreview ? 'Hide' : 'Preview'}
             </button>
             <button
               onClick={onEdit}
-              className="text-gray-400 hover:text-white text-xs px-3 py-1.5 border border-gray-700 rounded-lg hover:border-gray-600"
+              className="text-gray-400 hover:text-white text-xs px-3 py-1.5 border border-gray-700 rounded-lg hover:border-gray-600 hover:bg-gray-800 hover:shadow-sm active:scale-95 transition-all"
             >
               Edit
             </button>
@@ -872,7 +872,7 @@ function ScanRow({ scan }: { scan: ProjectScan }) {
     <div className="bg-gray-900 border border-gray-800 rounded-lg">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 flex items-center justify-between text-left"
+        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-800/50 transition-colors active:bg-gray-800/70 active:scale-[0.995]"
       >
         <div className="flex items-center gap-3">
           <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[scan.status] || statusColors.pending}`}>
@@ -987,10 +987,10 @@ function KnowledgeTab({ projectId }: { projectId: string }) {
                     <button
                       key={f.filename}
                       onClick={() => setSelectedFile(f.filename)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-mono ${
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-mono transition-all duration-200 ${
                         selectedFile === f.filename
-                          ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                          : 'text-gray-400 hover:bg-gray-900 hover:text-gray-300'
+                          ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30'
+                          : 'text-gray-400 hover:bg-gray-900 hover:text-gray-300 hover:shadow-sm hover:shadow-gray-900/10 active:bg-gray-800'
                       }`}
                     >
                       {f.filename}
@@ -1132,10 +1132,10 @@ function AgentModelsTab({ projectId }: { projectId: string }) {
             <button
               key={model}
               onClick={() => handleChange(persona.id, model)}
-              className={`px-3 py-1 text-xs font-medium rounded-md border transition-all ${
+              className={`px-3 py-1 text-xs font-medium rounded-md border transition-all active:scale-95 ${
                 effectiveModel === model
                   ? MODEL_COLORS[model]
-                  : 'bg-gray-800 text-gray-500 border-gray-700 hover:border-gray-600 hover:text-gray-400 hover:bg-gray-700/50'
+                  : 'bg-gray-800 text-gray-500 border-gray-700 hover:border-gray-600 hover:text-gray-400 hover:bg-gray-700/50 hover:shadow-sm'
               }`}
             >
               {model}
