@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '../api/queries.js';
 import { useCreateProject } from '../api/mutations.js';
@@ -18,6 +18,25 @@ export default function DashboardPage() {
   const [repoUrl, setRepoUrl] = useState('');
   const [localPath, setLocalPath] = useState('');
   const [sourceType, setSourceType] = useState<'repo' | 'local'>('repo');
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard: Escape to close form
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showCreate) {
+        setShowCreate(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showCreate]);
+
+  // Focus name input when showing form
+  useEffect(() => {
+    if (showCreate) {
+      nameInputRef.current?.focus();
+    }
+  }, [showCreate]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
