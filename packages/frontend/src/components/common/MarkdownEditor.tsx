@@ -136,7 +136,7 @@ export default function MarkdownEditor({
             className="overflow-auto p-4 h-full"
           >
             {value.trim() ? (
-              <div className="markdown-preview prose prose-invert prose-sm max-w-none">
+              <div className="markdown-preview prose prose-invert prose-sm max-w-none animate-in fade-in duration-200">
                 <Markdown remarkPlugins={[remarkGfm]}>{value}</Markdown>
               </div>
             ) : (

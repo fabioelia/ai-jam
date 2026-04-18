@@ -99,7 +99,7 @@ function LogEntry({ entry }: { entry: ActivityLogEntry }) {
   const config = typeConfig[entry.type] || typeConfig.activity;
 
   return (
-    <div className="flex items-start gap-2 text-xs py-1 hover:bg-gray-800/30 rounded px-1.5 transition-colors">
+    <div className="flex items-start gap-2 text-xs py-1.5 hover:bg-gray-800/40 rounded px-1.5 transition-all duration-150 cursor-default">
       <span className="text-gray-600 shrink-0 font-mono text-[10px] w-16 text-right">{timeStr}</span>
       <span className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${config.bg} ${config.color}`}>
         {config.icon}
@@ -108,7 +108,7 @@ function LogEntry({ entry }: { entry: ActivityLogEntry }) {
         <span className={`text-[10px] uppercase tracking-wide ${config.color} block`}>
           {entry.personaType.replace(/_/g, ' ')}
         </span>
-        <span className="text-gray-500 block truncate">{entry.message}</span>
+        <span className="text-gray-500 block truncate hover:text-gray-400 transition-colors">{entry.message}</span>
       </div>
     </div>
   );

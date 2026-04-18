@@ -1114,7 +1114,7 @@ function AgentModelsTab({ projectId }: { projectId: string }) {
     const isOverridden = persona.id in overrides;
 
     return (
-      <div key={persona.id} className="flex items-center justify-between py-3 px-4 rounded-lg bg-gray-800/50 border border-gray-700/50">
+      <div key={persona.id} className="flex items-center justify-between py-3 px-4 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:border-gray-600/50 hover:bg-gray-800/80 transition-all duration-200">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-white text-sm font-medium">{persona.name}</span>
@@ -1134,7 +1134,7 @@ function AgentModelsTab({ projectId }: { projectId: string }) {
               className={`px-3 py-1 text-xs font-medium rounded-md border transition-all ${
                 effectiveModel === model
                   ? MODEL_COLORS[model]
-                  : 'bg-gray-800 text-gray-500 border-gray-700 hover:border-gray-600 hover:text-gray-400'
+                  : 'bg-gray-800 text-gray-500 border-gray-700 hover:border-gray-600 hover:text-gray-400 hover:bg-gray-700/50'
               }`}
             >
               {model}

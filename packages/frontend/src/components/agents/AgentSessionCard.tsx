@@ -45,7 +45,7 @@ export default function AgentSessionCard({ session }: AgentSessionCardProps) {
   }
 
   return (
-    <div className={`bg-gray-800 border rounded-lg p-3 ${session.status === 'failed' ? 'border-red-800' : 'border-gray-700'}`}>
+    <div className={`bg-gray-800 border rounded-lg p-3 transition-all duration-200 ${session.status === 'failed' ? 'border-red-800 hover:border-red-700' : 'border-gray-700 hover:border-gray-600 hover:shadow-lg hover:shadow-gray-900/20'}`}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
         <span className="text-sm font-medium text-white capitalize">
@@ -77,7 +77,7 @@ export default function AgentSessionCard({ session }: AgentSessionCardProps) {
         <button
           onClick={handleRetry}
           disabled={retrying}
-          className="mt-2 text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 px-2.5 py-1.5 rounded border border-red-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+          className="mt-2 text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 px-2.5 py-1.5 rounded border border-red-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 hover:shadow-md hover:shadow-red-900/10 active:scale-95"
         >
           {retrying ? (
             <>

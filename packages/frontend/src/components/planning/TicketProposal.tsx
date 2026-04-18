@@ -35,12 +35,12 @@ export default function TicketProposal({ proposal, featureId, onResolved }: Tick
 
   return (
     <div
-      className={`rounded-lg border p-3 ${
+      className={`rounded-lg border p-3 transition-all duration-200 ${
         isApproved
           ? 'border-green-600/50 bg-green-900/10'
           : isRejected
             ? 'border-red-600/50 bg-red-900/10 opacity-60'
-            : 'border-gray-700 bg-gray-800/50'
+            : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:shadow-md hover:shadow-gray-900/10'
       }`}
     >
       <div className="flex items-start gap-2">

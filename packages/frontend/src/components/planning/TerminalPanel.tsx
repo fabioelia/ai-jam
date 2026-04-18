@@ -148,7 +148,7 @@ export default function TerminalPanel({ sessionId, sessionStatus, onNewSession, 
               <button
                 onClick={onResumeSession}
                 disabled={isResuming}
-                className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-500/20 hover:shadow-green-500/40 active:scale-[0.98] flex items-center gap-2"
               >
                 {isResuming ? (
                   <>
@@ -171,7 +171,7 @@ export default function TerminalPanel({ sessionId, sessionStatus, onNewSession, 
             {onNewSession && (
               <button
                 onClick={onNewSession}
-                className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:shadow-gray-500/20 active:scale-[0.98] flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

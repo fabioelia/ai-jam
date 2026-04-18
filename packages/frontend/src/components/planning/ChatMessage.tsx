@@ -19,12 +19,12 @@ export default function ChatMessage({ message }: ChatMessageProps) {
   }
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom duration-200`}>
       <div
-        className={`max-w-[85%] rounded-xl px-4 py-3 ${
+        className={`max-w-[85%] rounded-xl px-4 py-3 transition-all ${
           isUser
-            ? 'bg-indigo-600 text-white'
-            : 'bg-gray-800 border border-gray-700 text-gray-200'
+            ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+            : 'bg-gray-800 border border-gray-700 text-gray-200 hover:border-gray-600'
         }`}
       >
         <div className="flex items-center gap-2 mb-1">
@@ -35,7 +35,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             {new Date(message.createdAt).toLocaleTimeString()}
           </span>
         </div>
-        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+        <div className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</div>
       </div>
     </div>
   );

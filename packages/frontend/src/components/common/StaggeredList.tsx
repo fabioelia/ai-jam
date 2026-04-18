@@ -22,7 +22,7 @@ export default function StaggeredList({ children, className = '', staggerDelay =
 
           return cloneElement(child as React.ReactElement<any>, {
             style,
-            className: `${childProps.className || ''} animate-fade-in-up`,
+            className: `${childProps.className || ''} animate-in slide-in-from-bottom`,
           });
         }
         return child;

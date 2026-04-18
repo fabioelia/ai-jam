@@ -127,16 +127,20 @@ export default function FeatureDetailPage() {
               <>
                 {/* Progress bar */}
                 <div className="h-3 bg-gray-800 rounded-full overflow-hidden mb-6">
-                  {totalTickets > 0 && (
-                    <div className="flex h-full">
+                  {totalTickets > 0 ? (
+                    <div className="flex h-full animate-in slide-in-from-left duration-500">
                       {columnStats.filter((c) => c.count > 0).map((col) => (
                         <div
                           key={col.status}
-                          className={`${col.color} transition-all`}
+                          className={`${col.color} transition-all hover:opacity-80 cursor-pointer`}
                           style={{ width: `${(col.count / totalTickets) * 100}%` }}
                           title={`${col.label}: ${col.count}`}
                         />
                       ))}
+                    </div>
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <span className="text-xs text-gray-600">No tickets yet</span>
                     </div>
                   )}
                 </div>
@@ -158,22 +162,22 @@ export default function FeatureDetailPage() {
           </div>
 
           {/* Epics */}
-          {board && board.epics.length > 0 && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h3 className="text-white font-semibold mb-4">Epics</h3>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 className="text-white font-semibold mb-4">Epics</h3>
+            {board && board.epics.length > 0 ? (
               <div className="space-y-3">
                 {board.epics.map((epic) => {
                   const epicTickets = board.columns.flatMap((c) => c.tickets.filter((t) => t.epicId === epic.id));
                   const epicDone = epicTickets.filter((t) => t.status === 'done').length;
 
                   return (
-                    <div key={epic.id} className="flex items-center gap-3">
+                    <div key={epic.id} className="flex items-center gap-3 animate-in slide-in-from-left duration-300">
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: epic.color || '#6b7280' }} />
                       <span className="text-sm text-white flex-1">{epic.title}</span>
                       <span className="text-xs text-gray-500">{epicDone}/{epicTickets.length} done</span>
                       <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-green-500 rounded-full"
+                          className="h-full bg-green-500 rounded-full transition-all"
                           style={{ width: epicTickets.length > 0 ? `${(epicDone / epicTickets.length) * 100}%` : '0%' }}
                         />
                       </div>
@@ -181,8 +185,18 @@ export default function FeatureDetailPage() {
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 text-sm">No epics created yet</p>
+                <p className="text-gray-600 text-xs mt-1">Create epics to group related tickets together</p>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

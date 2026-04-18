@@ -34,6 +34,12 @@
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* Slide in from left */
+@keyframes slide-in-from-left {
+  from { transform: translateX(-10px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* Zoom in */
 @keyframes zoom-in-95 {
   from { transform: scale(0.95); opacity: 0; }
@@ -67,6 +73,11 @@
 
 @utility animate-slide-in-from-right {
   animation: slide-in-from-right 0.3s ease-out;
+  animation-fill-mode: forwards;
+}
+
+@utility animate-slide-in-from-left {
+  animation: slide-in-from-left 0.3s ease-out;
   animation-fill-mode: forwards;
 }
 
@@ -218,6 +229,47 @@
 /* Keyboard focus styles for notifications */
 kbd {
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+
+/* Spin animation */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@utility animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+/* Scale in animation */
+@keyframes scale-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@utility animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
+
+/* Fade out animation */
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@utility animate-fade-out {
+  animation: fade-out 0.2s ease-out forwards;
+}
+
+/* Shake animation for errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+@utility animate-shake {
+  animation: shake 0.5s ease-in-out;
 }
 
 /* Markdown preview styling */

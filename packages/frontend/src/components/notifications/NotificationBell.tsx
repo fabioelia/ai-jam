@@ -28,7 +28,7 @@ export default function NotificationBell({ projectId }: { projectId: string }) {
   return (
     <button
       onClick={() => navigate('/notifications')}
-      className="relative text-sm px-2.5 py-1 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:bg-gray-700 hover:border-gray-600 transition-all duration-200"
+      className="relative text-sm px-2.5 py-1 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:bg-gray-700 hover:border-gray-600 transition-all duration-200 hover:shadow-lg hover:shadow-gray-900/10 active:scale-95"
       aria-label="Notifications"
     >
       {/* Bell icon */}
