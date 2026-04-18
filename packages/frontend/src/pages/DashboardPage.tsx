@@ -6,6 +6,9 @@ import { useAuthStore } from '../stores/auth-store.js';
 import { ProjectCardSkeleton } from '../components/common/Skeleton.js';
 import EmptyState from '../components/common/EmptyState.js';
 import ErrorDisplay from '../components/common/ErrorDisplay.js';
+import HelpModal from '../components/common/HelpModal.js';
+import HelpContent from '../components/common/HelpContent.js';
+import QuickStartGuide from '../components/common/QuickStartGuide.js';
 import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
 
@@ -21,18 +24,32 @@ export default function DashboardPage() {
   const [repoUrl, setRepoUrl] = useState('');
   const [localPath, setLocalPath] = useState('');
   const [sourceType, setSourceType] = useState<'repo' | 'local'>('repo');
+  const [showHelp, setShowHelp] = useState(false);
+  const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
+  const [showQuickStart, setShowQuickStart] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  // Keyboard: Escape to close form
+  // Keyboard: Escape to close form, H for help
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showCreate) {
-        setShowCreate(false);
+      // Don't trigger when typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        if (showCreate) setShowCreate(false);
+        if (showHelp) setShowHelp(false);
+      }
+
+      if ((e.key === 'h' || e.key === 'H') && e.metaKey) {
+        e.preventDefault();
+        setShowHelp(!showHelp);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [showCreate]);
+  }, [showCreate, showHelp]);
 
   // Focus name input when showing form
   useEffect(() => {
@@ -40,6 +57,18 @@ export default function DashboardPage() {
       nameInputRef.current?.focus();
     }
   }, [showCreate]);
+
+  // Show quick start guide for first-time users
+  useEffect(() => {
+    const hasSeenQuickStart = localStorage.getItem('ai-jam:quick-start-seen');
+    if (!hasSeenQuickStart && !isLoading && !error && (!projects || projects.length === 0)) {
+      // Delay showing the guide to let the page load first
+      const timer = setTimeout(() => {
+        setShowQuickStart(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, error, projects]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -68,6 +97,16 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">AI Jam</h1>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowHelp(true)}
+              className="text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 px-3 py-1.5 rounded-lg text-sm transition-colors"
+              aria-label="Help"
+              title="Help (Cmd+H)"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
             <span className="text-gray-400 text-sm">{user?.name}</span>
             <button
               onClick={logout}
@@ -224,10 +263,11 @@ export default function DashboardPage() {
           />
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
+            {projects.map((project, index) => (
               <div
                 key={project.id}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 hover:shadow-lg hover:shadow-gray-900/20 hover:-translate-y-1 transition-all duration-300"
+                className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 hover:shadow-lg hover:shadow-gray-900/20 hover:-translate-y-1 transition-all duration-300 animate-in fade-in duration-300"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
                 <button
                   onClick={() => navigate(`/projects/${project.id}/board`)}
@@ -259,6 +299,31 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Help Modal */}
+      {showHelp && (
+        <HelpModal
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+          title="Help & Documentation"
+        >
+          <HelpContent view={helpView} onViewChange={setHelpView} />
+        </HelpModal>
+      )}
+
+      {/* Quick Start Guide */}
+      {showQuickStart && (
+        <QuickStartGuide
+          isOpen={showQuickStart}
+          onClose={() => {
+            setShowQuickStart(false);
+            localStorage.setItem('ai-jam:quick-start-seen', 'true');
+          }}
+          onStartProject={() => {
+            setShowCreate(true);
+          }}
+        />
+      )}
     </div>
   );
 }

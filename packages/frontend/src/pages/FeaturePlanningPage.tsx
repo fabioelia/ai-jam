@@ -7,6 +7,7 @@ import { joinFeature, leaveFeature, getSocket } from '../api/socket.js';
 import TerminalPanel from '../components/planning/TerminalPanel.js';
 import TicketProposal from '../components/planning/TicketProposal.js';
 import KanbanBoard from '../components/board/KanbanBoard.js';
+import HelpTooltip from '../components/common/HelpTooltip.js';
 import type { TicketProposal as TicketProposalType } from '@ai-jam/shared';
 
 export default function FeaturePlanningPage() {
@@ -107,27 +108,31 @@ export default function FeaturePlanningPage() {
           <div className="flex items-center gap-2 shrink-0">
             {/* Session picker */}
             {chatSessionsList && chatSessionsList.length > 1 && (
-              <select
-                value={activeSessionId || ''}
-                onChange={(e) => setActiveSessionId(e.target.value || null)}
-                className="bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all max-w-[120px] sm:max-w-none"
-              >
-                {chatSessionsList.map((s, i) => (
-                  <option key={s.id} value={s.id}>
-                    Session {chatSessionsList.length - i} ({s.status})
-                  </option>
-                ))}
-              </select>
+              <HelpTooltip content="Switch between different planning sessions" position="bottom">
+                <select
+                  value={activeSessionId || ''}
+                  onChange={(e) => setActiveSessionId(e.target.value || null)}
+                  className="bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all max-w-[120px] sm:max-w-none"
+                >
+                  {chatSessionsList.map((s, i) => (
+                    <option key={s.id} value={s.id}>
+                      Session {chatSessionsList.length - i} ({s.status})
+                    </option>
+                  ))}
+                </select>
+              </HelpTooltip>
             )}
-            {activeSessionId && (
-              <button
-                onClick={handleNewSession}
-                disabled={createSession.isPending}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-              >
-                {createSession.isPending ? 'Starting...' : 'New Session'}
-              </button>
-            )}
+            <HelpTooltip content="Start a new planning session with fresh context" position="bottom">
+              {activeSessionId && (
+                <button
+                  onClick={handleNewSession}
+                  disabled={createSession.isPending}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                >
+                  {createSession.isPending ? 'Starting...' : 'New Session'}
+                </button>
+              )}
+            </HelpTooltip>
             <span className="text-gray-400 text-sm hidden sm:inline">{user?.name}</span>
           </div>
         </div>
@@ -160,7 +165,7 @@ export default function FeaturePlanningPage() {
                 <button
                   onClick={handleNewSession}
                   disabled={createSession.isPending}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+                  className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-95"
                 >
                   {createSession.isPending ? 'Starting...' : 'New Planning Session'}
                 </button>

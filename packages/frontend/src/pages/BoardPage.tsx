@@ -16,6 +16,9 @@ import KanbanBoard from '../components/board/KanbanBoard.js';
 import TicketDetail from '../components/board/TicketDetail.js';
 import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
 import FiltersPopover from '../components/board/FiltersPopover.js';
+import HelpModal from '../components/common/HelpModal.js';
+import HelpContent from '../components/common/HelpContent.js';
+import HelpTooltip from '../components/common/HelpTooltip.js';
 import type { Ticket } from '@ai-jam/shared';
 import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
@@ -130,8 +133,10 @@ export default function BoardPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [boardError, setBoardError] = useState<unknown>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
-  // Keyboard shortcuts: Escape to close modals, ? for shortcuts
+  // Keyboard shortcuts: Escape to close modals, ? for shortcuts, H for help
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger when typing in an input
@@ -144,16 +149,22 @@ export default function BoardPage() {
         if (showNewTicket) setShowNewTicket(false);
         if (showShortcuts) setShowShortcuts(false);
         if (showMobileMenu) setShowMobileMenu(false);
+        if (showHelp) setShowHelp(false);
       }
 
       if (e.key === '?' && !e.shiftKey) {
         e.preventDefault();
         setShowShortcuts(!showShortcuts);
       }
+
+      if ((e.key === 'h' || e.key === 'H') && e.metaKey) {
+        e.preventDefault();
+        setShowHelp(!showHelp);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showNewFeature, showNewTicket, showShortcuts, showMobileMenu]);
+  }, [showNewFeature, showNewTicket, showShortcuts, showMobileMenu, showHelp]);
 
   async function handleCreateFeature(e: React.FormEvent) {
     e.preventDefault();
@@ -219,34 +230,44 @@ export default function BoardPage() {
           <div className="flex items-center gap-2">
             {/* Desktop actions */}
             <div className="hidden md:flex items-center gap-3">
-              <button
-                onClick={() => setShowSessionsSidebar(!showSessionsSidebar)}
-                className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
-                  showSessionsSidebar
-                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
-                }`}
-                aria-label={showSessionsSidebar ? 'Hide sessions' : 'Show sessions'}
+              <HelpTooltip
+                content="View and manage planning and execution sessions"
+                position="bottom"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Sessions
-              </button>
-              <button
-                onClick={() => setShowAgentPanel(!showAgentPanel)}
-                className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
-                  showAgentPanel
-                    ? 'bg-green-600/20 border-green-500 text-green-300'
-                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
-                }`}
-                aria-label={showAgentPanel ? 'Hide agents' : 'Show agents'}
+                <button
+                  onClick={() => setShowSessionsSidebar(!showSessionsSidebar)}
+                  className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
+                    showSessionsSidebar
+                      ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                      : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                  }`}
+                  aria-label={showSessionsSidebar ? 'Hide sessions' : 'Show sessions'}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Sessions
+                </button>
+              </HelpTooltip>
+              <HelpTooltip
+                content="Monitor AI agent activity in real-time"
+                position="bottom"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1m8.06-4a6.002 6.002 0 01-9.58-5.092M9 10a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 01-.72 2.063L9 10" />
-                </svg>
-                Agents
-              </button>
+                <button
+                  onClick={() => setShowAgentPanel(!showAgentPanel)}
+                  className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
+                    showAgentPanel
+                      ? 'bg-green-600/20 border-green-500 text-green-300'
+                      : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                  }`}
+                  aria-label={showAgentPanel ? 'Hide agents' : 'Show agents'}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1m8.06-4a6.002 6.002 0 01-9.58-5.092M9 10a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 01-.72 2.063L9 10" />
+                  </svg>
+                  Agents
+                </button>
+              </HelpTooltip>
               <button
                 onClick={() => navigate(`/projects/${projectId}/settings`)}
                 className="text-sm px-3 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600 transition-all duration-150 flex items-center gap-1.5"
@@ -258,14 +279,26 @@ export default function BoardPage() {
                 </svg>
                 Settings
               </button>
-              <button
-                onClick={() => setShowShortcuts(true)}
-                className="text-sm px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-600 transition-all duration-150"
-                aria-label="Keyboard shortcuts"
-                title="Keyboard shortcuts (?)"
-              >
-                <kbd className="text-xs font-mono">?</kbd>
-              </button>
+              <HelpTooltip content="Open keyboard shortcuts" position="bottom">
+                <button
+                  onClick={() => setShowShortcuts(true)}
+                  className="text-sm px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-600 transition-all duration-150"
+                  aria-label="Keyboard shortcuts"
+                >
+                  <kbd className="text-xs font-mono">?</kbd>
+                </button>
+              </HelpTooltip>
+              <HelpTooltip content="Open help documentation" position="bottom">
+                <button
+                  onClick={() => setShowHelp(true)}
+                  className="text-sm px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-indigo-400 hover:text-indigo-300 hover:border-gray-600 transition-all duration-150"
+                  aria-label="Help"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              </HelpTooltip>
               <div className="w-px h-5 bg-gray-700" />
               <div className="flex items-center gap-3">
                 <span className="text-gray-400 text-sm">{user?.name}</span>
@@ -472,7 +505,7 @@ export default function BoardPage() {
         {selectedFeatureId && (
           <button
             onClick={() => setShowNewTicket(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 transition-colors shrink-0"
+            className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 transition-all shrink-0 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-95"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -514,7 +547,7 @@ export default function BoardPage() {
               <button
                 type="submit"
                 disabled={!featureTitle.trim()}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/20 active:scale-95"
               >
                 Create Feature
               </button>
@@ -564,7 +597,7 @@ export default function BoardPage() {
               <button
                 type="submit"
                 disabled={!ticketTitle.trim()}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/20 active:scale-95"
               >
                 Create Ticket
               </button>
@@ -664,6 +697,17 @@ export default function BoardPage() {
           epics={board?.epics || []}
           onClose={() => setSelectedTicket(null)}
         />
+      )}
+
+      {/* Help Modal */}
+      {showHelp && (
+        <HelpModal
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+          title="Help & Documentation"
+        >
+          <HelpContent view={helpView} onViewChange={setHelpView} />
+        </HelpModal>
       )}
     </div>
   );
@@ -824,7 +868,7 @@ function SessionsSidebar({
             {selectedFeatureId && (
               <button
                 onClick={handleNewPlanning}
-                className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5"
+                className="text-xs bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-2.5 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 hover:shadow-md hover:shadow-indigo-500/10 active:scale-95"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
