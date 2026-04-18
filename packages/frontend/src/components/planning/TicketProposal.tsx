@@ -35,12 +35,12 @@ export default function TicketProposal({ proposal, featureId, onResolved }: Tick
 
   return (
     <div
-      className={`rounded-lg border p-3 transition-all duration-200 ${
+      className={`rounded-lg border p-3 transition-all duration-200 animate-in slide-in-from-bottom ${
         isApproved
           ? 'border-green-600/50 bg-green-900/10'
           : isRejected
             ? 'border-red-600/50 bg-red-900/10 opacity-60'
-            : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:shadow-md hover:shadow-gray-900/10'
+            : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:shadow-md hover:shadow-gray-900/10 hover:-translate-y-0.5'
       }`}
     >
       <div className="flex items-start gap-2">
@@ -89,7 +89,7 @@ export default function TicketProposal({ proposal, featureId, onResolved }: Tick
             <button
               onClick={handleApprove}
               disabled={approve.isPending}
-              className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-2.5 py-1.5 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+              className="bg-green-600/20 hover:bg-green-600/30 text-green-400 px-2.5 py-1.5 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 hover:shadow-md hover:shadow-green-500/10 active:scale-95"
             >
               {approve.isPending ? (
                 <>
@@ -111,7 +111,7 @@ export default function TicketProposal({ proposal, featureId, onResolved }: Tick
             <button
               onClick={handleReject}
               disabled={reject.isPending}
-              className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-2.5 py-1.5 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+              className="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-2.5 py-1.5 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 hover:shadow-md hover:shadow-red-500/10 active:scale-95"
             >
               {reject.isPending ? (
                 <>

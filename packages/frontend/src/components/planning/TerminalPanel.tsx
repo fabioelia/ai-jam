@@ -125,25 +125,25 @@ export default function TerminalPanel({ sessionId, sessionStatus, onNewSession, 
     const isFailed = sessionStatus === 'failed';
     return (
       <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#0d1117' }}>
-        <div className="text-center max-w-md px-6">
-          <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${isFailed ? 'bg-red-500/20' : 'bg-gray-800'}`}>
+        <div className="text-center max-w-md px-6 animate-in fade-in duration-300">
+          <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center animate-in scale-in duration-300 ${isFailed ? 'bg-red-500/20' : 'bg-gray-800'}`}>
             {isFailed ? (
-              <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-8 h-8 text-red-400 animate-shake" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             ) : (
-              <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-8 h-8 text-gray-500 animate-in fade-in duration-500 delay-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
               </svg>
             )}
           </div>
-          <h3 className={`text-lg font-semibold mb-2 ${isFailed ? 'text-red-400' : 'text-gray-300'}`}>
+          <h3 className={`text-lg font-semibold mb-2 animate-in fade-in duration-300 delay-200 ${isFailed ? 'text-red-400' : 'text-gray-300'}`}>
             Session {sessionStatus}
           </h3>
-          <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+          <p className="text-gray-500 text-sm mb-6 leading-relaxed animate-in fade-in duration-300 delay-300">
             Resume picks up where you left off with conversation history, otherwise starts fresh with project context.
           </p>
-          <div className="flex items-center gap-3 justify-center flex-wrap">
+          <div className="flex items-center gap-3 justify-center flex-wrap animate-in fade-in duration-300 delay-400">
             {onResumeSession && (
               <button
                 onClick={onResumeSession}

@@ -58,8 +58,10 @@ export default function ToastContainer() {
 
   return (
     <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full">
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
+      {toasts.map((toast, index) => (
+        <div key={toast.id} className="animate-in slide-in-from-bottom duration-200" style={{ animationDelay: `${index * 50}ms` }}>
+          <ToastItem toast={toast} onRemove={removeToast} />
+        </div>
       ))}
     </div>
   );

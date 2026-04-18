@@ -23,8 +23,8 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={`max-w-[85%] rounded-xl px-4 py-3 transition-all ${
           isUser
-            ? 'bg-indigo-600 text-white hover:bg-indigo-500'
-            : 'bg-gray-800 border border-gray-700 text-gray-200 hover:border-gray-600'
+            ? 'bg-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700 hover:shadow-md hover:shadow-indigo-500/20 active:scale-95'
+            : 'bg-gray-800 border border-gray-700 text-gray-200 hover:border-gray-600 hover:shadow-md hover:shadow-gray-900/10 active:scale-95'
         }`}
       >
         <div className="flex items-center gap-2 mb-1">

@@ -364,7 +364,7 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:shadow-red-500/20 active:scale-95"
                 >
                   Delete
                 </button>

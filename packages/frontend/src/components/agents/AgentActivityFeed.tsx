@@ -21,7 +21,7 @@ export default function AgentActivityFeed() {
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-medium text-white">Active Agents</h3>
             {activeSessions.length > 0 && (
-              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full animate-pulse">
                 {activeSessions.length}
               </span>
             )}
@@ -29,7 +29,7 @@ export default function AgentActivityFeed() {
           {completedSessions.length > 0 && (
             <button
               onClick={clearCompleted}
-              className="text-xs text-gray-500 hover:text-gray-400 hover:bg-gray-800 px-2 py-1 rounded transition-colors"
+              className="text-xs text-gray-500 hover:text-gray-400 hover:bg-gray-800 px-2 py-1 rounded transition-colors hover:shadow-sm active:scale-95"
               title="Clear completed sessions"
             >
               Clear done
@@ -38,19 +38,21 @@ export default function AgentActivityFeed() {
         </div>
 
         {activeSessions.length === 0 && completedSessions.length === 0 ? (
-          <div className="py-8 text-center">
-            <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-2">
-              <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="py-8 text-center animate-in fade-in duration-500">
+            <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-2 animate-in scale-in duration-300">
+              <svg className="w-5 h-5 text-gray-600 animate-in fade-in duration-500 delay-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1m8.06-4a6.002 6.002 0 01-9.58-5.092M9 10a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 00-5.918 3.422M14 6l-.5-4.285m0 8.569L9 10" />
               </svg>
             </div>
-            <p className="text-xs text-gray-600">No agent activity</p>
-            <p className="text-[10px] text-gray-700 mt-1">Start planning or pick up tickets to begin</p>
+            <p className="text-xs text-gray-600 animate-in fade-in duration-300 delay-200">No agent activity</p>
+            <p className="text-[10px] text-gray-700 mt-1 animate-in fade-in duration-300 delay-300">Start planning or pick up tickets to begin</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {activeSessions.map((session) => (
-              <AgentSessionCard key={session.sessionId} session={session} />
+            {activeSessions.map((session, index) => (
+              <div key={session.sessionId} className="animate-in slide-in-from-bottom duration-200" style={{ animationDelay: `${index * 50}ms` }}>
+                <AgentSessionCard session={session} />
+              </div>
             ))}
           </div>
         )}

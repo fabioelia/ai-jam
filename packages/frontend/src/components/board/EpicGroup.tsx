@@ -21,7 +21,7 @@ export default function EpicGroup({ epic, tickets, epics, onTicketClick }: EpicG
     <div className="mb-1 animate-in slide-in-from-bottom duration-200">
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center gap-1.5 w-full px-1 py-1 text-left group rounded-lg hover:bg-gray-800/50 transition-colors active:bg-gray-800/70"
+        className="flex items-center gap-1.5 w-full px-1 py-1 text-left group rounded-lg hover:bg-gray-800/50 transition-colors active:bg-gray-800/70 active:scale-[0.98]"
       >
         <svg
           className="w-3 h-3 text-gray-500 transition-transform group-hover:text-gray-400"

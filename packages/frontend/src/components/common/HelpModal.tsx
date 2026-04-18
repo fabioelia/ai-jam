@@ -20,7 +20,7 @@ function Modal({ children, onClose, title }: { children: ReactNode; onClose: () 
           <h2 className="text-lg font-semibold text-white">{title || 'Help'}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white hover:bg-gray-800 p-2 rounded-lg transition-colors"
+            className="text-gray-400 hover:text-white hover:bg-gray-800 p-2 rounded-lg transition-all duration-200 hover:shadow-sm active:bg-gray-700 active:scale-95"
             aria-label="Close help"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -75,7 +75,7 @@ function Shortcut({ keys, description }: ShortcutProps) {
       <div className="flex gap-1 shrink-0">
         {keys.map((key, index) => (
           <div key={key} className="flex items-center gap-0.5">
-            <kbd className="text-xs text-gray-300 bg-gray-800 border border-gray-700 px-2 py-1 rounded font-mono">
+            <kbd className="text-xs text-gray-300 bg-gray-800 border border-gray-700 px-2 py-1 rounded font-mono shadow-sm">
               {key}
             </kbd>
             {index < keys.length - 1 && (
@@ -97,7 +97,7 @@ interface FeatureProps {
 
 function Feature({ title, description, icon }: FeatureProps) {
   return (
-    <div className="flex gap-3 p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
+    <div className="flex gap-3 p-3 rounded-lg bg-gray-800/30 border border-gray-700/50 hover:bg-gray-800/50 hover:border-gray-700 transition-all duration-200">
       {icon && (
         <div className="shrink-0 w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-400">
           {icon}

@@ -114,9 +114,9 @@ export default function LoginPage() {
         {error && (
           <div
             role="alert"
-            className="mb-4 bg-red-900/20 border border-red-800 rounded-lg p-3 flex items-start gap-2"
+            className="mb-4 bg-red-900/20 border border-red-800 rounded-lg p-3 flex items-start gap-2 animate-shake animate-in fade-in duration-200"
           >
-            <span className="text-red-400 text-lg" aria-hidden="true">⚠</span>
+            <span className="text-red-400 text-lg shrink-0" aria-hidden="true">⚠</span>
             <p className="text-red-400 text-sm flex-1">{error}</p>
           </div>
         )}
@@ -146,7 +146,7 @@ export default function LoginPage() {
                 required
               />
               {touched.name && formErrors.name && (
-                <p id="name-error" className="text-red-400 text-xs mt-1.5" role="alert">
+                <p id="name-error" className="text-red-400 text-xs mt-1.5 animate-in fade-in duration-200" role="alert">
                   {formErrors.name}
                 </p>
               )}
@@ -176,7 +176,7 @@ export default function LoginPage() {
               required
             />
             {touched.email && formErrors.email && (
-              <p id="email-error" className="text-red-400 text-xs mt-1.5" role="alert">
+              <p id="email-error" className="text-red-400 text-xs mt-1.5 animate-in fade-in duration-200" role="alert">
                 {formErrors.email}
               </p>
             )}
@@ -210,7 +210,7 @@ export default function LoginPage() {
               minLength={6}
             />
             {touched.password && formErrors.password ? (
-              <p id="password-error" className="text-red-400 text-xs mt-1.5" role="alert">
+              <p id="password-error" className="text-red-400 text-xs mt-1.5 animate-in fade-in duration-200" role="alert">
                 {formErrors.password}
               </p>
             ) : (

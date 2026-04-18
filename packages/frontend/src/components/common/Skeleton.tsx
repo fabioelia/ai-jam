@@ -10,7 +10,7 @@ export function Skeleton({ className = '' }: SkeletonProps) {
 
 export function TicketCardSkeleton() {
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 space-y-2">
+    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 space-y-2 animate-in fade-in duration-300">
       <Skeleton className="h-3 w-20" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-3/4" />
@@ -24,7 +24,7 @@ export function TicketCardSkeleton() {
 
 export function BoardColumnSkeleton() {
   return (
-    <div className="flex-shrink-0 w-72">
+    <div className="flex-shrink-0 w-72 animate-in fade-in duration-300">
       <div className="flex items-center gap-2 mb-3">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-5 w-6 rounded-full" />
@@ -53,7 +53,7 @@ export function BoardSkeleton() {
 
 export function ProjectCardSkeleton() {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-2">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-2 animate-in fade-in duration-300 hover:shadow-md hover:shadow-gray-900/10 transition-shadow">
       <Skeleton className="h-5 w-40" />
       <Skeleton className="h-4 w-56" />
       <Skeleton className="h-3 w-24 mt-1" />

@@ -121,14 +121,14 @@ export default function PlanningChat({ sessionId, featureId }: PlanningChatProps
 
         {localMessages.length === 0 && !streamingContent && (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-sm px-6">
-              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="text-center max-w-sm px-6 animate-in fade-in duration-500">
+              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-in scale-in duration-300">
+                <svg className="w-8 h-8 text-gray-600 animate-in fade-in duration-500 delay-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <h3 className="text-white font-medium mb-2">Start planning your feature</h3>
-              <p className="text-gray-500 text-sm">
+              <h3 className="text-white font-medium mb-2 animate-in fade-in duration-300 delay-200">Start planning your feature</h3>
+              <p className="text-gray-500 text-sm animate-in fade-in duration-300 delay-300">
                 Describe what you want to build and Claude will help you break it into tickets.
               </p>
             </div>
@@ -150,7 +150,7 @@ export default function PlanningChat({ sessionId, featureId }: PlanningChatProps
           <button
             type="submit"
             disabled={!input.trim() || sendMessage.isPending}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shrink-0 flex items-center gap-2 transition-colors"
+            className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shrink-0 flex items-center gap-2 transition-all hover:shadow-lg hover:shadow-indigo-500/20 active:scale-95"
           >
             {sendMessage.isPending ? (
               <>

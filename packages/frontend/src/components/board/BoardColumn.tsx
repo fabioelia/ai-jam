@@ -59,7 +59,7 @@ export default function BoardColumn({ status, label, colorClass, tickets, count,
     >
       <div className="px-3 py-2.5 flex items-center justify-between">
         <h3 className="text-xs sm:text-sm font-medium text-gray-300">{label}</h3>
-        <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">{count}</span>
+        <span className={`text-xs px-2 py-0.5 rounded-full ${count > 0 ? 'bg-indigo-500/20 text-indigo-400' : 'bg-gray-800 text-gray-500'}`}>{count}</span>
       </div>
 
       <SortableContext items={ticketIds} strategy={verticalListSortingStrategy}>
@@ -68,25 +68,26 @@ export default function BoardColumn({ status, label, colorClass, tickets, count,
             renderGrouped()
           ) : (
             <div className="space-y-2">
-              {tickets.map((ticket) => (
-                <SortableTicketCard
-                  key={ticket.id}
-                  ticket={ticket}
-                  epics={epics}
-                  onClick={onTicketClick ? () => onTicketClick(ticket) : undefined}
-                />
+              {tickets.map((ticket, index) => (
+                <div key={ticket.id} className="animate-in slide-in-from-bottom duration-200" style={{ animationDelay: `${index * 30}ms` }}>
+                  <SortableTicketCard
+                    ticket={ticket}
+                    epics={epics}
+                    onClick={onTicketClick ? () => onTicketClick(ticket) : undefined}
+                  />
+                </div>
               ))}
             </div>
           )}
 
           {tickets.length === 0 && (
-            <div className="text-center py-10">
-              <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="text-center py-10 animate-in fade-in duration-300">
+              <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-2 animate-in scale-in duration-200">
+                <svg className="w-4 h-4 text-gray-600 animate-in fade-in duration-300 delay-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
-              <p className="text-gray-600 text-xs">Drop tickets here</p>
+              <p className="text-gray-600 text-xs animate-in fade-in duration-300 delay-200">Drop tickets here</p>
             </div>
           )}
         </div>
