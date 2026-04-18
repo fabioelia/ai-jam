@@ -11,6 +11,7 @@ import { useNotificationStore } from '../stores/notification-store.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { NotificationType } from '@ai-jam/shared';
 import type { Notification } from '@ai-jam/shared';
+import { toast } from '../stores/toast-store.js';
 
 const PAGE_SIZE = 30;
 
@@ -87,11 +88,25 @@ export default function NotificationsPage() {
 
   function handleMarkAllRead() {
     storeMarkAllRead(projectFilter || undefined);
-    markAllReadMutation.mutate(projectFilter || undefined);
+    markAllReadMutation.mutate(projectFilter || undefined, {
+      onSuccess: () => {
+        toast.success('All notifications marked as read');
+      },
+      onError: (error) => {
+        toast.error(`Failed to mark notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
   }
 
   function handleDeleteRead() {
-    deleteReadMutation.mutate(projectFilter || undefined);
+    deleteReadMutation.mutate(projectFilter || undefined, {
+      onSuccess: () => {
+        toast.success('Read notifications deleted');
+      },
+      onError: (error) => {
+        toast.error(`Failed to delete notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
   }
 
   function resetFilters() {

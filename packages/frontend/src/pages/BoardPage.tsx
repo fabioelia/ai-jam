@@ -15,6 +15,7 @@ import TicketDetail from '../components/board/TicketDetail.js';
 import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
 import FiltersPopover from '../components/board/FiltersPopover.js';
 import type { Ticket } from '@ai-jam/shared';
+import { toast } from '../stores/toast-store.js';
 
 // ---- Modal Component ----
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
@@ -150,23 +151,33 @@ export default function BoardPage() {
 
   async function handleCreateFeature(e: React.FormEvent) {
     e.preventDefault();
-    const feature = await createFeature.mutateAsync({ title: featureTitle });
-    setSelectedFeatureId(feature.id);
-    setShowNewFeature(false);
-    setFeatureTitle('');
+    try {
+      const feature = await createFeature.mutateAsync({ title: featureTitle });
+      toast.success(`Feature "${featureTitle}" created`);
+      setSelectedFeatureId(feature.id);
+      setShowNewFeature(false);
+      setFeatureTitle('');
+    } catch (error) {
+      toast.error(`Failed to create feature: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async function handleCreateTicket(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedFeatureId) return;
-    await createTicket.mutateAsync({
-      title: ticketTitle,
-      description: ticketDesc || undefined,
-      featureId: selectedFeatureId,
-    });
-    setShowNewTicket(false);
-    setTicketTitle('');
-    setTicketDesc('');
+    try {
+      await createTicket.mutateAsync({
+        title: ticketTitle,
+        description: ticketDesc || undefined,
+        featureId: selectedFeatureId,
+      });
+      toast.success(`Ticket "${ticketTitle}" created`);
+      setShowNewTicket(false);
+      setTicketTitle('');
+      setTicketDesc('');
+    } catch (error) {
+      toast.error(`Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   // Unique assigned personas for filter dropdown

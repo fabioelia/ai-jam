@@ -4,6 +4,7 @@ import { useProjects } from '../api/queries.js';
 import { useCreateProject } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { ProjectCardSkeleton } from '../components/common/Skeleton.js';
+import { toast } from '../stores/toast-store.js';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -27,11 +28,16 @@ export default function DashboardPage() {
       data.localPath = localPath;
       data.supportWorktrees = false;
     }
-    await createProject.mutateAsync(data);
-    setShowCreate(false);
-    setName('');
-    setRepoUrl('');
-    setLocalPath('');
+    try {
+      await createProject.mutateAsync(data);
+      toast.success(`Project "${name}" created successfully`);
+      setShowCreate(false);
+      setName('');
+      setRepoUrl('');
+      setLocalPath('');
+    } catch (error) {
+      toast.error(`Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   return (

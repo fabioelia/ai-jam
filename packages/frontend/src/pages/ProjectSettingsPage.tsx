@@ -7,6 +7,7 @@ import { useUpdateProject, useDeleteProject, useUpdateSystemPrompt, useTriggerSc
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth-store.js';
 import MarkdownEditor from '../components/common/MarkdownEditor.js';
+import { toast } from '../stores/toast-store.js';
 
 type Tab = 'general' | 'members' | 'notifications' | 'prompts' | 'scans' | 'knowledge' | 'agents';
 
@@ -125,12 +126,26 @@ function GeneralTab({ projectId }: { projectId: string }) {
   function handleSave() {
     const data: { name: string; defaultBranch: string; githubToken?: string; maxRejectionCycles: number } = { name, defaultBranch, maxRejectionCycles };
     if (githubToken) data.githubToken = githubToken;
-    updateProject.mutate(data, { onSuccess: () => setIsEditing(false) });
+    updateProject.mutate(data, {
+      onSuccess: () => {
+        toast.success('Project settings saved');
+        setIsEditing(false);
+      },
+      onError: (error) => {
+        toast.error(`Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
   }
 
   function handleDelete() {
     deleteProject.mutate(projectId, {
-      onSuccess: () => navigate('/'),
+      onSuccess: () => {
+        toast.success('Project deleted');
+        navigate('/');
+      },
+      onError: (error) => {
+        toast.error(`Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     });
   }
 
@@ -298,19 +313,22 @@ function GeneralTab({ projectId }: { projectId: string }) {
               </p>
             </div>
             <button
-              onClick={() => triggerScan.mutate(undefined)}
+              onClick={() => {
+                triggerScan.mutate(undefined, {
+                  onSuccess: () => {
+                    toast.success('Repository scan started');
+                  },
+                  onError: (error) => {
+                    toast.error(`Failed to start scan: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                  }
+                });
+              }}
               disabled={triggerScan.isPending || isScanning}
               className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
             >
               {isScanning ? 'Scanning...' : triggerScan.isPending ? 'Starting...' : 'Run Scan'}
             </button>
           </div>
-          {triggerScan.isError && (
-            <p className="text-red-400 text-xs">{(triggerScan.error as Error).message}</p>
-          )}
-          {triggerScan.isSuccess && (
-            <p className="text-green-400 text-xs">Scan started.</p>
-          )}
         </div>
       </div>
 
@@ -373,8 +391,15 @@ function MembersTab({ projectId }: { projectId: string }) {
 
   function handleAdd() {
     if (!selectedUserId) return;
+    const user = availableUsers.find(u => u.id === selectedUserId);
     addMember.mutate({ userId: selectedUserId }, {
-      onSuccess: () => setSelectedUserId(''),
+      onSuccess: () => {
+        toast.success(`${user?.name || 'User'} added to project`);
+        setSelectedUserId('');
+      },
+      onError: (error) => {
+        toast.error(`Failed to add member: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     });
   }
 
@@ -448,7 +473,16 @@ function MembersTab({ projectId }: { projectId: string }) {
                     </span>
                     {!isOwner && (
                       <button
-                        onClick={() => removeMember.mutate(member.userId)}
+                        onClick={() => {
+                          removeMember.mutate(member.userId, {
+                            onSuccess: () => {
+                              toast.success(`${member.name} removed from project`);
+                            },
+                            onError: (error) => {
+                              toast.error(`Failed to remove member: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                            }
+                          });
+                        }}
                         disabled={removeMember.isPending}
                         className="text-gray-500 hover:text-red-400 text-xs transition-colors"
                       >
@@ -483,7 +517,11 @@ function NotificationsTab({ projectId }: { projectId: string }) {
   const updatePrefs = useUpdateNotificationPreferences(projectId);
 
   function handleToggle(type: string, currentlyEnabled: boolean) {
-    updatePrefs.mutate({ [type]: !currentlyEnabled });
+    updatePrefs.mutate({ [type]: !currentlyEnabled }, {
+      onError: (error) => {
+        toast.error(`Failed to update notification preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
   }
 
   return (
@@ -587,7 +625,15 @@ function PromptCard({
   function handleSave() {
     updatePrompt.mutate(
       { id: prompt.id, name, description, content },
-      { onSuccess: onClose }
+      {
+        onSuccess: () => {
+          toast.success(`Prompt "${name}" saved`);
+          onClose();
+        },
+        onError: (error) => {
+          toast.error(`Failed to save prompt: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
     );
   }
 
@@ -724,7 +770,14 @@ function ScansTab({ projectId }: { projectId: string }) {
   const scannerPrompt = prompts?.find((p) => p.slug === 'repo-scanner');
 
   function handleTrigger() {
-    triggerScan.mutate(selectedPromptId || scannerPrompt?.id);
+    triggerScan.mutate(selectedPromptId || scannerPrompt?.id, {
+      onSuccess: () => {
+        toast.success('Repository scan started');
+      },
+      onError: (error) => {
+        toast.error(`Failed to start scan: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
   }
 
   return (
@@ -1010,7 +1063,13 @@ function AgentModelsTab({ projectId }: { projectId: string }) {
 
   function handleSave() {
     updateProject.mutate({ personaModelOverrides: overrides }, {
-      onSuccess: () => setDirty(false),
+      onSuccess: () => {
+        toast.success('Agent model preferences saved');
+        setDirty(false);
+      },
+      onError: (error) => {
+        toast.error(`Failed to save model preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     });
   }
 

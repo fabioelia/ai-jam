@@ -79,6 +79,16 @@
   animation: subtle-pulse 2s ease-in-out infinite;
 }
 
+/* Toast progress bar animation */
+@keyframes toast-progress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@utility animate-toast-progress {
+  animation: toast-progress linear forwards;
+}
+
 /* Markdown preview styling */
 .markdown-preview {
   color: #d1d5db;
