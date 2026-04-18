@@ -17,6 +17,8 @@
 
 import { v4 as uuid } from 'uuid';
 import type { SessionManager } from './session-manager.js';
+import { HandoffManager } from './handoff-manager.js';
+import { parseSignals } from './context-builder.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,6 +37,8 @@ export interface OrchestratorConfig {
   pollIntervalMs?: number;
   /** Max tickets to pick per cycle (default 3) */
   maxPicksPerCycle?: number;
+  /** Enable automatic handoffs on session completion (default true) */
+  enableAutomaticHandoffs?: boolean;
 }
 
 interface BoardTicket {
@@ -155,11 +159,24 @@ class OrchestratorApiClient {
 // ---------------------------------------------------------------------------
 
 export class TicketOrchestrator {
-  private config: OrchestratorConfig & { pollIntervalMs: number; maxPicksPerCycle: number };
+  private config: OrchestratorConfig & {
+    pollIntervalMs: number;
+    maxPicksPerCycle: number;
+    enableAutomaticHandoffs: boolean;
+  };
   private sessionManager: SessionManager;
   private api: OrchestratorApiClient;
+  private handoffManager: HandoffManager;
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
+  private handoffRetryMap = new Map<string, { attempts: number; lastAttempt: number }>();
+  private readonly MAX_HANDOFF_RETRIES = 3;
+  private readonly HANDOFF_RETRY_DELAY_MS = 30_000;
+  private handoffStats = {
+    total: 0,
+    successful: 0,
+    failed: 0,
+  };
 
   constructor(sessionManager: SessionManager, config: OrchestratorConfig) {
     this.sessionManager = sessionManager;
@@ -168,8 +185,14 @@ export class TicketOrchestrator {
       projectIds: config.projectIds ?? [],
       pollIntervalMs: config.pollIntervalMs ?? 60_000,
       maxPicksPerCycle: config.maxPicksPerCycle ?? 3,
+      enableAutomaticHandoffs: config.enableAutomaticHandoffs ?? true,
     };
     this.api = new OrchestratorApiClient(this.config.apiBaseUrl, this.config.serviceToken);
+    this.handoffManager = new HandoffManager(this.config.apiBaseUrl, this.config.serviceToken);
+
+    if (this.config.enableAutomaticHandoffs) {
+      this.wireSessionEvents();
+    }
   }
 
   /**
@@ -201,6 +224,235 @@ export class TicketOrchestrator {
   }
 
   // -------------------------------------------------------------------------
+  // Session event handling
+  // -------------------------------------------------------------------------
+
+  /**
+   * Wire up session manager events to handle completions and handoffs.
+   */
+  private wireSessionEvents() {
+    this.sessionManager.on('session:completed', async (data: {
+      sessionId: string;
+      exitCode: number | null;
+      outputSummary: string | null;
+    }) => {
+      await this.handleSessionCompletion(data.sessionId, data.exitCode, data.outputSummary);
+    });
+  }
+
+  /**
+   * Handle a completed session: parse signals, trigger handoffs if needed.
+   */
+  private async handleSessionCompletion(
+    sessionId: string,
+    exitCode: number | null,
+    outputSummary: string | null
+  ) {
+    try {
+      // Fetch the session record to get ticket ID and persona type
+      let session: AgentSessionRecord | null = null;
+      try {
+        session = await this.api.get<AgentSessionRecord>(`/api/agent-sessions/${sessionId}`);
+      } catch (err) {
+        console.warn(`[orchestrator] Failed to fetch session ${sessionId.slice(0, 8)}:`, err);
+        return;
+      }
+
+      if (!session || !session.ticketId) {
+        console.warn(`[orchestrator] Session ${sessionId.slice(0, 8)} has no ticket ID, skipping handoff`);
+        return;
+      }
+
+      // Get the full output buffer for signal parsing
+      const outputBuffer = this.sessionManager.getSessionBuffer(sessionId);
+      const signals = parseSignals(outputBuffer + (outputSummary || ''));
+
+      // Check if work is complete and there's a next persona
+      if (signals['WORK_COMPLETE'] === 'true' && signals['NEXT_PERSONA'] && signals['NEXT_PERSONA'] !== 'none') {
+        const nextPersona = signals['NEXT_PERSONA'];
+        const summary = signals['SUMMARY'] || outputSummary || 'No summary provided';
+
+        console.log(
+          `[orchestrator] Agent ${session.personaType} completed ticket ${session.ticketId.slice(0, 8)}, ` +
+          `triggering handoff to ${nextPersona}`
+        );
+
+        await this.triggerAutomaticHandoff(
+          session.ticketId,
+          session.personaType,
+          nextPersona,
+          outputBuffer,
+          summary
+        );
+      } else if (signals['WORK_COMPLETE'] === 'true') {
+        console.log(
+          `[orchestrator] Agent ${session.personaType} completed ticket ${session.ticketId.slice(0, 8)}, ` +
+          `no next persona (workflow complete)`
+        );
+      }
+    } catch (err) {
+      console.error(
+        `[orchestrator] Error handling session completion for ${sessionId.slice(0, 8)}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
+  /**
+   * Trigger an automatic handoff when an agent completes.
+   */
+  private async triggerAutomaticHandoff(
+    ticketId: string,
+    fromPersona: string,
+    toPersona: string,
+    output: string,
+    summary: string
+  ): Promise<void> {
+    const handoffKey = `${ticketId}-${fromPersona}-${toPersona}`;
+    this.handoffStats.total++;
+
+    // Check if we should retry (if previous attempt failed)
+    const retryInfo = this.handoffRetryMap.get(handoffKey);
+    if (retryInfo && retryInfo.attempts >= this.MAX_HANDOFF_RETRIES) {
+      console.error(
+        `[orchestrator] Handoff ${fromPersona} -> ${toPersona} for ticket ${ticketId.slice(0, 8)} ` +
+        `failed ${retryInfo.attempts} times, giving up`
+      );
+      this.handoffStats.failed++;
+      this.handoffRetryMap.delete(handoffKey);
+      return;
+    }
+
+    if (retryInfo) {
+      const timeSinceLastAttempt = Date.now() - retryInfo.lastAttempt;
+      if (timeSinceLastAttempt < this.HANDOFF_RETRY_DELAY_MS) {
+        console.log(
+          `[orchestrator] Handoff ${fromPersona} -> ${toPersona} for ticket ${ticketId.slice(0, 8)} ` +
+          `recently attempted, waiting before retry`
+        );
+        return;
+      }
+    }
+
+    try {
+      // Build handoff document using HandoffManager
+      const handoff = this.handoffManager.buildHandoff(
+        ticketId,
+        fromPersona,
+        toPersona,
+        output,
+        summary
+      );
+
+      // Save handoff document as a ticket note
+      await this.handoffManager.saveHandoff(handoff);
+
+      console.log(
+        `[orchestrator] Handoff ${fromPersona} -> ${toPersona} for ticket ${ticketId.slice(0, 8)} completed successfully`
+      );
+
+      // Update statistics
+      this.handoffStats.successful++;
+
+      // Clear retry info on success
+      this.handoffRetryMap.delete(handoffKey);
+
+      // Optionally request ticket transition via backend API
+      if (toPersona === 'reviewer') {
+        await this.requestTicketTransition(ticketId, 'review', 'Completed implementation, ready for review');
+      } else if (toPersona === 'qa_tester') {
+        await this.requestTicketTransition(ticketId, 'qa', 'Review complete, ready for QA');
+      } else if (toPersona === 'acceptance_validator') {
+        await this.requestTicketTransition(ticketId, 'acceptance', 'QA complete, ready for acceptance validation');
+      }
+    } catch (err) {
+      console.error(
+        `[orchestrator] Failed to trigger handoff ${fromPersona} -> ${toPersona} for ticket ${ticketId.slice(0, 8)}:`,
+        err instanceof Error ? err.message : err
+      );
+
+      // Track retry info
+      const currentAttempts = retryInfo?.attempts ?? 0;
+      this.handoffRetryMap.set(handoffKey, {
+        attempts: currentAttempts + 1,
+        lastAttempt: Date.now(),
+      });
+
+      // Don't increment failed stats yet - might succeed on retry
+    }
+  }
+
+  /**
+   * Request a ticket transition via the backend API.
+   */
+  private async requestTicketTransition(ticketId: string, toStatus: string, reason: string): Promise<void> {
+    try {
+      await this.api.post(`/api/tickets/${ticketId}/move`, {
+        toStatus,
+        reason,
+      });
+      console.log(`[orchestrator] Requested transition of ticket ${ticketId.slice(0, 8)} to ${toStatus}`);
+    } catch (err) {
+      console.warn(
+        `[orchestrator] Failed to request transition of ticket ${ticketId.slice(0, 8)} to ${toStatus}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Handoff monitoring
+  // -------------------------------------------------------------------------
+
+  /**
+   * Get handoff statistics.
+   */
+  getHandoffStats() {
+    return { ...this.handoffStats, retryMapSize: this.handoffRetryMap.size };
+  }
+
+  /**
+   * Get detailed handoff retry status.
+   */
+  getHandoffRetryStatus(): Array<{
+    handoffKey: string;
+    attempts: number;
+    lastAttempt: Date;
+    canRetry: boolean;
+  }> {
+    const now = Date.now();
+    return Array.from(this.handoffRetryMap.entries()).map(([handoffKey, info]) => ({
+      handoffKey,
+      attempts: info.attempts,
+      lastAttempt: new Date(info.lastAttempt),
+      canRetry: info.attempts < this.MAX_HANDOFF_RETRIES &&
+        (now - info.lastAttempt) >= this.HANDOFF_RETRY_DELAY_MS,
+    }));
+  }
+
+  /**
+   * Clean up stale retry entries (older than 1 hour).
+   */
+  cleanupStaleRetries(): number {
+    const now = Date.now();
+    const STALE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
+    let cleaned = 0;
+
+    for (const [handoffKey, info] of this.handoffRetryMap.entries()) {
+      if (now - info.lastAttempt > STALE_THRESHOLD_MS) {
+        this.handoffRetryMap.delete(handoffKey);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      console.log(`[orchestrator] Cleaned up ${cleaned} stale handoff retry entries`);
+    }
+
+    return cleaned;
+  }
+
+  // -------------------------------------------------------------------------
   // Core loop
   // -------------------------------------------------------------------------
 
@@ -216,6 +468,9 @@ export class TicketOrchestrator {
     this.projectCache.clear();
 
     try {
+      // Clean up stale retry entries periodically
+      this.cleanupStaleRetries();
+
       // Auto-discover projects if none configured
       let projectIds = this.config.projectIds ?? [];
       if (projectIds.length === 0) {

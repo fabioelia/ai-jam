@@ -469,7 +469,7 @@ export class QueueProcessor {
 
 export const queueProcessor = QueueProcessor.getInstance();
 
-export function startQueueProcessor(): void {
+export async function startQueueProcessor(): Promise<void> {
   queueProcessor.start();
 }
 
