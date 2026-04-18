@@ -1,31 +1,50 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from './client.js';
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { apiFetch, isNetworkError, isServerError } from './client.js';
 import type { Project, Feature, BoardState, Ticket, Comment, ChatSession, ChatMessage, TicketProposal, TicketNote, TransitionGate, Notification, AttentionItem } from '@ai-jam/shared';
 
-export function useProjects() {
+const defaultQueryOptions: Partial<UseQueryOptions> = {
+  retry: (failureCount, error) => {
+    // Retry network errors and server errors, but not client errors (4xx)
+    if (isNetworkError(error) || isServerError(error)) {
+      return failureCount < 3;
+    }
+    return false;
+  },
+  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff with 30s max
+  staleTime: 30_000, // 30 seconds
+  gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+};
+
+export function useProjects(options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['projects'],
     queryFn: () => apiFetch<Project[]>('/projects'),
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useProject(projectId: string) {
+export function useProject(projectId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['projects', projectId],
     queryFn: () => apiFetch<Project>(`/projects/${projectId}`),
     enabled: !!projectId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useFeatures(projectId: string) {
+export function useFeatures(projectId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['features', projectId],
     queryFn: () => apiFetch<Feature[]>(`/projects/${projectId}/features`),
     enabled: !!projectId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useBoard(projectId: string, featureId?: string) {
+export function useBoard(projectId: string, featureId?: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['board', projectId, featureId],
     queryFn: () => {
@@ -33,63 +52,79 @@ export function useBoard(projectId: string, featureId?: string) {
       return apiFetch<BoardState>(`/projects/${projectId}/board${params}`);
     },
     enabled: !!projectId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useTicket(ticketId: string) {
+export function useTicket(ticketId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['tickets', ticketId],
     queryFn: () => apiFetch<Ticket>(`/tickets/${ticketId}`),
     enabled: !!ticketId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useComments(ticketId: string) {
+export function useComments(ticketId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['comments', ticketId],
     queryFn: () => apiFetch<Comment[]>(`/tickets/${ticketId}/comments`),
     enabled: !!ticketId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useChatSessions(featureId: string) {
+export function useChatSessions(featureId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['chat-sessions', featureId],
     queryFn: () => apiFetch<ChatSession[]>(`/features/${featureId}/chat-sessions`),
     enabled: !!featureId,
     refetchInterval: 5000,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useChatSession(sessionId: string) {
+export function useChatSession(sessionId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['chat-session', sessionId],
     queryFn: () => apiFetch<ChatSession & { messages: ChatMessage[] }>(`/chat-sessions/${sessionId}`),
     enabled: !!sessionId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useProposals(featureId: string) {
+export function useProposals(featureId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['proposals', featureId],
     queryFn: () => apiFetch<TicketProposal[]>(`/features/${featureId}/proposals`),
     enabled: !!featureId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useTicketNotes(ticketId: string) {
+export function useTicketNotes(ticketId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['ticket-notes', ticketId],
     queryFn: () => apiFetch<TicketNote[]>(`/tickets/${ticketId}/notes`),
     enabled: !!ticketId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 
-export function useTransitionGates(ticketId: string) {
+export function useTransitionGates(ticketId: string, options?: Partial<UseQueryOptions>) {
   return useQuery({
     queryKey: ['transition-gates', ticketId],
     queryFn: () => apiFetch<TransitionGate[]>(`/tickets/${ticketId}/gates`),
     enabled: !!ticketId,
+    ...defaultQueryOptions,
+    ...options,
   });
 }
 

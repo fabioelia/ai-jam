@@ -9,12 +9,15 @@ import { useAgentSync } from '../hooks/useAgentSync.js';
 import { useNotificationSync } from '../hooks/useNotificationSync.js';
 import { useSessionLastSeen } from '../hooks/useSessionLastSeen.js';
 import { BoardSkeleton } from '../components/common/Skeleton.js';
+import EmptyState from '../components/common/EmptyState.js';
+import ErrorDisplay from '../components/common/ErrorDisplay.js';
 import NotificationBell from '../components/notifications/NotificationBell.js';
 import KanbanBoard from '../components/board/KanbanBoard.js';
 import TicketDetail from '../components/board/TicketDetail.js';
 import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
 import FiltersPopover from '../components/board/FiltersPopover.js';
 import type { Ticket } from '@ai-jam/shared';
+import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
 
 // ---- Modal Component ----
@@ -126,6 +129,7 @@ export default function BoardPage() {
   const [ticketDesc, setTicketDesc] = useState('');
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [boardError, setBoardError] = useState<unknown>(null);
 
   // Keyboard shortcuts: Escape to close modals, ? for shortcuts
   useEffect(() => {
@@ -160,7 +164,7 @@ export default function BoardPage() {
       setShowNewFeature(false);
       setFeatureTitle('');
     } catch (error) {
-      toast.error(`Failed to create feature: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to create feature: ${getClientErrorMessage(error)}`);
     }
   }
 
@@ -178,7 +182,7 @@ export default function BoardPage() {
       setTicketTitle('');
       setTicketDesc('');
     } catch (error) {
-      toast.error(`Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to create ticket: ${getClientErrorMessage(error)}`);
     }
   }
 
@@ -608,7 +612,17 @@ export default function BoardPage() {
         )}
 
         <div className="flex-1 overflow-hidden">
-          {boardLoading ? (
+          {boardError ? (
+            <div className="flex items-center justify-center h-full p-6">
+              <ErrorDisplay
+                error={boardError}
+                onRetry={() => {
+                  setBoardError(null);
+                  window.location.reload();
+                }}
+              />
+            </div>
+          ) : boardLoading ? (
             <BoardSkeleton />
           ) : board ? (
             <KanbanBoard
@@ -623,24 +637,14 @@ export default function BoardPage() {
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center max-w-md px-6">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                  </svg>
-                </div>
-                <h3 className="text-white font-semibold text-lg mb-2">No feature selected</h3>
-                <p className="text-gray-500 mb-6">Select a feature from the dropdown above or create a new one to get started.</p>
-                <button
-                  onClick={() => setShowNewFeature(true)}
-                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create Feature
-                </button>
-              </div>
+              <EmptyState
+                title="No feature selected"
+                description="Select a feature from the dropdown above or create a new one to start tracking work."
+                action={{
+                  label: 'Create Feature',
+                  onClick: () => setShowNewFeature(true),
+                }}
+              />
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import { useUpdateProject, useDeleteProject, useUpdateSystemPrompt, useTriggerSc
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth-store.js';
 import MarkdownEditor from '../components/common/MarkdownEditor.js';
+import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
 
 type Tab = 'general' | 'members' | 'notifications' | 'prompts' | 'scans' | 'knowledge' | 'agents';
@@ -134,7 +135,7 @@ function GeneralTab({ projectId }: { projectId: string }) {
         setIsEditing(false);
       },
       onError: (error) => {
-        toast.error(`Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to save settings: ${getClientErrorMessage(error)}`);
       }
     });
   }
@@ -146,7 +147,7 @@ function GeneralTab({ projectId }: { projectId: string }) {
         navigate('/');
       },
       onError: (error) => {
-        toast.error(`Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to delete project: ${getClientErrorMessage(error)}`);
       }
     });
   }
@@ -321,7 +322,7 @@ function GeneralTab({ projectId }: { projectId: string }) {
                     toast.success('Repository scan started');
                   },
                   onError: (error) => {
-                    toast.error(`Failed to start scan: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    toast.error(`Failed to start scan: ${getClientErrorMessage(error)}`);
                   }
                 });
               }}
@@ -400,7 +401,7 @@ function MembersTab({ projectId }: { projectId: string }) {
         setSelectedUserId('');
       },
       onError: (error) => {
-        toast.error(`Failed to add member: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to add member: ${getClientErrorMessage(error)}`);
       }
     });
   }
@@ -488,7 +489,7 @@ function MembersTab({ projectId }: { projectId: string }) {
                               toast.success(`${member.name} removed from project`);
                             },
                             onError: (error) => {
-                              toast.error(`Failed to remove member: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                              toast.error(`Failed to remove member: ${getClientErrorMessage(error)}`);
                             }
                           });
                         }}
@@ -528,7 +529,7 @@ function NotificationsTab({ projectId }: { projectId: string }) {
   function handleToggle(type: string, currentlyEnabled: boolean) {
     updatePrefs.mutate({ [type]: !currentlyEnabled }, {
       onError: (error) => {
-        toast.error(`Failed to update notification preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to update notification preferences: ${getClientErrorMessage(error)}`);
       }
     });
   }
@@ -647,7 +648,7 @@ function PromptCard({
           onClose();
         },
         onError: (error) => {
-          toast.error(`Failed to save prompt: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          toast.error(`Failed to save prompt: ${getClientErrorMessage(error)}`);
         }
       }
     );
@@ -791,7 +792,7 @@ function ScansTab({ projectId }: { projectId: string }) {
         toast.success('Repository scan started');
       },
       onError: (error) => {
-        toast.error(`Failed to start scan: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to start scan: ${getClientErrorMessage(error)}`);
       }
     });
   }
@@ -1096,7 +1097,7 @@ function AgentModelsTab({ projectId }: { projectId: string }) {
         setDirty(false);
       },
       onError: (error) => {
-        toast.error(`Failed to save model preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to save model preferences: ${getClientErrorMessage(error)}`);
       }
     });
   }

@@ -4,11 +4,14 @@ import { useProjects } from '../api/queries.js';
 import { useCreateProject } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { ProjectCardSkeleton } from '../components/common/Skeleton.js';
+import EmptyState from '../components/common/EmptyState.js';
+import ErrorDisplay from '../components/common/ErrorDisplay.js';
+import { getClientErrorMessage } from '../api/client.js';
 import { toast } from '../stores/toast-store.js';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { data: projects, isLoading } = useProjects();
+  const { data: projects, isLoading, error, refetch } = useProjects();
   const createProject = useCreateProject();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -55,7 +58,7 @@ export default function DashboardPage() {
       setRepoUrl('');
       setLocalPath('');
     } catch (error) {
-      toast.error(`Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to create project: ${getClientErrorMessage(error)}`);
     }
   }
 
@@ -199,31 +202,26 @@ export default function DashboardPage() {
           </form>
         )}
 
-        {isLoading ? (
+        {error ? (
+          <ErrorDisplay
+            error={error}
+            onRetry={() => refetch()}
+          />
+        ) : isLoading ? (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             <ProjectCardSkeleton />
             <ProjectCardSkeleton />
             <ProjectCardSkeleton />
           </div>
         ) : !projects?.length ? (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2 2H5a2 2 0 00-2 2z" />
-              </svg>
-            </div>
-            <h3 className="text-white font-medium mb-2">No projects yet</h3>
-            <p className="text-gray-500 mb-6">Create your first project to start planning with AI agents.</p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 mx-auto shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Project
-            </button>
-          </div>
+          <EmptyState
+            title="No projects yet"
+            description="Create your first project to start planning and tracking work with AI agents."
+            action={{
+              label: 'Create Project',
+              onClick: () => setShowCreate(true),
+            }}
+          />
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (

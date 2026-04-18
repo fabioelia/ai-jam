@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useComments, useTicketNotes, useTransitionGates, useAgentSessions } from '../../api/queries.js';
 import { useCreateComment, useMoveTicket, useDeleteTicket } from '../../api/mutations.js';
-import { apiFetch } from '../../api/client.js';
+import { apiFetch, getClientErrorMessage } from '../../api/client.js';
 import { getSocket, joinTicket, leaveTicket } from '../../api/socket.js';
 import { useAuthStore } from '../../stores/auth-store.js';
 import { useBoardStore } from '../../stores/board-store.js';
+import { toast } from '../../stores/toast-store.js';
 import CommentThread from './CommentThread.js';
 import HandoffTimeline from './HandoffTimeline.js';
 import type { Ticket, Epic, Comment, TicketPriority, TicketStatus } from '@ai-jam/shared';
@@ -122,8 +123,9 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
         priority: editPriority,
       });
       setIsEditing(false);
+      toast.success('Ticket updated successfully');
     } catch (err) {
-      console.error('Failed to update ticket:', err);
+      toast.error(`Failed to update ticket: ${getClientErrorMessage(err)}`);
     }
   }
 
@@ -132,8 +134,9 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
     try {
       await moveTicket.mutateAsync({ ticketId: ticket.id, toStatus: status });
       updateTicketStore(ticket.id, { status });
+      toast.success(`Ticket moved to ${STATUS_LABELS[status]}`);
     } catch (err) {
-      console.error('Failed to change ticket status:', err);
+      toast.error(`Failed to move ticket: ${getClientErrorMessage(err)}`);
     }
   }
 
@@ -141,9 +144,10 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
     try {
       await deleteTicket.mutateAsync(ticket.id);
       removeTicketStore(ticket.id);
+      toast.success('Ticket deleted');
       onClose();
     } catch (err) {
-      console.error('Failed to delete ticket:', err);
+      toast.error(`Failed to delete ticket: ${getClientErrorMessage(err)}`);
     }
   }
 

@@ -25,6 +25,59 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+    public details?: unknown
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export function isNetworkError(error: unknown): error is Error {
+  return error instanceof Error && (
+    error.message.includes('Failed to fetch') ||
+    error.message.includes('NetworkError') ||
+    error.message.includes('ECONNREFUSED') ||
+    error.message.includes('ENOTFOUND')
+  );
+}
+
+export function isAuthError(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
+}
+
+export function isServerError(error: unknown): boolean {
+  return error instanceof ApiError && error.status >= 500;
+}
+
+export function getClientErrorMessage(error: unknown): string {
+  if (isNetworkError(error)) {
+    return 'Network connection failed. Please check your internet connection and try again.';
+  }
+
+  if (isAuthError(error)) {
+    return 'Your session has expired. Please log in again.';
+  }
+
+  if (isServerError(error)) {
+    return 'Server error occurred. Our team has been notified. Please try again later.';
+  }
+
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'An unexpected error occurred. Please try again.';
+}
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const { accessToken } = useAuthStore.getState();
 
@@ -50,7 +103,8 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(body.error || `API error: ${res.status}`);
+    const message = body.error || body.message || `API error: ${res.status}`;
+    throw new ApiError(message, res.status, body.code, body.details);
   }
 
   return res.json();
