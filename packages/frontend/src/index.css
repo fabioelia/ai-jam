@@ -89,6 +89,11 @@
   animation: toast-progress linear forwards;
 }
 
+/* Keyboard focus styles for notifications */
+kbd {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+
 /* Markdown preview styling */
 .markdown-preview {
   color: #d1d5db;
