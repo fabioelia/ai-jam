@@ -67,7 +67,7 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200"
+        className="bg-gray-900 border border-gray-700 rounded-xl p-4 md:p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -125,6 +125,7 @@ export default function BoardPage() {
   const [ticketTitle, setTicketTitle] = useState('');
   const [ticketDesc, setTicketDesc] = useState('');
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Keyboard shortcuts: Escape to close modals, ? for shortcuts
   useEffect(() => {
@@ -138,6 +139,7 @@ export default function BoardPage() {
         if (showNewFeature) setShowNewFeature(false);
         if (showNewTicket) setShowNewTicket(false);
         if (showShortcuts) setShowShortcuts(false);
+        if (showMobileMenu) setShowMobileMenu(false);
       }
 
       if (e.key === '?' && !e.shiftKey) {
@@ -147,7 +149,7 @@ export default function BoardPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showNewFeature, showNewTicket, showShortcuts]);
+  }, [showNewFeature, showNewTicket, showShortcuts, showMobileMenu]);
 
   async function handleCreateFeature(e: React.FormEvent) {
     e.preventDefault();
@@ -196,94 +198,178 @@ export default function BoardPage() {
     <div className="min-h-screen bg-gray-950 flex flex-col">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900 shrink-0">
-        <div className="px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-4 md:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
             <button
               onClick={() => navigate('/')}
-              className="text-gray-400 hover:text-white text-sm font-medium transition-colors flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-gray-800"
+              className="text-gray-400 hover:text-white text-sm font-medium transition-colors flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-800 md:px-2.5"
               aria-label="Back to projects"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-              Projects
+              <span className="hidden sm:inline">Projects</span>
             </button>
-            <h1 className="text-lg font-bold text-white">{project?.name || 'Loading...'}</h1>
+            <h1 className="text-base md:text-lg font-bold text-white truncate">{project?.name || 'Loading...'}</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowSessionsSidebar(!showSessionsSidebar)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
-                showSessionsSidebar
-                  ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
-              }`}
-              aria-label={showSessionsSidebar ? 'Hide sessions' : 'Show sessions'}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Sessions
-            </button>
-            <button
-              onClick={() => setShowAgentPanel(!showAgentPanel)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
-                showAgentPanel
-                  ? 'bg-green-600/20 border-green-500 text-green-300'
-                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
-              }`}
-              aria-label={showAgentPanel ? 'Hide agents' : 'Show agents'}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1m8.06-4a6.002 6.002 0 01-9.58-5.092M9 10a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 01-.72 2.063L9 10" />
-              </svg>
-              Agents
-            </button>
-            <NotificationBell projectId={projectId!} />
-            <button
-              onClick={() => navigate(`/projects/${projectId}/settings`)}
-              className="text-sm px-3 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600 transition-all duration-150 flex items-center gap-1.5"
-              aria-label="Project settings"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Settings
-            </button>
-            <button
-              onClick={() => setShowShortcuts(true)}
-              className="text-sm px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-600 transition-all duration-150"
-              aria-label="Keyboard shortcuts"
-              title="Keyboard shortcuts (?)"
-            >
-              <kbd className="text-xs font-mono">?</kbd>
-            </button>
-            <div className="w-px h-5 bg-gray-700" />
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-sm">{user?.name}</span>
+          <div className="flex items-center gap-2">
+            {/* Desktop actions */}
+            <div className="hidden md:flex items-center gap-3">
               <button
-                onClick={logout}
-                className="text-gray-500 hover:text-red-400 text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-red-500/10 flex items-center gap-1.5"
-                aria-label="Logout"
+                onClick={() => setShowSessionsSidebar(!showSessionsSidebar)}
+                className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
+                  showSessionsSidebar
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                }`}
+                aria-label={showSessionsSidebar ? 'Hide sessions' : 'Show sessions'}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Logout
+                Sessions
               </button>
+              <button
+                onClick={() => setShowAgentPanel(!showAgentPanel)}
+                className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
+                  showAgentPanel
+                    ? 'bg-green-600/20 border-green-500 text-green-300'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                }`}
+                aria-label={showAgentPanel ? 'Hide agents' : 'Show agents'}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1m8.06-4a6.002 6.002 0 01-9.58-5.092M9 10a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 01-.72 2.063L9 10" />
+                </svg>
+                Agents
+              </button>
+              <button
+                onClick={() => navigate(`/projects/${projectId}/settings`)}
+                className="text-sm px-3 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600 transition-all duration-150 flex items-center gap-1.5"
+                aria-label="Project settings"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Settings
+              </button>
+              <button
+                onClick={() => setShowShortcuts(true)}
+                className="text-sm px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-600 transition-all duration-150"
+                aria-label="Keyboard shortcuts"
+                title="Keyboard shortcuts (?)"
+              >
+                <kbd className="text-xs font-mono">?</kbd>
+              </button>
+              <div className="w-px h-5 bg-gray-700" />
+              <div className="flex items-center gap-3">
+                <span className="text-gray-400 text-sm">{user?.name}</span>
+                <button
+                  onClick={logout}
+                  className="text-gray-500 hover:text-red-400 text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-red-500/10 flex items-center gap-1.5"
+                  aria-label="Logout"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Logout
+                </button>
+              </div>
             </div>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {showMobileMenu ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+
+            {/* Always show notification bell */}
+            <NotificationBell projectId={projectId!} />
           </div>
         </div>
+
+        {/* Mobile menu dropdown */}
+        {showMobileMenu && (
+          <div className="md:hidden border-t border-gray-800 bg-gray-900 animate-in slide-in-from-top duration-200">
+            <div className="px-4 py-3 space-y-2">
+              <button
+                onClick={() => { setShowSessionsSidebar(!showSessionsSidebar); setShowMobileMenu(false); }}
+                className={`w-full text-left px-3 py-2 rounded-lg border transition-all duration-150 flex items-center gap-2 ${
+                  showSessionsSidebar
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Sessions
+              </button>
+              <button
+                onClick={() => { setShowAgentPanel(!showAgentPanel); setShowMobileMenu(false); }}
+                className={`w-full text-left px-3 py-2 rounded-lg border transition-all duration-150 flex items-center gap-2 ${
+                  showAgentPanel
+                    ? 'bg-green-600/20 border-green-500 text-green-300'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1m8.06-4a6.002 6.002 0 01-9.58-5.092M9 10a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 01-.72 2.063L9 10" />
+                </svg>
+                Agents
+              </button>
+              <button
+                onClick={() => { navigate(`/projects/${projectId}/settings`); setShowMobileMenu(false); }}
+                className="w-full text-left px-3 py-2 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 transition-all duration-150 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Settings
+              </button>
+              <button
+                onClick={() => { setShowShortcuts(true); setShowMobileMenu(false); }}
+                className="w-full text-left px-3 py-2 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 transition-all duration-150 flex items-center gap-2"
+              >
+                <kbd className="text-xs font-mono">?</kbd>
+                Keyboard Shortcuts
+              </button>
+              <div className="border-t border-gray-800 my-2" />
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-gray-400 text-sm">{user?.name}</span>
+                <button
+                  onClick={() => { logout(); setShowMobileMenu(false); }}
+                  className="text-gray-500 hover:text-red-400 text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-red-500/10 flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Toolbar */}
-      <div className="border-b border-gray-800 bg-gray-900/50 px-6 py-2 flex items-center gap-3 shrink-0">
+      <div className="border-b border-gray-800 bg-gray-900/50 px-4 md:px-6 py-2 flex items-center gap-2 md:gap-3 shrink-0 overflow-x-auto">
         {/* Feature Context */}
         <select
           value={selectedFeatureId || ''}
           onChange={(e) => setSelectedFeatureId(e.target.value || undefined)}
-          className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500"
+          className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-2 md:px-3 py-1.5 focus:outline-none focus:border-indigo-500 min-w-0 max-w-[150px] sm:max-w-[200px] md:max-w-none"
         >
           <option value="">All Features</option>
           {features?.map((f) => (
@@ -293,33 +379,34 @@ export default function BoardPage() {
 
         <button
           onClick={() => setShowNewFeature(true)}
-          className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1.5 transition-colors"
+          className="text-indigo-400 hover:text-indigo-300 text-xs sm:text-sm flex items-center gap-1 transition-colors shrink-0"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          Feature
+          <span className="hidden sm:inline">Feature</span>
         </button>
 
         {selectedFeatureId && (
           <button
             onClick={() => navigate(`/projects/${projectId}/features/${selectedFeatureId}/plan`)}
-            className="bg-indigo-600/20 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
+            className="bg-indigo-600/20 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30 px-2 md:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 transition-colors shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            Plan with Claude
+            <span className="hidden md:inline">Plan with Claude</span>
+            <span className="md:hidden">Plan</span>
           </button>
         )}
 
-        <div className="w-px h-5 bg-gray-700" />
+        <div className="hidden md:block w-px h-5 bg-gray-700" />
 
         {/* Filters Button */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`text-sm px-2.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
+            className={`text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1 ${
               filtersOpen
                 ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
                 : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
@@ -328,9 +415,9 @@ export default function BoardPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414-6.414a1 1 0 00-.707 0L9.293 7.293a1 1 0 00-.707.293L2.586 7.293A1 1 0 013 8V4zm0 8v2.586a1 1 0 00.293.707l6.414-6.414a1 1 0 01.707 0L14.707 8.293a1 1 0 01.707.293L20.586 10.293a1 1 0 00.707.707V12a1 1 0 01-1 1H4a1 1 0 01-1-1V12zm0 4v2.586a1 1 0 00.293.707l6.414-6.414a1 1 0 01.707 0L14.707 14.293a1 1 0 01.707.293L20.586 16.293a1 1 0 00.707.707V16a1 1 0 01-1 1H4a1 1 0 01-1-1V16z" />
             </svg>
-            Filters
+            <span className="hidden sm:inline">Filters</span>
             {(epicFilter || priorityFilter || personaFilter || searchQuery) && (
-              <span className="ml-1.5 bg-red-500/20 text-red-400 text-xs px-1.5 py-0.5 rounded-full">
+              <span className="ml-0.5 bg-red-500/20 text-red-400 text-xs px-1.5 py-0.5 rounded-full">
                 {[epicFilter, priorityFilter, personaFilter, searchQuery].filter(Boolean).length}
               </span>
             )}
@@ -362,7 +449,7 @@ export default function BoardPage() {
         {board && board.epics.length > 0 && (
           <button
             onClick={() => setGroupByEpic(!groupByEpic)}
-            className={`text-sm px-2.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
+            className={`text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1 shrink-0 ${
               groupByEpic
                 ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
                 : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
@@ -371,7 +458,7 @@ export default function BoardPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            Group by Epic
+            <span className="hidden sm:inline">Group by Epic</span>
           </button>
         )}
 
@@ -381,12 +468,12 @@ export default function BoardPage() {
         {selectedFeatureId && (
           <button
             onClick={() => setShowNewTicket(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 transition-colors shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Ticket
+            <span className="hidden sm:inline">Ticket</span>
           </button>
         )}
       </div>

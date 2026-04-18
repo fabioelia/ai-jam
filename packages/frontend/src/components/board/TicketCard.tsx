@@ -40,7 +40,7 @@ export default function TicketCard({ ticket, epics, isDragging, onClick }: Ticke
 
       <p className="text-white text-sm font-medium mb-2 line-clamp-2">{ticket.title}</p>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`text-xs px-1.5 py-0.5 rounded ${PRIORITY_COLORS[ticket.priority] || ''}`}>
           {ticket.priority}
         </span>

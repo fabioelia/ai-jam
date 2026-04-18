@@ -53,12 +53,12 @@ export default function BoardColumn({ status, label, colorClass, tickets, count,
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col w-72 min-w-72 shrink-0 rounded-xl bg-gray-900/50 border-t-2 ${colorClass} transition-all duration-200 ${
+      className={`flex flex-col w-60 sm:w-64 md:w-72 min-w-[240px] sm:min-w-64 md:min-w-72 shrink-0 rounded-xl bg-gray-900/50 border-t-2 ${colorClass} transition-all duration-200 ${
         isOver ? 'ring-2 ring-indigo-500/30 bg-gray-900/70 scale-[1.01]' : ''
       }`}
     >
       <div className="px-3 py-2.5 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-300">{label}</h3>
+        <h3 className="text-xs sm:text-sm font-medium text-gray-300">{label}</h3>
         <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">{count}</span>
       </div>
 

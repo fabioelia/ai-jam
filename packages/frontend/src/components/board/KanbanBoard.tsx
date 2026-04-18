@@ -209,7 +209,7 @@ export default function KanbanBoard({ board, projectId, epicFilter, priorityFilt
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 p-6 h-full overflow-x-auto">
+      <div className="flex gap-3 md:gap-4 p-4 md:p-6 h-full overflow-x-auto">
         {filteredColumns.map((column) => (
           <BoardColumn
             key={column.status}

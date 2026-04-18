@@ -83,32 +83,34 @@ export default function FeaturePlanningPage() {
     <div className="min-h-screen bg-gray-950 flex flex-col">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900 shrink-0">
-        <div className="px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-4 md:px-6 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
             <button
               onClick={() => navigate(`/projects/${projectId}/board`)}
-              className="text-gray-400 hover:text-white text-sm flex items-center gap-1.5 transition-colors hover:bg-gray-800 px-2.5 py-1.5 rounded-lg"
+              className="text-gray-400 hover:text-white text-sm flex items-center gap-1.5 transition-colors hover:bg-gray-800 px-2 py-1.5 rounded-lg shrink-0"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Board
+              <span className="hidden sm:inline">Board</span>
             </button>
-            <span className="text-gray-700">/</span>
-            <h1 className="text-lg font-bold text-white">
-              {feature?.title || 'Loading...'}
-            </h1>
-            <span className="text-xs bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded">
-              Planning
-            </span>
+            <span className="text-gray-700 hidden sm:inline">/</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-base md:text-lg font-bold text-white truncate">
+                {feature?.title || 'Loading...'}
+              </h1>
+              <span className="text-xs bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded shrink-0">
+                Planning
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Session picker */}
             {chatSessionsList && chatSessionsList.length > 1 && (
               <select
                 value={activeSessionId || ''}
                 onChange={(e) => setActiveSessionId(e.target.value || null)}
-                className="bg-gray-800 border border-gray-700 text-white text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all max-w-[120px] sm:max-w-none"
               >
                 {chatSessionsList.map((s, i) => (
                   <option key={s.id} value={s.id}>
@@ -121,18 +123,18 @@ export default function FeaturePlanningPage() {
               <button
                 onClick={handleNewSession}
                 disabled={createSession.isPending}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 md:px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
               >
                 {createSession.isPending ? 'Starting...' : 'New Session'}
               </button>
             )}
-            <span className="text-gray-400 text-sm">{user?.name}</span>
+            <span className="text-gray-400 text-sm hidden sm:inline">{user?.name}</span>
           </div>
         </div>
       </header>
 
       {/* Split view */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Left: Claude CLI Terminal */}
         <div className="flex-1 flex flex-col border-r border-gray-800 min-w-0">
           {activeSessionId ? (
@@ -187,7 +189,7 @@ export default function FeaturePlanningPage() {
         </div>
 
         {/* Right: Live board preview */}
-        <div className="w-[55%] shrink-0 overflow-hidden">
+        <div className="w-full md:w-[55%] shrink-0 overflow-hidden min-h-[300px] md:min-h-0">
           {board ? (
             <KanbanBoard board={board} projectId={projectId!} />
           ) : (

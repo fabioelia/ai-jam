@@ -99,7 +99,7 @@ export default function NotificationPanel({
   return (
     <div
       ref={panelRef}
-      className="absolute right-0 top-full mt-2 w-96 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-right"
+      className="absolute right-0 top-full mt-2 w-full sm:w-96 max-w-sm sm:max-w-none bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-right"
       role="dialog"
       aria-label="Notifications"
     >

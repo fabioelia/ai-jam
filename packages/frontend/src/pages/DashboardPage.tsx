@@ -76,17 +76,17 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-8">
+      <main className="flex-1 max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-1">Projects</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Projects</h2>
             <p className="text-gray-500 text-sm">
               {projects?.length || 0} {projects?.length === 1 ? 'project' : 'projects'}
             </p>
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-[0.98]"
+            className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-[0.98] w-full sm:w-auto justify-center"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -96,12 +96,12 @@ export default function DashboardPage() {
         </div>
 
         {showCreate && (
-          <form onSubmit={handleCreate} className="bg-gray-900 border border-gray-700 rounded-2xl p-6 mb-8 shadow-xl animate-in slide-in-from-bottom">
+          <form onSubmit={handleCreate} className="bg-gray-900 border border-gray-700 rounded-2xl p-4 md:p-6 mb-6 md:mb-8 shadow-xl animate-in slide-in-from-bottom">
             <div>
               <h3 className="text-white text-lg font-semibold mb-1">Create New Project</h3>
               <p className="text-gray-500 text-sm">Set up a workspace for planning and executing features with AI agents.</p>
             </div>
-            <div className="space-y-5 mt-6">
+            <div className="space-y-4 md:space-y-5 mt-4 md:mt-6">
               <div>
                 <label htmlFor="project-name" className="block text-sm font-medium text-gray-300 mb-2">Project Name</label>
                 <input
@@ -110,7 +110,7 @@ export default function DashboardPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
                   placeholder="e.g., My Awesome App"
                   required
                 />
@@ -121,7 +121,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSourceType('repo')}
-                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    className={`px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                       sourceType === 'repo'
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 scale-105'
                         : 'bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700 hover:border-gray-600 hover:scale-[1.02]'
@@ -130,12 +130,13 @@ export default function DashboardPage() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4m-14-10v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z" />
                     </svg>
-                    Repository URL
+                    <span className="hidden sm:inline">Repository URL</span>
+                    <span className="sm:hidden">Repository</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSourceType('local')}
-                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    className={`px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                       sourceType === 'local'
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 scale-105'
                         : 'bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700 hover:border-gray-600 hover:scale-[1.02]'
@@ -144,7 +145,8 @@ export default function DashboardPage() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2 2H5a2 2 0 00-2 2z" />
                     </svg>
-                    Local Directory
+                    <span className="hidden sm:inline">Local Directory</span>
+                    <span className="sm:hidden">Local</span>
                   </button>
                 </div>
                 {sourceType === 'repo' ? (
@@ -153,7 +155,7 @@ export default function DashboardPage() {
                       type="text"
                       value={repoUrl}
                       onChange={(e) => setRepoUrl(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 text-sm"
                       placeholder="https://github.com/owner/repo"
                       required
                     />
@@ -167,7 +169,7 @@ export default function DashboardPage() {
                       type="text"
                       value={localPath}
                       onChange={(e) => setLocalPath(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 text-sm"
                       placeholder="/path/to/your/project"
                       required
                     />
@@ -178,18 +180,18 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-            <div className="flex gap-3 pt-2 border-t border-gray-800">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 md:pt-2 border-t border-gray-800">
               <button
                 type="submit"
                 disabled={!name.trim() || (sourceType === 'repo' && !repoUrl.trim()) || (sourceType === 'local' && !localPath.trim())}
-                className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98]"
+                className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98] w-full sm:w-auto justify-center"
               >
                 Create Project
               </button>
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="text-gray-400 hover:text-gray-300 px-5 py-2.5 rounded-xl text-sm transition-colors hover:bg-gray-800"
+                className="text-gray-400 hover:text-gray-300 px-5 py-2.5 rounded-xl text-sm transition-colors hover:bg-gray-800 w-full sm:w-auto text-center"
               >
                 Cancel
               </button>
@@ -204,8 +206,23 @@ export default function DashboardPage() {
             <ProjectCardSkeleton />
           </div>
         ) : !projects?.length ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">No projects yet. Create one to get started.</p>
+          <div className="text-center py-20">
+            <div className="w-20 h-20 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2 2H5a2 2 0 00-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-white font-medium mb-2">No projects yet</h3>
+            <p className="text-gray-500 mb-6">Create your first project to start planning with AI agents.</p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 mx-auto shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Project
+            </button>
           </div>
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
