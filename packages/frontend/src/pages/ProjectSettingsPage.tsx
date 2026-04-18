@@ -34,20 +34,22 @@ export default function ProjectSettingsPage() {
     <div className="min-h-screen bg-gray-950">
       <header className="border-b border-gray-800 bg-gray-900">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(`/projects/${projectId}/board`)}
-              className="text-gray-400 hover:text-white text-sm"
+              className="text-gray-400 hover:text-white text-sm flex items-center gap-1.5 transition-colors hover:bg-gray-800 px-2.5 py-1.5 rounded-lg"
             >
-              &larr; Board
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Board
             </button>
-            <h1 className="text-xl font-bold text-white">{project?.name || 'Project'} Settings</h1>
+            <span className="text-gray-700">/</span>
+            <h1 className="text-xl font-bold text-white">Settings</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="text-gray-400 text-sm">{user?.name}</span>
-            <button onClick={logout} className="text-gray-500 hover:text-gray-300 text-sm">
-              Logout
-            </button>
+            <button onClick={logout} className="text-gray-500 hover:text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-sm transition-colors">Logout</button>
           </div>
         </div>
       </header>
@@ -59,7 +61,7 @@ export default function ProjectSettingsPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 focus:ring-offset-gray-950 ${
                 activeTab === tab.key
                   ? 'border-indigo-500 text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -444,7 +446,14 @@ function MembersTab({ projectId }: { projectId: string }) {
         {membersLoading ? (
           <p className="text-gray-500">Loading members...</p>
         ) : !members?.length ? (
-          <p className="text-gray-500">No members yet.</p>
+          <div className="text-center py-8">
+            <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-sm">No members yet. Add team members to collaborate.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {members.map((member) => {
@@ -599,7 +608,14 @@ function SystemPromptsTab({ projectId }: { projectId: string }) {
         />
       ))}
       {!prompts?.length && (
-        <div className="text-gray-500 text-center py-8">No system prompts configured.</div>
+        <div className="text-center py-12">
+          <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p className="text-gray-500 text-sm">No system prompts configured.</p>
+        </div>
       )}
     </div>
   );
@@ -821,7 +837,14 @@ function ScansTab({ projectId }: { projectId: string }) {
         {isLoading ? (
           <div className="text-gray-500">Loading scans...</div>
         ) : !scans?.length ? (
-          <div className="text-gray-500 text-center py-8">No scans have been run yet.</div>
+          <div className="text-gray-500 text-center py-12">
+            <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-sm">No scans have been run yet.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {scans.map((scan) => (
@@ -943,8 +966,13 @@ function KnowledgeTab({ projectId }: { projectId: string }) {
 
       {/* Scan-generated files */}
       {!files?.length ? (
-        <div className="text-gray-500 text-center py-8">
-          No knowledge files yet. Run a repo scan to generate them.
+        <div className="text-gray-500 text-center py-12">
+          <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p className="text-gray-500 text-sm">No knowledge files yet. Run a repo scan to generate them.</p>
         </div>
       ) : (
         <>

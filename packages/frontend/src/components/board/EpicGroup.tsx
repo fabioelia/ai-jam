@@ -23,9 +23,16 @@ export default function EpicGroup({ epic, tickets, epics, onTicketClick }: EpicG
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center gap-1.5 w-full px-1 py-1 text-left group"
       >
-        <span className="text-gray-500 text-xs transition-transform" style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)' }}>
-          &#9662;
-        </span>
+        <svg
+          className="w-3 h-3 text-gray-500 transition-transform"
+          style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)' }}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
         {epic ? (
           <>
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: epic.color || '#6b7280' }} />

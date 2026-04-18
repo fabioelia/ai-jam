@@ -84,13 +84,17 @@ export default function FeaturePlanningPage() {
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900 shrink-0">
         <div className="px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(`/projects/${projectId}/board`)}
-              className="text-gray-400 hover:text-white text-sm"
+              className="text-gray-400 hover:text-white text-sm flex items-center gap-1.5 transition-colors hover:bg-gray-800 px-2.5 py-1.5 rounded-lg"
             >
-              &larr; Board
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Board
             </button>
+            <span className="text-gray-700">/</span>
             <h1 className="text-lg font-bold text-white">
               {feature?.title || 'Loading...'}
             </h1>
@@ -104,7 +108,7 @@ export default function FeaturePlanningPage() {
               <select
                 value={activeSessionId || ''}
                 onChange={(e) => setActiveSessionId(e.target.value || null)}
-                className="bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                className="bg-gray-800 border border-gray-700 text-white text-xs rounded px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all"
               >
                 {chatSessionsList.map((s, i) => (
                   <option key={s.id} value={s.id}>
@@ -117,7 +121,7 @@ export default function FeaturePlanningPage() {
               <button
                 onClick={handleNewSession}
                 disabled={createSession.isPending}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {createSession.isPending ? 'Starting...' : 'New Session'}
               </button>
@@ -143,12 +147,18 @@ export default function FeaturePlanningPage() {
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-gray-400 mb-4">Start a planning session with Claude</p>
+              <div className="text-center max-w-md px-6">
+                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-white font-medium mb-2">Start a planning session</h3>
+                <p className="text-gray-500 text-sm mb-4">Collaborate with Claude to break down your feature into actionable tickets</p>
                 <button
                   onClick={handleNewSession}
                   disabled={createSession.isPending}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
                 >
                   {createSession.isPending ? 'Starting...' : 'New Planning Session'}
                 </button>

@@ -60,97 +60,137 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <header className="border-b border-gray-800 bg-gray-900">
+    <div className="min-h-screen bg-gray-950 flex flex flex-col">
+      <header className="border-b border-gray-800 bg-gray-900 shrink-0">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">AI Jam</h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="text-gray-400 text-sm">{user?.name}</span>
-            <button onClick={logout} className="text-gray-500 hover:text-gray-300 text-sm">
+            <button
+              onClick={logout}
+              className="text-gray-500 hover:text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-sm transition-colors"
+            >
               Logout
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-white">Projects</h2>
+      <main className="flex-1 max-w-6xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-1">Projects</h2>
+            <p className="text-gray-500 text-sm">
+              {projects?.length || 0} {projects?.length === 1 ? 'project' : 'projects'}
+            </p>
+          </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
           >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
             New Project
           </button>
         </div>
 
         {showCreate && (
-          <form onSubmit={handleCreate} className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6 space-y-4">
+          <form onSubmit={handleCreate} className="bg-gray-900 border border-gray-700 rounded-2xl p-6 mb-8 shadow-xl animate-in slide-in-from-bottom">
             <div>
-              <label className="block text-sm text-gray-300 mb-1">Project Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                placeholder="My Awesome App"
-                required
-              />
+              <h3 className="text-white text-lg font-semibold mb-1">Create New Project</h3>
+              <p className="text-gray-500 text-sm">Set up a workspace for planning and executing features with AI agents.</p>
             </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">Source</label>
-              <div className="flex gap-2 mb-3">
-                <button
-                  type="button"
-                  onClick={() => setSourceType('repo')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    sourceType === 'repo'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-gray-300'
-                  }`}
-                >
-                  Repository URL
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSourceType('local')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    sourceType === 'local'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-gray-300'
-                  }`}
-                >
-                  Local Directory
-                </button>
-              </div>
-              {sourceType === 'repo' ? (
+            <div className="space-y-5 mt-6">
+              <div>
+                <label htmlFor="project-name" className="block text-sm font-medium text-gray-300 mb-2">Project Name</label>
                 <input
+                  ref={nameInputRef}
+                  id="project-name"
                   type="text"
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                  placeholder="https://github.com/org/repo or owner/repo"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                  placeholder="e.g., My Awesome App"
                   required
                 />
-              ) : (
-                <>
-                  <input
-                    type="text"
-                    value={localPath}
-                    onChange={(e) => setLocalPath(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                    placeholder="/path/to/your/project"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Absolute path to a local git repository. Worktrees will be disabled — one feature at a time.</p>
-                </>
-              )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Source</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSourceType('repo')}
+                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                      sourceType === 'repo'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                        : 'bg-gray-800 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4m-14-10v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z" />
+                    </svg>
+                    Repository URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSourceType('local')}
+                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                      sourceType === 'local'
+                        ? 'bg-ind                    600 text-white shadow-lg shadow-indigo-500/20'
+                        : 'bg-gray-800 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2 2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    Local Directory
+                  </button>
+                </div>
+                {sourceType === 'repo' ? (
+                  <div className="mt-3">
+                    <input
+                      type="text"
+                      value={repoUrl}
+                      onChange={(e) => setRepoUrl(e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                      placeholder="https://github.com/owner/repo"
+                      required
+                    />
+                    <p className="text-xs text-gray-600 mt-2">
+                      Supports GitHub repositories. The repository will be cloned locally for agent access.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <input
+                      type="text"
+                      value={localPath}
+                      onChange={(e) => setLocalPath(e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                      placeholder="/path/to/your/project"
+                      required
+                    />
+                    <p className="text-xs text-gray-600 mt-2">
+                      Absolute path to a local git repository. <span className="text-yellow-500">Worktrees will be disabled</span> — one feature at a time.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                Create
+            <div className="flex gap-3 pt-2 border-t border-gray-800">
+              <button
+                type="submit"
+                disabled={!name.trim() || (sourceType === 'repo' && !repoUrl.trim()) || (sourceType === 'local' && !localPath.trim())}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
+              >
+                Create Project
               </button>
-              <button type="button" onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-300 px-4 py-2 text-sm">
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="text-gray-400 hover:text-gray-300 px-5 py-2.5 rounded-xl text-sm transition-colors hover:bg-gray-800"
+              >
                 Cancel
               </button>
             </div>

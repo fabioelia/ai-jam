@@ -54,16 +54,20 @@ export default function FeatureDetailPage() {
     <div className="min-h-screen bg-gray-950 flex flex-col">
       <header className="border-b border-gray-800 bg-gray-900 shrink-0">
         <div className="px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate(`/projects/${projectId}/board`)} className="text-gray-400 hover:text-white text-sm">
-              &larr; Board
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(`/projects/${projectId}/board`)} className="text-gray-400 hover:text-white text-sm flex items-center gap-1.5 transition-colors hover:bg-gray-800 px-2.5 py-1.5 rounded-lg">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Board
             </button>
+            <span className="text-gray-700">/</span>
             <h1 className="text-lg font-bold text-white">{project?.name || 'Loading...'}</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <NotificationBell projectId={projectId!} />
             <span className="text-gray-400 text-sm">{user?.name}</span>
-            <button onClick={logout} className="text-gray-500 hover:text-gray-300 text-sm">Logout</button>
+            <button onClick={logout} className="text-gray-500 hover:text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-sm transition-colors">Logout</button>
           </div>
         </div>
       </header>
@@ -92,14 +96,20 @@ export default function FeatureDetailPage() {
           <div className="flex gap-3">
             <button
               onClick={() => navigate(`/projects/${projectId}/features/${featureId}/plan`)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 flex items-center gap-2"
             >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
               Plan with Claude
             </button>
             <button
               onClick={() => navigate(`/projects/${projectId}/board`)}
-              className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm border border-gray-700"
+              className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-lg text-sm border border-gray-700 transition-colors flex items-center gap-2"
             >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
               View Board
             </button>
           </div>

@@ -80,7 +80,12 @@ export default function BoardColumn({ status, label, colorClass, tickets, count,
           )}
 
           {tickets.length === 0 && (
-            <div className="text-center py-8">
+            <div className="text-center py-10">
+              <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
               <p className="text-gray-600 text-xs">Drop tickets here</p>
             </div>
           )}

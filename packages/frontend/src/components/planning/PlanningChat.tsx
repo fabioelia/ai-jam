@@ -121,9 +121,14 @@ export default function PlanningChat({ sessionId, featureId }: PlanningChatProps
 
         {localMessages.length === 0 && !streamingContent && (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <p className="text-gray-400 text-sm mb-2">Start planning your feature</p>
-              <p className="text-gray-600 text-xs">
+            <div className="text-center max-w-sm px-6">
+              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <h3 className="text-white font-medium mb-2">Start planning your feature</h3>
+              <p className="text-gray-500 text-sm">
                 Describe what you want to build and Claude will help you break it into tickets.
               </p>
             </div>
@@ -145,9 +150,24 @@ export default function PlanningChat({ sessionId, featureId }: PlanningChatProps
           <button
             type="submit"
             disabled={!input.trim() || sendMessage.isPending}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 shrink-0"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shrink-0 flex items-center gap-2 transition-colors"
           >
-            Send
+            {sendMessage.isPending ? (
+              <>
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Sending...
+              </>
+            ) : (
+              <>
+                Send
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </>
+            )}
           </button>
         </form>
       </div>
