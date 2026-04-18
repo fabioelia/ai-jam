@@ -197,14 +197,14 @@ export default function BoardPage() {
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900 shrink-0">
         <div className="px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="text-gray-400 hover:text-white text-sm font-medium transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-800"
+              className="text-gray-400 hover:text-white text-sm font-medium transition-colors flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-gray-800"
               aria-label="Back to projects"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
               Projects
             </button>
@@ -213,32 +213,42 @@ export default function BoardPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowSessionsSidebar(!showSessionsSidebar)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 ${
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
                 showSessionsSidebar
                   ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
                   : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
               }`}
               aria-label={showSessionsSidebar ? 'Hide sessions' : 'Show sessions'}
             >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               Sessions
             </button>
             <button
               onClick={() => setShowAgentPanel(!showAgentPanel)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 ${
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
                 showAgentPanel
                   ? 'bg-green-600/20 border-green-500 text-green-300'
                   : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600'
               }`}
               aria-label={showAgentPanel ? 'Hide agents' : 'Show agents'}
             >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1m8.06-4a6.002 6.002 0 01-9.58-5.092M9 10a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 00-.72 2.063L9 10m6-6a3.003 3.003 0 01-.72 2.063L9 10" />
+              </svg>
               Agents
             </button>
             <NotificationBell projectId={projectId!} />
             <button
               onClick={() => navigate(`/projects/${projectId}/settings`)}
-              className="text-sm px-3 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600 transition-all duration-150"
+              className="text-sm px-3 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:border-gray-600 transition-all duration-150 flex items-center gap-1.5"
               aria-label="Project settings"
             >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
               Settings
             </button>
             <button
@@ -254,9 +264,12 @@ export default function BoardPage() {
               <span className="text-gray-400 text-sm">{user?.name}</span>
               <button
                 onClick={logout}
-                className="text-gray-500 hover:text-red-400 text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-red-500/10"
+                className="text-gray-500 hover:text-red-400 text-sm font-medium transition-colors px-2 py-1 rounded hover:bg-red-500/10 flex items-center gap-1.5"
                 aria-label="Logout"
               >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
                 Logout
               </button>
             </div>
@@ -280,16 +293,22 @@ export default function BoardPage() {
 
         <button
           onClick={() => setShowNewFeature(true)}
-          className="text-indigo-400 hover:text-indigo-300 text-sm"
+          className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1.5 transition-colors"
         >
-          + Feature
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Feature
         </button>
 
         {selectedFeatureId && (
           <button
             onClick={() => navigate(`/projects/${projectId}/features/${selectedFeatureId}/plan`)}
-            className="bg-indigo-600/20 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30 px-3 py-1.5 rounded-lg text-sm font-medium"
+            className="bg-indigo-600/20 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
           >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
             Plan with Claude
           </button>
         )}
@@ -300,12 +319,15 @@ export default function BoardPage() {
         <div className="relative">
           <button
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`text-sm px-2.5 py-1.5 rounded-lg border transition-colors ${
+            className={`text-sm px-2.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
               filtersOpen
                 ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
                 : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
             }`}
           >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414-6.414a1 1 0 00-.707 0L9.293 7.293a1 1 0 00-.707.293L2.586 7.293A1 1 0 013 8V4zm0 8v2.586a1 1 0 00.293.707l6.414-6.414a1 1 0 01.707 0L14.707 8.293a1 1 0 01.707.293L20.586 10.293a1 1 0 00.707.707V12a1 1 0 01-1 1H4a1 1 0 01-1-1V12zm0 4v2.586a1 1 0 00.293.707l6.414-6.414a1 1 0 01.707 0L14.707 14.293a1 1 0 01.707.293L20.586 16.293a1 1 0 00.707.707V16a1 1 0 01-1 1H4a1 1 0 01-1-1V16z" />
+            </svg>
             Filters
             {(epicFilter || priorityFilter || personaFilter || searchQuery) && (
               <span className="ml-1.5 bg-red-500/20 text-red-400 text-xs px-1.5 py-0.5 rounded-full">
@@ -340,12 +362,15 @@ export default function BoardPage() {
         {board && board.epics.length > 0 && (
           <button
             onClick={() => setGroupByEpic(!groupByEpic)}
-            className={`text-sm px-2.5 py-1.5 rounded-lg border transition-colors ${
+            className={`text-sm px-2.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
               groupByEpic
                 ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
                 : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
             }`}
           >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
             Group by Epic
           </button>
         )}
@@ -356,9 +381,12 @@ export default function BoardPage() {
         {selectedFeatureId && (
           <button
             onClick={() => setShowNewTicket(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
           >
-            + Ticket
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Ticket
           </button>
         )}
       </div>
@@ -705,9 +733,12 @@ function SessionsSidebar({
             {selectedFeatureId && (
               <button
                 onClick={handleNewPlanning}
-                className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-lg font-medium transition-colors"
+                className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5"
               >
-                + Plan
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Plan
               </button>
             )}
           </div>
@@ -847,7 +878,12 @@ function SessionSection({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="py-4 text-center">
+    <div className="py-6 text-center">
+      <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-2">
+        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414-2.414a1 1 0 00-.707-.293h-3.172a1 1 0 00-.707.293l-2.414 2.414A1 1 0 006.586 13H4" />
+        </svg>
+      </div>
       <p className="text-xs text-gray-600 italic">{message}</p>
     </div>
   );

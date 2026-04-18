@@ -86,7 +86,7 @@ export default function DashboardPage() {
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+            className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-[0.98]"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -110,7 +110,7 @@ export default function DashboardPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
                   placeholder="e.g., My Awesome App"
                   required
                 />
@@ -123,8 +123,8 @@ export default function DashboardPage() {
                     onClick={() => setSourceType('repo')}
                     className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                       sourceType === 'repo'
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                        : 'bg-gray-800 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 scale-105'
+                        : 'bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700 hover:border-gray-600 hover:scale-[1.02]'
                     }`}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -137,8 +137,8 @@ export default function DashboardPage() {
                     onClick={() => setSourceType('local')}
                     className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                       sourceType === 'local'
-                        ? 'bg-ind                    600 text-white shadow-lg shadow-indigo-500/20'
-                        : 'bg-gray-800 text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 scale-105'
+                        : 'bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700 hover:border-gray-600 hover:scale-[1.02]'
                     }`}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,7 +153,7 @@ export default function DashboardPage() {
                       type="text"
                       value={repoUrl}
                       onChange={(e) => setRepoUrl(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
                       placeholder="https://github.com/owner/repo"
                       required
                     />
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                       type="text"
                       value={localPath}
                       onChange={(e) => setLocalPath(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
                       placeholder="/path/to/your/project"
                       required
                     />
@@ -182,7 +182,7 @@ export default function DashboardPage() {
               <button
                 type="submit"
                 disabled={!name.trim() || (sourceType === 'repo' && !repoUrl.trim()) || (sourceType === 'local' && !localPath.trim())}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
+                className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98]"
               >
                 Create Project
               </button>
@@ -212,7 +212,7 @@ export default function DashboardPage() {
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors"
+                className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-700 hover:shadow-lg hover:shadow-gray-900/20 hover:-translate-y-1 transition-all duration-300"
               >
                 <button
                   onClick={() => navigate(`/projects/${project.id}/board`)}

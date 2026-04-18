@@ -23,7 +23,7 @@ export default function TicketCard({ ticket, epics, isDragging, onClick }: Ticke
   return (
     <div
       onClick={onClick}
-      className={`bg-gray-800 border rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-gray-600 transition-colors select-none ${
+      className={`bg-gray-800 border rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-gray-600 hover:shadow-lg hover:shadow-gray-900/20 hover:-translate-y-0.5 transition-all duration-200 select-none ${
         isDragging ? 'shadow-xl ring-2 ring-indigo-500 scale-105' : ''
       } ${activeAgent ? 'border-green-600/50' : 'border-gray-700'} ${onClick ? 'cursor-pointer' : ''}`}
     >

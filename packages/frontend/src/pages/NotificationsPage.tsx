@@ -224,7 +224,7 @@ export default function NotificationsPage() {
           {hasFilters && (
             <button
               onClick={resetFilters}
-              className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors"
+              className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-all duration-200 hover:bg-gray-800 px-2 py-1 rounded active:bg-gray-700"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -290,7 +290,7 @@ export default function NotificationsPage() {
             <button
               onClick={handleMarkAllRead}
               disabled={markAllReadMutation.isPending}
-              className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-indigo-500/10"
+              className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50 flex items-center gap-1 transition-all duration-200 px-2 py-1 rounded hover:bg-indigo-500/10 active:bg-indigo-500/20 active:scale-95"
               title="Mark all notifications as read (M)"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -302,7 +302,7 @@ export default function NotificationsPage() {
               <button
                 onClick={handleDeleteRead}
                 disabled={deleteReadMutation.isPending}
-                className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-red-500/10"
+                className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 flex items-center gap-1 transition-all duration-200 px-2 py-1 rounded hover:bg-red-500/10 active:bg-red-500/20 active:scale-95"
                 title="Delete all read notifications (D)"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -369,7 +369,7 @@ export default function NotificationsPage() {
             {hasFilters && (
               <button
                 onClick={resetFilters}
-                className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg transition-colors"
+                className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98]"
               >
                 Clear all filters
               </button>
@@ -416,8 +416,8 @@ export default function NotificationsPage() {
                             role="listitem"
                             className={`w-full text-left px-4 py-3 flex gap-3 items-start rounded-xl border transition-all duration-200 ${
                               n.isRead
-                                ? 'bg-gray-900/30 border-gray-800/50 hover:bg-gray-800/50 hover:border-gray-700/50'
-                                : 'bg-gray-900/80 border-gray-700 hover:bg-gray-800/80 hover:border-gray-600'
+                                ? 'bg-gray-900/30 border-gray-800/50 hover:bg-gray-800/50 hover:border-gray-700/50 hover:shadow-md hover:shadow-gray-900/10 hover:-translate-y-0.5'
+                                : 'bg-gray-900/80 border-gray-700 hover:bg-gray-800/80 hover:border-gray-600 hover:shadow-md hover:shadow-gray-900/10 hover:-translate-y-0.5'
                             } ${isFocused ? 'ring-2 ring-indigo-500/50 border-indigo-500/30' : ''}`}
                           >
                             {/* Type icon */}

@@ -89,6 +89,132 @@
   animation: toast-progress linear forwards;
 }
 
+/* Shimmer effect for skeleton loading */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@utility animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
+  background: linear-gradient(90deg, #1f2937 0%, #374151 50%, #1f2937 100%);
+  background-size: 200% 100%;
+}
+
+/* Staggered fade in for lists */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out forwards;
+}
+
+/* Button press effect */
+@keyframes button-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+@utility animate-button-press {
+  animation: button-press 0.15s ease-out;
+}
+
+/* Card hover lift effect */
+@keyframes card-lift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-2px); }
+}
+
+@utility animate-card-lift {
+  animation: card-lift 0.2s ease-out forwards;
+}
+
+/* Ripple effect */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@utility animate-ripple {
+  animation: ripple 0.6s linear forwards;
+}
+
+/* Success checkmark animation */
+@keyframes checkmark {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@utility animate-checkmark {
+  animation: checkmark 0.4s ease-in-out forwards;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@utility animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Bounce animation */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-5%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+@utility animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+/* Pulse ring for notifications */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+@utility animate-pulse-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* Keyboard focus styles for notifications */
 kbd {
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;

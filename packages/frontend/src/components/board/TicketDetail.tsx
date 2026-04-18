@@ -157,7 +157,7 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
       {/* Panel */}
       <div
         ref={panelRef}
-        className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-gray-900 border-l border-gray-800 z-50 flex flex-col overflow-hidden animate-in slide-in-from-right"
+        className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-gray-900 border-l border-gray-800 z-50 flex flex-col overflow-hidden animate-in slide-in-from-right shadow-2xl shadow-black/50"
         role="dialog"
         aria-label="Ticket details"
       >

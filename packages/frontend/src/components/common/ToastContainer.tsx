@@ -22,7 +22,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
   }, [toast.duration]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg shadow-xl backdrop-blur-sm animate-in slide-in-from-right duration-300">
+    <div className="relative overflow-hidden rounded-lg shadow-xl backdrop-blur-sm animate-in slide-in-from-right duration-300 hover:scale-[1.02] transition-transform duration-200">
       <div className={`${style.bg} ${style.border} border rounded-lg px-4 py-3 flex items-start gap-3`}>
         <span className={`text-base shrink-0 mt-0.5 ${style.iconColor} font-bold`}>{style.icon}</span>
         <p className="text-sm text-white flex-1 leading-relaxed">{toast.message}</p>

@@ -53,8 +53,8 @@ export default function BoardColumn({ status, label, colorClass, tickets, count,
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col w-72 min-w-72 shrink-0 rounded-xl bg-gray-900/50 border-t-2 ${colorClass} ${
-        isOver ? 'ring-2 ring-indigo-500/30 bg-gray-900/70' : ''
+      className={`flex flex-col w-72 min-w-72 shrink-0 rounded-xl bg-gray-900/50 border-t-2 ${colorClass} transition-all duration-200 ${
+        isOver ? 'ring-2 ring-indigo-500/30 bg-gray-900/70 scale-[1.01]' : ''
       }`}
     >
       <div className="px-3 py-2.5 flex items-center justify-between">

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth-store.js';
 import { apiFetch } from '../api/client.js';
+import { ButtonLoader } from '../components/common/Skeleton.js';
 import type { AuthResponse } from '@ai-jam/shared';
 
 interface FormErrors {
@@ -135,10 +136,10 @@ export default function LoginPage() {
                 onBlur={() => handleBlur('name')}
                 aria-invalid={touched.name && !!formErrors.name}
                 aria-describedby={touched.name && formErrors.name ? 'name-error' : undefined}
-                className={`w-full bg-gray-800 border rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                className={`w-full bg-gray-800 border rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
                   touched.name && formErrors.name
                     ? 'border-red-700 focus:ring-red-500'
-                    : 'border-gray-700'
+                    : 'border-gray-700 focus:border-indigo-500/50'
                 }`}
                 placeholder="Your full name"
                 autoComplete="name"
@@ -165,10 +166,10 @@ export default function LoginPage() {
               onBlur={() => handleBlur('email')}
               aria-invalid={touched.email && !!formErrors.email}
               aria-describedby={touched.email && formErrors.email ? 'email-error' : undefined}
-              className={`w-full bg-gray-800 border rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+              className={`w-full bg-gray-800 border rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
                 touched.email && formErrors.email
                   ? 'border-red-700 focus:ring-red-500'
-                  : 'border-gray-700'
+                  : 'border-gray-700 focus:border-indigo-500/50'
               }`}
               placeholder="you@example.com"
               autoComplete={isRegister ? 'email' : 'username'}
@@ -198,10 +199,10 @@ export default function LoginPage() {
                   ? 'password-error'
                   : 'password-hint'
               }
-              className={`w-full bg-gray-800 border rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+              className={`w-full bg-gray-800 border rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
                 touched.password && formErrors.password
                   ? 'border-red-700 focus:ring-red-500'
-                  : 'border-gray-700'
+                  : 'border-gray-700 focus:border-indigo-500/50'
               }`}
               placeholder="••••••••"
               autoComplete={isRegister ? 'new-password' : 'current-password'}
@@ -222,31 +223,11 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 focus:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 text-white font-medium rounded-lg py-2.5 px-4 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 focus:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 text-white font-medium rounded-lg py-2.5 px-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98]"
           >
             {loading ? (
               <>
-                <svg
-                  className="animate-spin h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
+                <ButtonLoader />
                 {isRegister ? 'Creating account...' : 'Signing in...'}
               </>
             ) : (

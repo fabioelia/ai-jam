@@ -28,7 +28,7 @@ export default function NotificationBell({ projectId }: { projectId: string }) {
   return (
     <button
       onClick={() => navigate('/notifications')}
-      className="relative text-sm px-2.5 py-1 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 transition-colors"
+      className="relative text-sm px-2.5 py-1 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300 hover:bg-gray-700 hover:border-gray-600 transition-all duration-200"
       aria-label="Notifications"
     >
       {/* Bell icon */}
@@ -47,7 +47,7 @@ export default function NotificationBell({ projectId }: { projectId: string }) {
       </svg>
       {unreadCount > 0 && (
         <span
-          className={`absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ${
+          className={`absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-lg shadow-red-500/30 ${
             pulse ? 'animate-badge-pulse' : ''
           }`}
         >
