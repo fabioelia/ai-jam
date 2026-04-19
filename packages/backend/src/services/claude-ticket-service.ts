@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config.js';
 
 export interface TicketData {
@@ -61,6 +61,18 @@ interface ClaudeCLIResponse {
   usage: { inputTokens: number; outputTokens: number };
 }
 
+let anthropicClient: Anthropic | null = null;
+
+function getAIClient(): Anthropic {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({
+      apiKey: config.openrouterApiKey,
+      baseURL: config.openrouterBaseUrl,
+    });
+  }
+  return anthropicClient;
+}
+
 async function callClaudeCLI({
   prompt,
   systemPrompt,
@@ -70,58 +82,28 @@ async function callClaudeCLI({
   systemPrompt: string;
   model?: string;
 }): Promise<ClaudeCLIResponse> {
-  const modelName = model || config.claudeModel || 'claude-sonnet-4-6';
-  const args = ['--model', modelName, '--output-format', 'json', '--print', '--dangerously-skip-permissions'];
+  const client = getAIClient();
+  const modelName = model || config.aiModel;
 
-  if (systemPrompt) {
-    args.push('--system-prompt', systemPrompt);
-  }
-
-  return new Promise((resolve, reject) => {
-    const child = spawn('claude', args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    child.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    child.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`Claude CLI exited with code ${code}: ${stderr}`));
-      } else {
-        try {
-          const parsed = JSON.parse(stdout.trim());
-          resolve({
-            content: parsed.result || stdout.trim(),
-            usage: {
-              inputTokens: parsed.modelUsage?.[modelName]?.inputTokens || 0,
-              outputTokens: parsed.modelUsage?.[modelName]?.outputTokens || 0,
-            },
-          });
-        } catch {
-          resolve({
-            content: stdout.trim(),
-            usage: { inputTokens: 0, outputTokens: 0 },
-          });
-        }
-      }
-    });
-
-    child.on('error', (err) => {
-      reject(new Error(`Failed to spawn Claude CLI: ${err.message}`));
-    });
-
-    child.stdin.write(prompt);
-    child.stdin.end();
+  const response = await client.messages.create({
+    model: modelName,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
   });
+
+  const content = response.content
+    .filter(block => block.type === 'text')
+    .map(block => (block as { type: 'text'; text: string }).text)
+    .join('');
+
+  return {
+    content,
+    usage: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    },
+  };
 }
 
 async function callClaudeCLIStream({
@@ -135,70 +117,32 @@ async function callClaudeCLIStream({
   model?: string;
   onChunk: (chunk: string) => void;
 }): Promise<ClaudeCLIResponse> {
-  const modelName = model || config.claudeModel || 'claude-sonnet-4-6';
-  const args = ['--model', modelName, '--output-format', 'stream-json', '--print', '--include-partial-messages', '--verbose', '--dangerously-skip-permissions'];
+  const client = getAIClient();
+  const modelName = model || config.aiModel;
 
-  if (systemPrompt) {
-    args.push('--system-prompt', systemPrompt);
+  let fullContent = '';
+  let inputTokens = 0;
+  let outputTokens = 0;
+
+  const stream = await client.messages.stream({
+    model: modelName,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  for await (const chunk of stream) {
+    if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+      fullContent += chunk.delta.text;
+      onChunk(chunk.delta.text);
+    }
   }
 
-  return new Promise((resolve, reject) => {
-    const child = spawn('claude', args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+  const finalMessage = await stream.finalMessage();
+  inputTokens = finalMessage.usage.input_tokens;
+  outputTokens = finalMessage.usage.output_tokens;
 
-    let stdout = '';
-    let stderr = '';
-    let fullContent = '';
-    let usage = { inputTokens: 0, outputTokens: 0 };
-
-    child.stdout.on('data', (data) => {
-      const chunk = data.toString();
-      stdout += chunk;
-
-      try {
-        const lines = chunk.split('\n').filter(line => line.trim());
-        for (const line of lines) {
-          const parsed = JSON.parse(line);
-          if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-            fullContent += parsed.delta.text;
-            onChunk(parsed.delta.text);
-          }
-          if (parsed.type === 'message_stop' && parsed.modelUsage?.[modelName]) {
-            usage = {
-              inputTokens: parsed.modelUsage[modelName].inputTokens || 0,
-              outputTokens: parsed.modelUsage[modelName].outputTokens || 0,
-            };
-          }
-        }
-      } catch {
-        onChunk(chunk);
-        fullContent += chunk;
-      }
-    });
-
-    child.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    child.on('close', (code) => {
-      if (code !== 0 && stderr) {
-        reject(new Error(`Claude CLI exited with code ${code}: ${stderr}`));
-      } else {
-        resolve({
-          content: fullContent,
-          usage,
-        });
-      }
-    });
-
-    child.on('error', (err) => {
-      reject(new Error(`Failed to spawn Claude CLI: ${err.message}`));
-    });
-
-    child.stdin.write(prompt);
-    child.stdin.end();
-  });
+  return { content: fullContent, usage: { inputTokens, outputTokens } };
 }
 
 const SYSTEM_PROMPT = `You are an expert project manager and technical specification writer. Your task is to transform natural language requests into clear, actionable tickets.
@@ -412,7 +356,7 @@ async function streamTicketGeneration(
   const response = await callClaudeCLIStream({
     prompt,
     systemPrompt: SYSTEM_PROMPT,
-    model: config.claudeModel,
+    model: config.aiModel,
     onChunk: onStream,
   });
 
@@ -430,7 +374,7 @@ async function generateTicket(
   const response = await callClaudeCLI({
     prompt,
     systemPrompt: SYSTEM_PROMPT,
-    model: config.claudeModel,
+    model: config.aiModel,
   });
 
   const ticket = extractTicketFromResponse(response.content);
@@ -513,7 +457,7 @@ ${ticket.description ? `**Ticket Description:**\n${ticket.description}` : ''}`;
     const response = await callClaudeCLI({
       prompt,
       systemPrompt: CATEGORIZATION_SYSTEM_PROMPT,
-      model: config.claudeModel,
+      model: config.aiModel,
     });
 
     const categorization = extractCategorizationFromResponse(response.content);
