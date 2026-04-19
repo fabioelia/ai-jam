@@ -93,7 +93,7 @@ export async function startRuntime(): Promise<void> {
 
   console.log('[runtime-manager] Spawning agent-runtime...');
 
-  runtimeProcess = spawn('npx', ['tsx', 'src/index.ts'], {
+  runtimeProcess = spawn('pnpm', ['dev'], {
     cwd: runtimeDir,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: {
