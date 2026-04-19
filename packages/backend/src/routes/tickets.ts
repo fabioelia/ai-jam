@@ -1,12 +1,28 @@
 import type { FastifyInstance } from 'fastify';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/connection.js';
-import { tickets } from '../db/schema.js';
-import { createTicketSchema, moveTicketSchema, updateTicketSchema } from '@ai-jam/shared';
+import { tickets, projects } from '../db/schema.js';
+import { features } from '../db/schema.js';
+import {
+  createTicketSchema,
+  moveTicketSchema,
+  updateTicketSchema,
+  createClaudeTicketSchema,
+  categorizeTicketSchema
+} from '@ai-jam/shared';
 import { broadcastToBoard } from '../websocket/socket-server.js';
 import { getSourceFromRequest } from '../utils/source-header.js';
-import { notifyProjectMembers } from '../services/notification-service.js';
+import { notifyTicketStakeholders } from '../services/notification-service.js';
 import { requestGateAwareMove } from '../services/transition-service.js';
+import { validateNoCircularDependencies, validateDependencies, cascadeStatusUpdate, getDependencyChain } from '../services/dependency-service.js';
+import {
+  generateTicketFromPrompt,
+  calculateCost,
+  categorizeTicket,
+  type TicketData,
+  type BoardContext
+} from '../services/claude-ticket-service.js';
+import { suggestDependencies } from '../services/dependency-detector-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
@@ -42,6 +58,18 @@ export async function ticketRoutes(fastify: FastifyInstance) {
 
       const { userId } = request.user;
       const source = getSourceFromRequest(request);
+
+      // Validate dependencies if provided
+      const dependencies = parsed.data.dependencies || [];
+      if (dependencies.length > 0) {
+        try {
+          await validateDependencies(request.params.projectId, dependencies);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return reply.status(400).send({ error: message });
+        }
+      }
+
       const [ticket] = await db.insert(tickets).values({
         projectId: request.params.projectId,
         featureId,
@@ -52,10 +80,88 @@ export async function ticketRoutes(fastify: FastifyInstance) {
         storyPoints: parsed.data.storyPoints || null,
         createdBy: userId,
         source,
+        dependencies,
       }).returning();
 
       broadcastToBoard(request.params.projectId, 'board:ticket:created', { ticket });
       return ticket;
+    },
+  );
+
+  // Create ticket via Claude (AI-assisted)
+  fastify.post<{ Params: { projectId: string }; Body: { stream?: boolean } & Record<string, unknown> }>(
+    '/api/projects/:projectId/tickets/claude-create',
+    async (request, reply) => {
+      const parsed = createClaudeTicketSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
+
+      const { userId } = request.user;
+      const source = getSourceFromRequest(request);
+      const { stream } = request.body as { stream?: boolean };
+
+      const [project] = await db.select().from(projects).where(eq(projects.id, request.params.projectId)).limit(1);
+      if (!project) return reply.status(404).send({ error: 'Project not found' });
+
+      // Check if streaming is requested
+      if (stream) {
+        reply.raw.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
+
+        const fullResponse: string[] = [];
+
+        try {
+          const { ticket, usage } = await generateTicketFromPrompt(
+            parsed.data.userPrompt,
+            parsed.data.attachments || [],
+            (delta) => {
+              fullResponse.push(delta);
+              reply.raw.write(`data: ${JSON.stringify({ delta })}\n\n`);
+            },
+            parsed.data.codebaseContext
+          );
+
+          reply.raw.write(`data: ${JSON.stringify({ done: true, ticket, usage })}\n\n`);
+          reply.raw.end();
+
+          return reply.sent;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          reply.raw.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+          reply.raw.end();
+          return reply.sent;
+        }
+      }
+
+      // Non-streaming response
+      try {
+        const { ticket: generated, usage } = await generateTicketFromPrompt(
+          parsed.data.userPrompt,
+          parsed.data.attachments || [],
+          undefined,
+          parsed.data.codebaseContext
+        );
+
+        const cost = calculateCost(usage);
+
+        // Create the ticket in the database
+        const [ticket] = await db.insert(tickets).values({
+          projectId: request.params.projectId,
+          featureId: parsed.data.featureId,
+          title: generated.title,
+          description: generated.description,
+          priority: generated.priority || 'medium',
+          storyPoints: generated.storyPoints || null,
+          createdBy: userId,
+          source: 'claude',
+          claudeMessageCount: usage.inputTokens + usage.outputTokens,
+          claudeCost: Math.round(cost * 100000), // Store as micro-units
+        }).returning();
+
+        broadcastToBoard(request.params.projectId, 'board:ticket:created', { ticket });
+        return reply.send({ ticket, usage, cost });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.status(500).send({ error: message });
+      }
     },
   );
 
@@ -71,8 +177,43 @@ export async function ticketRoutes(fastify: FastifyInstance) {
     const parsed = updateTicketSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
 
-    const [ticket] = await db.update(tickets).set({ ...parsed.data, updatedAt: new Date() }).where(eq(tickets.id, request.params.id)).returning();
-    if (!ticket) return reply.status(404).send({ error: 'Ticket not found' });
+    const ticketId = request.params.id;
+
+    // Get current ticket for validation
+    const [currentTicket] = await db
+      .select()
+      .from(tickets)
+      .where(eq(tickets.id, ticketId))
+      .limit(1);
+
+    if (!currentTicket) return reply.status(404).send({ error: 'Ticket not found' });
+
+    // Validate dependencies if they're being updated
+    if (parsed.data.dependencies !== undefined) {
+      // Validate dependencies exist and belong to same project
+      if (parsed.data.dependencies.length > 0) {
+        try {
+          await validateDependencies(currentTicket.projectId, parsed.data.dependencies);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return reply.status(400).send({ error: message });
+        }
+      }
+
+      // Validate no circular dependencies
+      try {
+        await validateNoCircularDependencies(ticketId, parsed.data.dependencies);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.status(400).send({ error: message });
+      }
+    }
+
+    const [ticket] = await db
+      .update(tickets)
+      .set({ ...parsed.data, updatedAt: new Date() })
+      .where(eq(tickets.id, ticketId))
+      .returning();
 
     broadcastToBoard(ticket.projectId, 'board:ticket:updated', { ticketId: ticket.id, changes: parsed.data });
     return ticket;
@@ -97,6 +238,12 @@ export async function ticketRoutes(fastify: FastifyInstance) {
 
     const [ticket] = await db.update(tickets).set(updates).where(eq(tickets.id, request.params.id)).returning();
 
+    // Cascade status update for any status change (not just done)
+    // This handles unblocking dependents when blockers complete, and re-blocking when blockers fail
+    await cascadeStatusUpdate(ticket.id, ticket.projectId, parsed.data.toStatus, current.status).catch((err) => {
+      console.error('Error cascading status update:', err);
+    });
+
     broadcastToBoard(ticket.projectId, 'board:ticket:moved', {
       ticketId: ticket.id,
       fromStatus: current.status,
@@ -104,16 +251,14 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       sortOrder: ticket.sortOrder,
     });
 
-    notifyProjectMembers({
-      projectId: ticket.projectId,
-      type: 'ticket_moved',
-      title: `${ticket.title} moved to ${parsed.data.toStatus}`,
-      body: `Ticket moved from ${current.status} to ${parsed.data.toStatus} by ${request.user.userId}`,
-      actionUrl: `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
-      ticketId: ticket.id,
-      featureId: ticket.featureId ?? undefined,
-      metadata: { fromStatus: current.status, toStatus: parsed.data.toStatus, persona: request.user.userId },
-    }).catch(() => {});
+    notifyTicketStakeholders(
+      ticket.id,
+      'ticket_moved',
+      `${ticket.title} moved to ${parsed.data.toStatus}`,
+      null,
+      `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
+      request.user.userId,
+    ).catch(() => {});
 
     return ticket;
   });
@@ -162,4 +307,121 @@ export async function ticketRoutes(fastify: FastifyInstance) {
     broadcastToBoard(ticket.projectId, 'board:ticket:deleted', { ticketId: ticket.id });
     return { ok: true };
   });
+
+  // Get dependency chain for a ticket
+  fastify.get<{ Params: { id: string }; Querystring: { maxDepth?: string } }>(
+    '/api/tickets/:id/dependency-chain',
+    async (request, reply) => {
+      const maxDepth = request.query.maxDepth ? parseInt(request.query.maxDepth, 10) : 5;
+      const chain = await getDependencyChain(request.params.id, maxDepth);
+      return chain;
+    }
+  );
+
+  // Categorize a ticket using AI
+  fastify.post<{ Params: { projectId: string }; Body: { featureId?: string; includeBoardContext?: boolean } & Record<string, unknown> }>(
+    '/api/projects/:projectId/tickets/categorize',
+    async (request, reply) => {
+      const parsed = categorizeTicketSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
+
+      const { title, description, featureId, includeBoardContext } = parsed.data;
+      const { projectId } = request.params;
+
+      let boardContext: BoardContext | undefined;
+
+      if (includeBoardContext) {
+        // Gather board context if featureId is provided
+        if (featureId) {
+          const [feature] = await db.select().from(features).where(eq(features.id, featureId)).limit(1);
+
+          if (feature) {
+            boardContext = {
+              featureTitle: feature.title,
+              featureDescription: feature.description || undefined,
+            };
+
+            // Get related tickets for the feature
+            const relatedTickets = await db
+              .select()
+              .from(tickets)
+              .where(and(eq(tickets.featureId, featureId), eq(tickets.projectId, projectId)))
+              .orderBy(tickets.createdAt)
+              .limit(5);
+
+            if (relatedTickets.length > 0) {
+              boardContext.relatedTickets = relatedTickets.map(t => ({
+                title: t.title,
+                description: t.description || '',
+                status: t.status,
+                priority: t.priority,
+              }));
+            }
+          }
+        }
+
+        // Get project-level related tickets if no featureId
+        if (!boardContext?.relatedTickets) {
+          const projectTickets = await db
+            .select()
+            .from(tickets)
+            .where(eq(tickets.projectId, projectId))
+            .orderBy(tickets.createdAt)
+            .limit(5);
+
+          if (projectTickets.length > 0) {
+            if (!boardContext) boardContext = {};
+            boardContext.relatedTickets = projectTickets.map(t => ({
+              title: t.title,
+              description: t.description || '',
+              status: t.status,
+              priority: t.priority,
+            }));
+          }
+        }
+      }
+
+      try {
+        const { categorization, usage } = await categorizeTicket(
+          { title, description },
+          boardContext
+        );
+        const cost = calculateCost(usage);
+
+        return reply.send({
+          categorization,
+          usage,
+          cost,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.status(500).send({ error: message });
+      }
+    }
+  );
+
+  // Suggest dependencies for a ticket based on AI analysis
+  fastify.post<{
+    Params: { projectId: string };
+    Body: { title: string; description?: string; excludeTicketId?: string };
+  }>(
+    '/api/projects/:projectId/tickets/suggest-dependencies',
+    async (request, reply) => {
+      const { title, description, excludeTicketId } = request.body ?? {};
+      if (!title) return reply.status(400).send({ error: 'title is required' });
+
+      try {
+        const suggestions = await suggestDependencies(
+          request.params.projectId,
+          title,
+          description || '',
+          excludeTicketId,
+        );
+        return reply.send({ suggestions });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.status(500).send({ error: message });
+      }
+    },
+  );
 }

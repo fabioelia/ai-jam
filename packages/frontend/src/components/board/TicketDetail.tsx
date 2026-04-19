@@ -1,17 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { useComments, useTicketNotes, useTransitionGates, useAgentSessions } from '../../api/queries.js';
-import { useCreateComment, useMoveTicket, useDeleteTicket } from '../../api/mutations.js';
-import { apiFetch, getClientErrorMessage } from '../../api/client.js';
+import { useState, useEffect, useCallback } from 'react';
+import { useComments, useTicketNotes, useTransitionGates, useAgentSessions, useDependencyChain } from '../../api/queries.js';
+import { useCreateComment } from '../../api/mutations.js';
+import { apiFetch } from '../../api/client.js';
 import { getSocket, joinTicket, leaveTicket } from '../../api/socket.js';
 import { useAuthStore } from '../../stores/auth-store.js';
 import { useBoardStore } from '../../stores/board-store.js';
-import { toast } from '../../stores/toast-store.js';
 import CommentThread from './CommentThread.js';
 import HandoffTimeline from './HandoffTimeline.js';
-import type { Ticket, Epic, Comment, TicketPriority, TicketStatus } from '@ai-jam/shared';
+import DependencyChain from './DependencyChain.js';
+import type { Ticket, Epic, Comment, TicketPriority } from '@ai-jam/shared';
 
-const STATUS_LABELS: Record<TicketStatus, string> = {
+interface DependencySuggestion {
+  ticketId: string;
+  ticket: { id: string; title: string; status: string; priority: string };
+  relationship: 'blocks' | 'blocked_by' | 'related';
+  confidence: number;
+  reason: string;
+}
+
+const STATUS_LABELS: Record<string, string> = {
   backlog: 'Backlog',
   in_progress: 'In Progress',
   review: 'Review',
@@ -19,8 +26,6 @@ const STATUS_LABELS: Record<TicketStatus, string> = {
   acceptance: 'Acceptance',
   done: 'Done',
 };
-
-const STATUS_OPTIONS: TicketStatus[] = ['backlog', 'in_progress', 'review', 'qa', 'acceptance', 'done'];
 
 const PRIORITY_OPTIONS: TicketPriority[] = ['critical', 'high', 'medium', 'low'];
 
@@ -31,55 +36,50 @@ interface TicketDetailProps {
 }
 
 export default function TicketDetail({ ticket, epics, onClose }: TicketDetailProps) {
-  const { projectId } = useParams<{ projectId: string }>();
   const user = useAuthStore((s) => s.user);
   const updateTicketStore = useBoardStore((s) => s.updateTicket);
-  const removeTicketStore = useBoardStore((s) => s.removeTicket);
   const { data: serverComments, refetch: refetchComments } = useComments(ticket.id);
   const createComment = useCreateComment(ticket.id);
   const { data: ticketNotes } = useTicketNotes(ticket.id);
   const { data: transitionGates } = useTransitionGates(ticket.id);
   const { data: agentSessionsData } = useAgentSessions(ticket.id);
-  const moveTicket = useMoveTicket(projectId!);
-  const deleteTicket = useDeleteTicket(projectId!);
+  const { data: dependencyChain } = useDependencyChain(ticket.id, 5);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(ticket.title);
   const [editDesc, setEditDesc] = useState(ticket.description || '');
   const [editPriority, setEditPriority] = useState(ticket.priority);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const titleInputRef = useRef<HTMLInputElement>(null);
+  const [isBlocked, setIsBlocked] = useState<boolean>(false);
 
-  // Keyboard: Escape to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (showDeleteConfirm) {
-          setShowDeleteConfirm(false);
-        } else if (isEditing) {
-          setIsEditing(false);
-        } else {
-          onClose();
-        }
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, showDeleteConfirm, isEditing]);
+  // State for dependency suggestion UI
+  const [suggestions, setSuggestions] = useState<DependencySuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [acceptedSuggestions, setAcceptedSuggestions] = useState<string[]>([]);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
-  // Focus title input when editing
-  useEffect(() => {
-    if (isEditing) {
-      titleInputRef.current?.focus();
-    }
-  }, [isEditing]);
+  // State for tracking which ticket is currently displayed in the detail view
+  const [currentTicketId, setCurrentTicketId] = useState(ticket.id);
 
   // Sync server comments
   useEffect(() => {
     if (serverComments) setComments(serverComments);
   }, [serverComments]);
+
+  // Check if ticket is blocked by dependencies
+  useEffect(() => {
+    async function checkBlockedStatus() {
+      if (ticket.dependencies && ticket.dependencies.length > 0) {
+        try {
+          const response = await apiFetch(`/tickets/${ticket.id}/blocked-status`);
+          setIsBlocked(response.blocked);
+        } catch (err) {
+          console.error('Failed to check blocked status:', err);
+        }
+      }
+    }
+    checkBlockedStatus();
+  }, [ticket.id, ticket.dependencies]);
 
   // Real-time comment updates
   useEffect(() => {
@@ -123,31 +123,56 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
         priority: editPriority,
       });
       setIsEditing(false);
-      toast.success('Ticket updated successfully');
     } catch (err) {
-      toast.error(`Failed to update ticket: ${getClientErrorMessage(err)}`);
+      console.error('Failed to update ticket:', err);
     }
   }
 
-  async function handleStatusChange(status: TicketStatus) {
-    if (status === ticket.status) return;
+  async function handleFindRelated() {
+    setIsLoadingSuggestions(true);
+    setSuggestionError(null);
+    setAcceptedSuggestions([]);
+
     try {
-      await moveTicket.mutateAsync({ ticketId: ticket.id, toStatus: status });
-      updateTicketStore(ticket.id, { status });
-      toast.success(`Ticket moved to ${STATUS_LABELS[status]}`);
+      const response = await apiFetch('/projects/' + ticket.projectId + '/tickets/suggest-dependencies', {
+        method: 'POST',
+        body: JSON.stringify({ title: ticket.title, description: ticket.description, excludeTicketId: ticket.id }),
+      });
+      setSuggestions(response.suggestions ?? []);
     } catch (err) {
-      toast.error(`Failed to move ticket: ${getClientErrorMessage(err)}`);
+      setSuggestionError(err instanceof Error ? err.message : 'Failed to scan');
+    } finally {
+      setIsLoadingSuggestions(false);
     }
   }
 
-  async function handleDelete() {
+  function toggleAcceptSuggestion(ticketId: string) {
+    setAcceptedSuggestions(prev =>
+      prev.includes(ticketId)
+        ? prev.filter(id => id !== ticketId)
+        : [...prev, ticketId]
+    );
+  }
+
+  function dismissSuggestion(ticketId: string) {
+    setSuggestions(prev => prev.filter(s => s.ticketId !== ticketId));
+  }
+
+  async function handleLinkAccepted() {
+    if (acceptedSuggestions.length === 0) return;
     try {
-      await deleteTicket.mutateAsync(ticket.id);
-      removeTicketStore(ticket.id);
-      toast.success('Ticket deleted');
-      onClose();
+      // Merge with existing dependencies
+      const existingDeps = ticket.dependencies ?? [];
+      const merged = [...new Set([...existingDeps, ...acceptedSuggestions])];
+      await apiFetch(`/tickets/${ticket.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ dependencies: merged }),
+      });
+      updateTicketStore(ticket.id, { dependencies: merged });
+      setSuggestions([]);
+      setAcceptedSuggestions([]);
     } catch (err) {
-      toast.error(`Failed to delete ticket: ${getClientErrorMessage(err)}`);
+      console.error('Failed to link dependencies:', err);
     }
   }
 
@@ -156,117 +181,69 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
 
       {/* Panel */}
-      <div
-        ref={panelRef}
-        className="fixed right-0 top-0 bottom-0 w-full sm:w-[480px] max-w-full sm:max-w-lg bg-gray-900 border-l border-gray-800 z-50 flex flex-col overflow-hidden animate-in slide-in-from-right shadow-2xl shadow-black/50"
-        role="dialog"
-        aria-label="Ticket details"
-      >
+      <div className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-gray-900 border-l border-gray-800 z-50 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-800 flex items-center justify-between shrink-0 bg-gray-900/95 gap-2">
-          <div className="flex items-center gap-2 md:gap-3 min-w-0">
-            <select
-              value={ticket.status}
-              onChange={(e) => handleStatusChange(e.target.value as TicketStatus)}
-              className="text-xs bg-gray-700 text-gray-300 px-2.5 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 border border-transparent focus:bg-gray-600 transition-all cursor-pointer"
-            >
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>{STATUS_LABELS[status]}</option>
-              ))}
-            </select>
+        <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
+              {STATUS_LABELS[ticket.status] || ticket.status}
+            </span>
             {epic && (
-              <span className="text-xs text-gray-400 flex items-center gap-1.5 bg-gray-800 px-2 py-1 rounded-full truncate">
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: epic.color || '#6b7280' }} />
-                <span className="truncate">{epic.title}</span>
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: epic.color || '#6b7280' }} />
+                {epic.title}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-gray-500 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors text-sm"
-              title="Delete ticket"
-              aria-label="Delete ticket"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a2 2 0 012-2h2a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </button>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white hover:bg-gray-800 p-2 rounded-lg transition-colors"
-              aria-label="Close"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-lg">&times;</button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="px-4 md:px-6 py-4 md:py-5 space-y-4 md:space-y-5">
+          <div className="px-6 py-4 space-y-4">
             {/* Title + Description */}
             {isEditing ? (
-              <div className="space-y-4 p-4 bg-gray-800/50 rounded-xl border border-gray-700 animate-in fade-in-up duration-200">
-                <div>
-                  <label htmlFor="ticket-title" className="block text-xs font-medium text-gray-400 mb-1.5">Title</label>
-                  <input
-                    ref={titleInputRef}
-                    id="ticket-title"
-                    type="text"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-base font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="ticket-desc" className="block text-xs font-medium text-gray-400 mb-1.5">Description</label>
-                  <textarea
-                    id="ticket-desc"
-                    value={editDesc}
-                    onChange={(e) => setEditDesc(e.target.value)}
-                    placeholder="Describe the task..."
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all h-28 resize-none"
-                  />
-                </div>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:outline-none focus:border-indigo-500"
+                />
+                <textarea
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  placeholder="Description..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-300 text-sm focus:outline-none focus:border-indigo-500 h-32 resize-none"
+                />
                 <div className="flex items-center gap-3">
-                  <label htmlFor="ticket-priority" className="text-sm text-gray-400">Priority:</label>
+                  <label className="text-sm text-gray-400">Priority:</label>
                   <select
-                    id="ticket-priority"
                     value={editPriority}
                     onChange={(e) => setEditPriority(e.target.value as TicketPriority)}
-                    className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all cursor-pointer"
+                    className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg px-2 py-1 focus:outline-none"
                   >
                     {PRIORITY_OPTIONS.map((p) => (
-                      <option key={p} value={p} className="capitalize">{p}</option>
+                      <option key={p} value={p}>{p}</option>
                     ))}
                   </select>
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={handleSaveEdit}
-                    disabled={!editTitle.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-[0.98]"
-                  >
+                <div className="flex gap-2">
+                  <button onClick={handleSaveEdit} className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm">
                     Save
                   </button>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="text-gray-400 hover:text-gray-300 hover:bg-gray-800 px-4 py-2 rounded-lg text-sm transition-colors active:scale-95"
-                  >
+                  <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-300 px-3 py-1.5 text-sm">
                     Cancel
                   </button>
                 </div>
               </div>
             ) : (
               <div>
-                <div className="flex items-start justify-between gap-4">
-                  <h2 className="text-xl font-semibold text-white">{ticket.title}</h2>
+                <div className="flex items-start justify-between">
+                  <h2 className="text-lg font-semibold text-white">{ticket.title}</h2>
                   <button
                     onClick={() => {
                       setEditTitle(ticket.title);
@@ -274,41 +251,170 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
                       setEditPriority(ticket.priority);
                       setIsEditing(true);
                     }}
-                    className="text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 active:scale-95"
+                    className="text-gray-500 hover:text-gray-300 text-xs shrink-0 ml-3"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l-8.586-8.586z" />
-                    </svg>
                     Edit
                   </button>
                 </div>
                 {ticket.description ? (
-                  <p className="text-gray-400 text-sm mt-3 whitespace-pre-wrap leading-relaxed">{ticket.description}</p>
+                  <p className="text-gray-400 text-sm mt-2 whitespace-pre-wrap">{ticket.description}</p>
                 ) : (
-                  <p className="text-gray-600 text-sm mt-3 italic">No description</p>
+                  <p className="text-gray-600 text-sm mt-2 italic">No description</p>
                 )}
               </div>
             )}
 
             {/* Metadata */}
-            <div className="grid grid-cols-2 gap-4 text-sm border-t border-gray-800 pt-4">
-              <div className="bg-gray-800/30 rounded-lg p-3">
-                <span className="text-gray-500 text-xs uppercase tracking-wide">Priority</span>
-                <p className="text-white capitalize mt-1 font-medium">{ticket.priority}</p>
+            <div className="grid grid-cols-2 gap-3 text-sm border-t border-gray-800 pt-4">
+              <div>
+                <span className="text-gray-500">Priority</span>
+                <p className="text-white capitalize">{ticket.priority}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg p-3">
-                <span className="text-gray-500 text-xs uppercase tracking-wide">Story Points</span>
-                <p className="text-white mt-1 font-medium">{ticket.storyPoints ?? '-'}</p>
+              <div>
+                <span className="text-gray-500">Story Points</span>
+                <p className="text-white">{ticket.storyPoints ?? '-'}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg p-3">
-                <span className="text-gray-500 text-xs uppercase tracking-wide">Assigned Persona</span>
-                <p className="text-indigo-400 mt-1 font-medium">{ticket.assignedPersona || '-'}</p>
+              <div>
+                <span className="text-gray-500">Assigned Persona</span>
+                <p className="text-indigo-400">{ticket.assignedPersona || '-'}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg p-3">
-                <span className="text-gray-500 text-xs uppercase tracking-wide">Created</span>
-                <p className="text-white mt-1 font-medium">{new Date(ticket.createdAt).toLocaleDateString()}</p>
+              <div>
+                <span className="text-gray-500">Created</span>
+                <p className="text-white">{new Date(ticket.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
+
+            {/* Dependencies */}
+            {ticket.dependencies && ticket.dependencies.length > 0 && (
+              <div className="border-t border-gray-800 pt-4">
+                <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                  🔗 Dependencies ({ticket.dependencies.length})
+                </h3>
+                {isBlocked ? (
+                  <div className="flex items-start gap-2 text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
+                    <span className="shrink-0">⚠️</span>
+                    <span>This ticket is blocked by incomplete dependencies.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 text-sm text-green-400 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                    <span className="shrink-0">✅</span>
+                    <span>All dependencies are complete. This ticket is ready to start.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Find Related Tickets */}
+            <div className="border-t border-gray-800 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-300">Smart Dependencies</h3>
+                <button
+                  onClick={handleFindRelated}
+                  disabled={isLoadingSuggestions}
+                  className="text-xs bg-indigo-600/80 hover:bg-indigo-500 disabled:bg-gray-700 text-white px-2 py-1 rounded transition-colors"
+                >
+                  {isLoadingSuggestions ? 'Scanning...' : 'Find related tickets'}
+                </button>
+              </div>
+
+              {suggestionError && (
+                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                  {suggestionError}
+                </div>
+              )}
+
+              {suggestions.length > 0 && (
+                <div className="space-y-2">
+                  {suggestions.map(s => {
+                    const accepted = acceptedSuggestions.includes(s.ticketId);
+                    const alreadyLinked = (ticket.dependencies ?? []).includes(s.ticketId);
+
+                    return (
+                      <div
+                        key={s.ticketId}
+                        className={`flex items-start gap-3 rounded-lg px-3 py-2 border transition-colors ${
+                          alreadyLinked
+                            ? 'bg-gray-800/50 border-gray-700/50'
+                            : accepted
+                              ? 'bg-indigo-500/10 border-indigo-500/40'
+                              : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                        }`}
+                      >
+                        {!alreadyLinked && (
+                          <input
+                            type="checkbox"
+                            checked={accepted}
+                            onChange={() => toggleAcceptSuggestion(s.ticketId)}
+                            className="mt-1 w-4 h-4 rounded accent-indigo-500 cursor-pointer"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            {alreadyLinked ? (
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-green-900/40 text-green-300 border border-green-700/50">
+                                linked
+                              </span>
+                            ) : (
+                              <span className="text-xs px-1.5 py-0.5 rounded border bg-blue-900/40 text-blue-300 border-blue-700/50">
+                                {s.relationship.replace('_', ' ')}
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-500">{s.ticket.status}</span>
+                          </div>
+                          <p className="text-sm text-gray-200 truncate">{s.ticket.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{s.reason}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">{Math.round(s.confidence * 100)}%</span>
+                          {!acceptedSuggestions.includes(s.ticketId) && !(ticket.dependencies ?? []).includes(s.ticketId) && (
+                            <button
+                              onClick={() => dismissSuggestion(s.ticketId)}
+                              className="text-gray-500 hover:text-gray-300 text-xs px-1"
+                            >
+                              dismiss
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {acceptedSuggestions.length > 0 && (
+                    <button
+                      onClick={handleLinkAccepted}
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm mt-2"
+                    >
+                      Link {acceptedSuggestions.length} selected dependency(s)
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Dependency Chain */}
+            {(dependencyChain && (dependencyChain.upstream.length > 0 || dependencyChain.downstream.length > 0)) && (
+              <div className="border-t border-gray-800 pt-4">
+                <h3 className="text-sm font-medium text-gray-300 mb-3">
+                  Dependency Chain
+                </h3>
+                <DependencyChain
+                  chain={dependencyChain}
+                  onTicketClick={(ticketId) => {
+                    // Open the clicked ticket in the detail view
+                    apiFetch<Ticket>(`/tickets/${ticketId}`)
+                      .then((clickedTicket) => {
+                        setCurrentTicketId(ticketId);
+                        // Note: This would require restructuring to support navigation
+                        // For now, we could emit an event or use a callback
+                        console.log('Navigate to ticket:', clickedTicket);
+                      })
+                      .catch((err) => {
+                        console.error('Failed to load ticket:', err);
+                      });
+                  }}
+                />
+              </div>
+            )}
 
             {/* Agent Activity / Handoff Timeline */}
             {(ticketNotes?.length || transitionGates?.length || agentSessionsData?.length) ? (
@@ -339,39 +445,6 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
             </div>
           </div>
         </div>
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-150 p-4">
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-150 shadow-2xl">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a2 2 0 012-2h2a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <h3 className="text-white font-semibold text-base">Delete Ticket</h3>
-              </div>
-              <p className="text-gray-400 text-sm mb-5 leading-relaxed">
-                Are you sure you want to delete <span className="text-white font-medium">"{ticket.title}"</span>? This action cannot be undone.
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-500 active:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:shadow-red-500/20 active:scale-95"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </>
   );
