@@ -58,6 +58,17 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
   const [acceptedSuggestions, setAcceptedSuggestions] = useState<string[]>([]);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
+  // State for story point estimation
+  interface EstimationResult {
+    points: number | null;
+    confidence: 'low' | 'medium' | 'high';
+    reasoning: string;
+    similarTickets: string[];
+  }
+  const [estimationResult, setEstimationResult] = useState<EstimationResult | null>(null);
+  const [isEstimating, setIsEstimating] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+
   // State for tracking which ticket is currently displayed in the detail view
   const [currentTicketId, setCurrentTicketId] = useState(ticket.id);
 
@@ -176,6 +187,34 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
     }
   }
 
+  async function handleEstimate() {
+    setIsEstimating(true);
+    setEstimateError(null);
+    setEstimationResult(null);
+    try {
+      const result = await apiFetch(`/projects/${ticket.projectId}/tickets/${ticket.id}/estimate`, { method: 'POST' });
+      setEstimationResult(result as EstimationResult);
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : 'Failed to estimate');
+    } finally {
+      setIsEstimating(false);
+    }
+  }
+
+  async function handleApplyEstimate() {
+    if (!estimationResult || estimationResult.points == null) return;
+    try {
+      await apiFetch(`/tickets/${ticket.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ storyPoints: estimationResult.points }),
+      });
+      updateTicketStore(ticket.id, { storyPoints: estimationResult.points });
+      setEstimationResult(null);
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : 'Failed to apply estimate');
+    }
+  }
+
   const epic = epics.find((e) => e.id === ticket.epicId);
 
   return (
@@ -284,7 +323,82 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
               </div>
             </div>
 
-            {/* Dependencies */}
+            {/* Story Point Estimation */}
+            <div className="border-t border-gray-800 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-300">AI Estimation</h3>
+                <button
+                  onClick={handleEstimate}
+                  disabled={isEstimating}
+                  className="text-xs bg-indigo-600/80 hover:bg-indigo-500 disabled:bg-gray-700 text-white px-2 py-1 rounded transition-colors"
+                >
+                  {isEstimating ? 'Estimating...' : 'Estimate Points'}
+                </button>
+              </div>
+
+              {estimateError && (
+                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                  {estimateError}
+                </div>
+              )}
+
+              {estimationResult && (
+                <div className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 space-y-3">
+                  {/* Points + Confidence */}
+                  <div className="flex items-center gap-3">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-white">
+                        {estimationResult.points ?? '?'}
+                      </div>
+                      <div className="text-xs text-gray-500">points</div>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      estimationResult.confidence === 'high'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                        : estimationResult.confidence === 'medium'
+                          ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
+                          : 'bg-red-500/20 text-red-400 border border-red-500/40'
+                    }`}>
+                      {estimationResult.confidence} confidence
+                    </span>
+                  </div>
+
+                  {/* Reasoning */}
+                  <p className="text-sm text-gray-300">{estimationResult.reasoning}</p>
+
+                  {/* Similar Tickets */}
+                  {estimationResult.similarTickets.length > 0 && (
+                    <div>
+                      <span className="text-xs text-gray-500">Based on:</span>
+                      <ul className="text-xs text-gray-400 mt-1 space-y-0.5">
+                        {estimationResult.similarTickets.map((t, i) => (
+                          <li key={i}>- {t}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Apply / Dismiss */}
+                  <div className="flex gap-2">
+                    {estimationResult.points != null && (
+                      <button
+                        onClick={handleApplyEstimate}
+                        className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm"
+                      >
+                        Apply Estimate
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setEstimationResult(null)}
+                      className="text-gray-400 hover:text-gray-300 px-3 py-1.5 text-sm"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {ticket.dependencies && ticket.dependencies.length > 0 && (
               <div className="border-t border-gray-800 pt-4">
                 <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">

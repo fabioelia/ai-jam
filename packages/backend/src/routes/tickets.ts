@@ -25,6 +25,7 @@ import {
 import { suggestDependencies } from '../services/dependency-detector-service.js';
 import { analyzeSprintHealth } from '../services/sprint-intelligence-service.js';
 import { generateReleaseNotes } from '../services/release-notes-service.js';
+import { estimateStoryPoints } from '../services/estimate-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
@@ -444,6 +445,21 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       const { featureId } = request.params;
       const result = await generateReleaseNotes(featureId);
       return reply.code(200).send(result);
+    }
+  );
+
+  // Story Point Estimation
+  fastify.post<{ Params: { projectId: string; ticketId: string } }>(
+    '/api/projects/:projectId/tickets/:ticketId/estimate',
+    async (request, reply) => {
+      const { ticketId } = request.params;
+      try {
+        const result = await estimateStoryPoints(ticketId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.code(500).send({ error: message });
+      }
     }
   );
 }
