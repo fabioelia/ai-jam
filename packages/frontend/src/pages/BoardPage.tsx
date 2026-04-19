@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -24,6 +24,7 @@ import BlockerDependencyModal from '../components/board/BlockerDependencyModal.j
 import TicketPrioritizerModal from '../components/board/TicketPrioritizerModal.js';
 import EpicHealthModal from '../components/board/EpicHealthModal.js';
 import ProjectHealthModal from '../components/board/ProjectHealthModal.js';
+import DeadlineRiskModal from '../components/board/DeadlineRiskModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -155,6 +156,8 @@ export default function BoardPage() {
   const [showEpicHealth, setShowEpicHealth] = useState(false);
   const epicHealth = useEpicHealth();
   const { analyze: analyzeProjectHealth, loading: projectHealthLoading, result: projectHealthResult, setResult: setProjectHealthResult } = useProjectHealth();
+  const { analyze: analyzeDeadlineRisk, loading: deadlineRiskLoading, result: deadlineRiskResult, setResult: setDeadlineRiskResult } = useDeadlineRisk();
+  const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
   // Keyboard shortcuts: Escape to close modals, ? for shortcuts, H for help
@@ -601,6 +604,47 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Deadline Risk Button */}
+        {!deadlineDate ? (
+          <input
+            type="date"
+            value={deadlineDate}
+            onChange={(e) => setDeadlineDate(e.target.value)}
+            className="text-xs sm:text-sm px-2 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-amber-300 focus:outline-none focus:border-amber-500 shrink-0"
+            placeholder="Deadline date"
+            title="Set deadline date for risk prediction"
+          />
+        ) : (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={async () => {
+                try {
+                  await analyzeDeadlineRisk(projectId!, deadlineDate);
+                } catch (error) {
+                  toast.error(`Failed to predict deadline risk: ${getClientErrorMessage(error)}`);
+                }
+              }}
+              disabled={deadlineRiskLoading}
+              className="text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deadlineRiskLoading ? (
+                <><span className="animate-spin">&#8635;</span> <span className="hidden sm:inline">Predicting...</span></>
+              ) : (
+                <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg><span className="hidden sm:inline">Deadline Risk</span></>
+              )}
+            </button>
+            <button
+              onClick={() => { setDeadlineDate(''); setDeadlineRiskResult(null); }}
+              className="text-xs px-1.5 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white transition-colors"
+              title="Clear deadline date"
+            >
+              &#x2715;
+            </button>
+          </div>
+        )}
+
         {/* Blocker & Dependency Analysis Button */}
         {board?.columns?.flatMap((c) => c.tickets).length != null && board.columns.flatMap((c) => c.tickets).length >= 2 && (
           <button
@@ -891,6 +935,15 @@ export default function BoardPage() {
           result={projectHealthResult}
           isOpen={true}
           onClose={() => setProjectHealthResult(null)}
+        />
+      )}
+
+      {/* Deadline Risk Modal */}
+      {deadlineRiskResult && (
+        <DeadlineRiskModal
+          result={deadlineRiskResult}
+          isOpen={true}
+          onClose={() => setDeadlineRiskResult(null)}
         />
       )}
     </div>

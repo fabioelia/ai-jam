@@ -764,6 +764,46 @@ export function useProjectHealth() {
   return { analyze, loading, result, setResult };
 }
 
+export interface DeadlineRiskResult {
+  projectId: string;
+  projectName: string;
+  deadlineDate: string;
+  analyzedAt: string;
+  totalTickets: number;
+  completedTickets: number;
+  remainingTickets: number;
+  daysRemaining: number;
+  daysElapsed: number;
+  velocityPerDay: number;
+  requiredVelocity: number;
+  velocityGap: number;
+  projectedCompletionDate: string;
+  willMeetDeadline: boolean;
+  riskLevel: 'critical' | 'at_risk' | 'on_track' | 'ahead';
+  narrative: string;
+  recommendations: string[];
+}
+
+export function useDeadlineRisk() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<DeadlineRiskResult | null>(null);
+
+  const analyze = async (projectId: string, deadlineDate: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<DeadlineRiskResult>(`/projects/${projectId}/deadline-risk`, {
+        method: 'POST',
+        body: JSON.stringify({ deadlineDate }),
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);
