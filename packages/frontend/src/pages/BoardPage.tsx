@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -26,6 +26,7 @@ import EpicHealthModal from '../components/board/EpicHealthModal.js';
 import ProjectHealthModal from '../components/board/ProjectHealthModal.js';
 import DeadlineRiskModal from '../components/board/DeadlineRiskModal.js';
 import ReleaseReadinessModal from '../components/board/ReleaseReadinessModal.js';
+import WorkloadBalancerModal from '../components/board/WorkloadBalancerModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -159,6 +160,7 @@ export default function BoardPage() {
   const { analyze: analyzeProjectHealth, loading: projectHealthLoading, result: projectHealthResult, setResult: setProjectHealthResult } = useProjectHealth();
   const { analyze: analyzeDeadlineRisk, loading: deadlineRiskLoading, result: deadlineRiskResult, setResult: setDeadlineRiskResult } = useDeadlineRisk();
   const releaseReadiness = useReleaseReadiness();
+  const workloadBalance = useWorkloadBalance();
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -625,6 +627,25 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Balance Workload Button */}
+        <button
+          onClick={async () => {
+            try {
+              await workloadBalance.balance(projectId!, selectedFeatureId);
+            } catch (error) {
+              toast.error(`Workload analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={workloadBalance.loading}
+          className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50'
+        >
+          {workloadBalance.loading ? (
+            <><span className='animate-spin'>⟳</span> Analyzing...</>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M3 6h18M3 12h18M3 18h18' /></svg> Balance Workload</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -976,6 +997,15 @@ export default function BoardPage() {
           onClose={() => releaseReadiness.setResult(null)}
         />
       )}
+
+      {/* Workload Balancer Modal */}
+      {workloadBalance.result && (
+        <WorkloadBalancerModal
+          result={workloadBalance.result}
+          isOpen={!!workloadBalance.result}
+          onClose={() => workloadBalance.setResult(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1156,7 +1186,7 @@ function SessionsSidebar({
             onToggle={() => toggleSection('planning')}
           >
             {planning.length === 0 ? (
-              <EmptyState message="No planning sessions" />
+              <SectionEmptyState message="No planning sessions" />
             ) : (
               <div className="space-y-0.5">
                 {planning.map((s) => (
@@ -1180,7 +1210,7 @@ function SessionsSidebar({
             onToggle={() => toggleSection('execution')}
           >
             {execution.length === 0 ? (
-              <EmptyState message="No agent sessions" />
+              <SectionEmptyState message="No agent sessions" />
             ) : (
               <div className="space-y-0.5">
                 {execution.map((s) => (
@@ -1278,7 +1308,7 @@ function SessionSection({
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function SectionEmptyState({ message }: { message: string }) {
   return (
     <div className="py-6 text-center">
       <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-2">

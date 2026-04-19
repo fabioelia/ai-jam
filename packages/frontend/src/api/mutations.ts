@@ -874,6 +874,52 @@ export function useTicketTriage() {
   return { triage, loading, result, setResult };
 }
 
+export interface AssigneeLoad {
+  assignee: string;
+  ticketCount: number;
+  totalStoryPoints: number;
+  loadScore: number;
+  status: 'overloaded' | 'balanced' | 'underloaded';
+}
+
+export interface WorkloadRecommendation {
+  fromAssignee: string;
+  toAssignee: string;
+  ticketId: string;
+  ticketTitle: string;
+  reason: string;
+}
+
+export interface WorkloadAnalysis {
+  projectId: string;
+  featureId: string | null;
+  assigneeLoads: AssigneeLoad[];
+  recommendations: WorkloadRecommendation[];
+  overallBalance: 'well-balanced' | 'moderate-imbalance' | 'severe-imbalance';
+  narrative: string;
+  analyzedAt: string;
+}
+
+export function useWorkloadBalance() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<WorkloadAnalysis | null>(null);
+
+  const balance = async (projectId: string, featureId?: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<WorkloadAnalysis>(`/projects/${projectId}/workload-balance`, {
+        method: 'POST',
+        body: featureId ? JSON.stringify({ featureId }) : undefined,
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { balance, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);
