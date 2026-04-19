@@ -56,6 +56,12 @@ export default function EpicHealthModal({ result, isOpen, onClose }: { result: E
         </div>
 
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
+          {result.totalTickets === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <p className="text-sm">No tickets found for this epic.</p>
+            </div>
+          ) : null}
+
           {/* Health Score */}
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0 w-20 h-20 rounded-full border-4 border-teal-500 flex items-center justify-center">
