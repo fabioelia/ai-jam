@@ -804,6 +804,46 @@ export function useDeadlineRisk() {
   return { analyze, loading, result, setResult };
 }
 
+export interface ReadinessCheck {
+  name: string;
+  passed: boolean;
+  blocking: boolean;
+  detail: string;
+}
+
+export interface ReleaseReadinessResult {
+  projectId: string;
+  featureId?: string;
+  verdict: 'ready' | 'not_ready' | 'conditional';
+  checks: ReadinessCheck[];
+  totalTickets: number;
+  doneTickets: number;
+  completionPercent: number;
+  narrative: string;
+  topConcern: string;
+  analyzedAt: string;
+}
+
+export function useReleaseReadiness() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ReleaseReadinessResult | null>(null);
+
+  const check = async (projectId: string, featureId?: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const url = featureId
+        ? `/projects/${projectId}/release-readiness?featureId=${featureId}`
+        : `/projects/${projectId}/release-readiness`;
+      const data = await apiFetch<ReleaseReadinessResult>(url, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { check, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);

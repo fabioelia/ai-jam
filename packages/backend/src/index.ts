@@ -31,6 +31,7 @@ import { ticketPrioritizerRoutes } from './routes/ticket-prioritizer.js';
 import { epicHealthRoutes } from './routes/epic-health.js';
 import { projectHealthRoutes } from './routes/project-health.js';
 import { deadlineRiskRoutes } from './routes/deadline-risk.js';
+import { releaseReadinessRoutes } from './routes/release-readiness.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -96,6 +97,7 @@ async function main() {
   await fastify.register(epicHealthRoutes);
   await fastify.register(projectHealthRoutes);
   await fastify.register(deadlineRiskRoutes);
+  await fastify.register(releaseReadinessRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -25,6 +25,7 @@ import TicketPrioritizerModal from '../components/board/TicketPrioritizerModal.j
 import EpicHealthModal from '../components/board/EpicHealthModal.js';
 import ProjectHealthModal from '../components/board/ProjectHealthModal.js';
 import DeadlineRiskModal from '../components/board/DeadlineRiskModal.js';
+import ReleaseReadinessModal from '../components/board/ReleaseReadinessModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -157,6 +158,7 @@ export default function BoardPage() {
   const epicHealth = useEpicHealth();
   const { analyze: analyzeProjectHealth, loading: projectHealthLoading, result: projectHealthResult, setResult: setProjectHealthResult } = useProjectHealth();
   const { analyze: analyzeDeadlineRisk, loading: deadlineRiskLoading, result: deadlineRiskResult, setResult: setDeadlineRiskResult } = useDeadlineRisk();
+  const releaseReadiness = useReleaseReadiness();
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -604,6 +606,25 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Release Readiness Button */}
+        <button
+          onClick={async () => {
+            try {
+              await releaseReadiness.check(projectId!, selectedFeatureId);
+            } catch (error) {
+              toast.error(`Release check failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={releaseReadiness.loading}
+          className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50'
+        >
+          {releaseReadiness.loading ? (
+            <><span className='animate-spin'>⟳</span> Checking...</>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Release Check</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -944,6 +965,15 @@ export default function BoardPage() {
           result={deadlineRiskResult}
           isOpen={true}
           onClose={() => setDeadlineRiskResult(null)}
+        />
+      )}
+
+      {/* Release Readiness Modal */}
+      {releaseReadiness.result && (
+        <ReleaseReadinessModal
+          result={releaseReadiness.result}
+          isOpen={!!releaseReadiness.result}
+          onClose={() => releaseReadiness.setResult(null)}
         />
       )}
     </div>
