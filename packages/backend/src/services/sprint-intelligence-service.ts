@@ -1,5 +1,5 @@
-import { db } from '../db';
-import { tickets } from '../db/schema';
+import { db } from '../db/connection.js';
+import { tickets } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
