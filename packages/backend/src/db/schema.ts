@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, pgEnum, primaryKey, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, pgEnum, primaryKey, unique, AnyPgColumn } from 'drizzle-orm/pg-core';
 
 export interface SubtaskProposal {
   title: string;
@@ -138,7 +138,7 @@ export const tickets = pgTable('tickets', {
   createdBy: uuid('created_by').notNull().references(() => users.id),
   /** Origin of this record: 'human' (UI), 'mcp' (agent tool), 'api' (direct API call) */
   source: varchar('source', { length: 20 }).default('human').notNull(),
-  parentTicketId: uuid('parent_ticket_id').references(() => tickets.id, { onDelete: 'set null' }),
+  parentTicketId: uuid('parent_ticket_id').references((): AnyPgColumn => tickets.id, { onDelete: 'set null' }),
   subtasks: jsonb('subtasks').default([]).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
