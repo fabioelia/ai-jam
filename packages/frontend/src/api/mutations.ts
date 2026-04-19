@@ -920,6 +920,44 @@ export function useWorkloadBalance() {
   return { balance, loading, result, setResult };
 }
 
+export interface AgentMetrics {
+  agentName: string;
+  completedTickets: number;
+  inProgressTickets: number;
+  totalStoryPointsDelivered: number;
+  avgStoryPointsPerTicket: number;
+  completionRate: number;
+  topTicketTypes: string[];
+  performanceTier: 'high' | 'medium' | 'low';
+}
+
+export interface AgentPerformanceReport {
+  projectId: string;
+  agents: AgentMetrics[];
+  topPerformer: string | null;
+  insight: string;
+  analyzedAt: string;
+}
+
+export function useAgentPerformance() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentPerformanceReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentPerformanceReport>(`/projects/${projectId}/agent-performance`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);

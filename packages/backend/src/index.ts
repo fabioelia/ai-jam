@@ -34,6 +34,7 @@ import { deadlineRiskRoutes } from './routes/deadline-risk.js';
 import { releaseReadinessRoutes } from './routes/release-readiness.js';
 import { ticketTriageRoutes } from './routes/ticket-triage.js';
 import { workloadBalancerRoutes } from './routes/workload-balancer.js';
+import { agentPerformanceRoutes } from './routes/agent-performance.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -102,6 +103,7 @@ async function main() {
   await fastify.register(releaseReadinessRoutes);
   await fastify.register(ticketTriageRoutes);
   await fastify.register(workloadBalancerRoutes);
+  await fastify.register(agentPerformanceRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

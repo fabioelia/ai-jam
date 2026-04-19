@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -27,6 +27,7 @@ import ProjectHealthModal from '../components/board/ProjectHealthModal.js';
 import DeadlineRiskModal from '../components/board/DeadlineRiskModal.js';
 import ReleaseReadinessModal from '../components/board/ReleaseReadinessModal.js';
 import WorkloadBalancerModal from '../components/board/WorkloadBalancerModal.js';
+import AgentPerformanceModal from '../components/board/AgentPerformanceModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -161,6 +162,8 @@ export default function BoardPage() {
   const { analyze: analyzeDeadlineRisk, loading: deadlineRiskLoading, result: deadlineRiskResult, setResult: setDeadlineRiskResult } = useDeadlineRisk();
   const releaseReadiness = useReleaseReadiness();
   const workloadBalance = useWorkloadBalance();
+  const agentPerformance = useAgentPerformance();
+  const [showAgentPerformance, setShowAgentPerformance] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -646,6 +649,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Agent Performance Button */}
+        <button
+          onClick={async () => {
+            setShowAgentPerformance(true);
+            try {
+              await agentPerformance.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Agent performance analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentPerformance.loading}
+          className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50'
+        >
+          {agentPerformance.loading ? (
+            <><span className='animate-spin'>⟳</span> Analyzing...</>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' /></svg> Agent Performance</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1004,6 +1027,16 @@ export default function BoardPage() {
           result={workloadBalance.result}
           isOpen={!!workloadBalance.result}
           onClose={() => workloadBalance.setResult(null)}
+        />
+      )}
+
+      {/* Agent Performance Modal */}
+      {showAgentPerformance && (
+        <AgentPerformanceModal
+          result={agentPerformance.result}
+          isOpen={showAgentPerformance}
+          loading={agentPerformance.loading}
+          onClose={() => { agentPerformance.setResult(null); setShowAgentPerformance(false); }}
         />
       )}
     </div>
