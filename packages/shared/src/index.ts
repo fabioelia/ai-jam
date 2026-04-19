@@ -10,6 +10,7 @@ export type * from './types/agent.js';
 export type * from './types/events.js';
 export type * from './types/notification.js';
 export type * from './types/planning.js';
+export type * from './types/presence.js';
 
 // Validators
 export * from './validators.js';

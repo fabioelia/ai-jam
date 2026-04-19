@@ -1,4 +1,3 @@
-import { spawn, spawnSync } from 'child_process';
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config.js';
 
@@ -57,11 +56,15 @@ export interface StreamCallback {
   (delta: string): void;
 }
 
+interface ClaudeCLIResponse {
+  content: string;
+  usage: { inputTokens: number; outputTokens: number };
+}
+
 let anthropicClient: Anthropic | null = null;
 
 function getAIClient(): Anthropic {
   if (!anthropicClient) {
-    if (!config.openrouterApiKey) throw new Error('OpenRouter API key not configured');
     anthropicClient = new Anthropic({
       apiKey: config.openrouterApiKey,
       baseURL: config.openrouterBaseUrl,
@@ -70,7 +73,7 @@ function getAIClient(): Anthropic {
   return anthropicClient;
 }
 
-async function callClaudeCLI({
+async function callAI({
   prompt,
   systemPrompt,
   model,
@@ -79,68 +82,69 @@ async function callClaudeCLI({
   systemPrompt: string;
   model?: string;
 }): Promise<ClaudeCLIResponse> {
-  const args = [
-    '-p',
-    `System: ${systemPrompt}\n\nUser: ${prompt}`,
-    '--dangerously-skip-permissions',
-    '--output-format',
-    'text',
-  ];
-  if (model) args.push('--model', model);
+  const client = getAIClient();
+  const modelName = model || config.aiModel;
 
-  const result = spawnSync('claude', args, { encoding: 'utf-8', timeout: 120_000 });
-
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`claude CLI failed (exit ${result.status}): ${result.stderr}`);
-
-  return { content: result.stdout, usage: { inputTokens: 0, outputTokens: 0 } };
-}
-
-async function callClaudeCLIStream({
-  prompt,
-  systemPrompt,
-  model,
-  onChunk,
-}: {
-  prompt: string;
-  systemPrompt: string;
-  model?: string;
-  onChunk: (chunk: string) => void;
-}): Promise<ClaudeCLIResponse> {
-  const args = [
-    '-p',
-    `System: ${systemPrompt}\n\nUser: ${prompt}`,
-    '--dangerously-skip-permissions',
-    '--output-format',
-    'text',
-  ];
-  if (model) args.push('--model', model);
-
-  return new Promise((resolve, reject) => {
-    let fullContent = '';
-    const child = spawn('claude', args, { timeout: 120_000 });
-
-    child.stdout?.on('data', (chunk: Buffer) => {
-      const text = chunk.toString();
-      fullContent += text;
-      onChunk(text);
-    });
-
-    child.stderr?.on('data', (chunk: Buffer) => {
-      // CLI stderr may contain progress info; pass through as chunks too
-      const text = chunk.toString();
-      fullContent += text;
-      onChunk(text);
-    });
-
-    child.on('error', reject);
-
-    child.on('close', code => {
-      if (code === 0) resolve({ content: fullContent, usage: { inputTokens: 0, outputTokens: 0 } });
-      else reject(new Error(`claude CLI failed (exit ${code}): ${fullContent}`));
-    });
+  const response = await client.messages.create({
+    model: modelName,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
   });
+
+  const content = response.content
+    .filter(block => block.type === 'text')
+    .map(block => (block as { type: 'text'; text: string }).text)
+    .join('');
+
+  return {
+    content,
+    usage: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    },
+  };
 }
+
+async function callAIStream({
+  prompt,
+  systemPrompt,
+  model,
+  onDelta,
+}: {
+  prompt: string;
+  systemPrompt: string;
+  model?: string;
+  onDelta: StreamCallback;
+}): Promise<ClaudeCLIResponse> {
+  const client = getAIClient();
+  const modelName = model || config.aiModel;
+
+  let content = '';
+  let inputTokens = 0;
+  let outputTokens = 0;
+
+  const stream = await client.messages.stream({
+    model: modelName,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  for await (const chunk of stream) {
+    if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+      content += chunk.delta.text;
+      onDelta(chunk.delta.text);
+    }
+  }
+
+  const finalMessage = await stream.finalMessage();
+  inputTokens = finalMessage.usage.input_tokens;
+  outputTokens = finalMessage.usage.output_tokens;
+
+  return { content, usage: { inputTokens, outputTokens } };
+}
+
 const SYSTEM_PROMPT = `You are an expert project manager and technical specification writer. Your task is to transform natural language requests into clear, actionable tickets.
 
 ## Analysis Process
@@ -292,182 +296,115 @@ export async function generateTicketFromPrompt(
   onStream?: StreamCallback,
   codebaseContext?: CodebaseContext
 ): Promise<{ ticket: TicketData; usage: { inputTokens: number; outputTokens: number } }> {
-  const messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: userPrompt },
-  ];
+  let prompt = userPrompt;
 
-  // Add codebase context if provided
   if (codebaseContext) {
-    const contextParts: Array<{ type: 'text'; text: string }> = [];
+    prompt += '\n\n---\n\n**Codebase Context (use this for file references):**';
 
     if (codebaseContext.techStack && codebaseContext.techStack.length > 0) {
-      contextParts.push({
-        type: 'text',
-        text: `\n\n**Tech Stack:** ${codebaseContext.techStack.join(', ')}`,
-      });
+      prompt += `\n\n**Tech Stack:** ${codebaseContext.techStack.join(', ')}`;
     }
 
     if (codebaseContext.projectStructure) {
-      contextParts.push({
-        type: 'text',
-        text: `\n\n**Project Structure:**\n\`\`\`\n${codebaseContext.projectStructure}\n\`\`\``,
-      });
+      prompt += `\n\n**Project Structure:**\n\`\`\`\n${codebaseContext.projectStructure}\n\`\`\``;
     }
 
     if (codebaseContext.files && codebaseContext.files.length > 0) {
-      contextParts.push({
-        type: 'text',
-        text: `\n\n**Relevant Files:**`,
-      });
-
+      prompt += '\n\n**Relevant Files:**';
       for (const file of codebaseContext.files) {
         if (file.summary) {
-          contextParts.push({
-            type: 'text',
-            text: `\n- \`${file.path}\`: ${file.summary}`,
-          });
+          prompt += `\n- \`${file.path}\`: ${file.summary}`;
         } else if (file.content) {
-          contextParts.push({
-            type: 'text',
-            text: `\n- \`${file.path}\`:\n\`\`\`\n${file.content}\n\`\`\``,
-          });
+          prompt += `\n- \`${file.path}\`:\n\`\`\`\n${file.content}\n\`\`\``;
         } else {
-          contextParts.push({
-            type: 'text',
-            text: `\n- \`${file.path}\``,
-          });
+          prompt += `\n- \`${file.path}\``;
         }
       }
     }
 
     if (codebaseContext.relatedTickets && codebaseContext.relatedTickets.length > 0) {
-      contextParts.push({
-        type: 'text',
-        text: `\n\n**Related Tickets:**`,
-      });
-
+      prompt += '\n\n**Related Tickets:**';
       for (const ticket of codebaseContext.relatedTickets) {
-        contextParts.push({
-          type: 'text',
-          text: `\n- **${ticket.title}**: ${ticket.description}`,
-        });
+        prompt += `\n- **${ticket.title}**: ${ticket.description}`;
       }
-    }
-
-    if (contextParts.length > 0) {
-      messages[0] = {
-        role: 'user',
-        content: [
-          { type: 'text', text: userPrompt },
-          { type: 'text', text: '\n\n---\n\n**Codebase Context (use this for file references):**' },
-          ...contextParts,
-        ],
-      };
     }
   }
 
-  // Add image attachments if present
   if (attachments.length > 0) {
-    const images = attachments
-      .filter(a => a.type === 'image')
-      .map(a => ({
-        type: 'image' as const,
-        source: {
-          type: 'url' as const,
-          url: a.url,
-        },
-      }));
-
+    const images = attachments.filter(a => a.type === 'image').map(a => a.url);
     if (images.length > 0) {
-      messages[0] = {
-        role: 'user',
-        content: [
-          { type: 'text', text: userPrompt },
-          ...images,
-        ],
-      };
+      prompt += '\n\n**Image References:**\n' + images.map(url => `- ${url}`).join('\n');
     }
   }
 
   try {
     if (onStream) {
-      return await streamTicketGeneration(messages, onStream);
+      return await streamTicketGeneration(prompt, onStream);
     } else {
-      return await generateTicket(messages);
+      return await generateTicket(prompt);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Claude API error: ${message}`);
+    throw new Error(`Claude CLI error: ${message}`);
   }
 }
 
 async function streamTicketGeneration(
-  messages: Anthropic.MessageParam[],
+  prompt: string,
   onStream: StreamCallback
 ): Promise<{ ticket: TicketData; usage: { inputTokens: number; outputTokens: number } }> {
-  const stream = await getAIClient().messages.stream({
+  const response = await callAIStream({
+    prompt,
+    systemPrompt: SYSTEM_PROMPT,
     model: config.aiModel,
-    max_tokens: 2000,
-    system: SYSTEM_PROMPT,
-    messages,
+    onDelta: onStream,
   });
 
-  let fullResponse = '';
-
-  for await (const event of stream) {
-    if (event.type === 'content_block_delta') {
-      const delta = event.delta;
-      if (delta.type === 'text_delta') {
-        fullResponse += delta.text;
-        onStream(delta.text);
-      }
-    }
-  }
-
-  const finalMessage = await stream.finalMessage();
-  const ticket = extractTicketFromResponse(finalMessage);
+  const ticket = extractTicketFromResponse(response.content);
 
   return {
     ticket,
-    usage: {
-      inputTokens: finalMessage.usage.input_tokens,
-      outputTokens: finalMessage.usage.output_tokens,
-    },
+    usage: response.usage,
   };
 }
 
 async function generateTicket(
-  messages: Anthropic.MessageParam[]
+  prompt: string
 ): Promise<{ ticket: TicketData; usage: { inputTokens: number; outputTokens: number } }> {
-  const response = await getAIClient().messages.create({
+  const response = await callAI({
+    prompt,
+    systemPrompt: SYSTEM_PROMPT,
     model: config.aiModel,
-    max_tokens: 2000,
-    system: SYSTEM_PROMPT,
-    messages,
   });
 
-  const ticket = extractTicketFromResponse(response);
+  const ticket = extractTicketFromResponse(response.content);
 
   return {
     ticket,
-    usage: {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-    },
+    usage: response.usage,
   };
 }
 
-function extractTicketFromResponse(message: Anthropic.Message): TicketData {
-  let jsonText = '';
-
-  for (const block of message.content) {
-    if (block.type === 'text') {
-      jsonText = block.text;
-      break;
-    }
+function extractJSONFromMarkdown(content: string): string | null {
+  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
   }
 
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return jsonMatch[0];
+  }
+
+  return null;
+}
+
+function extractTicketFromResponse(content: string): TicketData {
   try {
+    const jsonText = extractJSONFromMarkdown(content);
+    if (!jsonText) {
+      throw new Error('No JSON found in response');
+    }
     const parsed = JSON.parse(jsonText);
     return {
       title: parsed.title || 'Untitled Ticket',
@@ -485,97 +422,62 @@ export async function categorizeTicket(
   ticket: { title: string; description?: string },
   boardContext?: BoardContext
 ): Promise<{ categorization: TicketCategorization; usage: { inputTokens: number; outputTokens: number } }> {
-  let userMessage = `Analyze this ticket and provide categorization:
+  let prompt = `Analyze this ticket and provide categorization:
 
 **Ticket Title:** ${ticket.title}
 ${ticket.description ? `**Ticket Description:**\n${ticket.description}` : ''}`;
 
   if (boardContext) {
-    const contextParts: Array<{ type: 'text'; text: string }> = [];
+    prompt += '\n\n---\n\n**Board Context:**';
 
     if (boardContext.techStack && boardContext.techStack.length > 0) {
-      contextParts.push({
-        type: 'text',
-        text: `\n\n**Tech Stack:** ${boardContext.techStack.join(', ')}`,
-      });
+      prompt += `\n\n**Tech Stack:** ${boardContext.techStack.join(', ')}`;
     }
 
     if (boardContext.projectStructure) {
-      contextParts.push({
-        type: 'text',
-        text: `\n\n**Project Structure:**\n\`\`\`\n${boardContext.projectStructure}\n\`\`\``,
-      });
+      prompt += `\n\n**Project Structure:**\n\`\`\`\n${boardContext.projectStructure}\n\`\`\``;
     }
 
     if (boardContext.featureTitle) {
-      contextParts.push({
-        type: 'text',
-        text: `\n\n**Feature:** ${boardContext.featureTitle}`,
-      });
+      prompt += `\n\n**Feature:** ${boardContext.featureTitle}`;
       if (boardContext.featureDescription) {
-        contextParts.push({
-          type: 'text',
-          text: `\n${boardContext.featureDescription}`,
-        });
+        prompt += `\n${boardContext.featureDescription}`;
       }
     }
 
     if (boardContext.relatedTickets && boardContext.relatedTickets.length > 0) {
-      contextParts.push({
-        type: 'text',
-        text: `\n\n**Related Tickets:**`,
-      });
-
+      prompt += '\n\n**Related Tickets:**';
       for (const t of boardContext.relatedTickets) {
-        contextParts.push({
-          type: 'text',
-          text: `\n- **${t.title}** (${t.status}, ${t.priority}): ${t.description.substring(0, 100)}...`,
-        });
-      }
-    }
-
-    if (contextParts.length > 0) {
-      userMessage += '\n\n---\n\n**Board Context:**';
-      for (const part of contextParts) {
-        userMessage += part.text;
+        prompt += `\n- **${t.title}** (${t.status}, ${t.priority}): ${t.description.substring(0, 100)}...`;
       }
     }
   }
 
   try {
-    const response = await getAIClient().messages.create({
+    const response = await callAI({
+      prompt,
+      systemPrompt: CATEGORIZATION_SYSTEM_PROMPT,
       model: config.aiModel,
-      max_tokens: 1000,
-      system: CATEGORIZATION_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
     });
 
-    const categorization = extractCategorizationFromResponse(response);
+    const categorization = extractCategorizationFromResponse(response.content);
 
     return {
       categorization,
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-      },
+      usage: response.usage,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Claude API error: ${message}`);
+    throw new Error(`Claude CLI error: ${message}`);
   }
 }
 
-function extractCategorizationFromResponse(message: Anthropic.Message): TicketCategorization {
-  let jsonText = '';
-
-  for (const block of message.content) {
-    if (block.type === 'text') {
-      jsonText = block.text;
-      break;
-    }
-  }
-
+function extractCategorizationFromResponse(content: string): TicketCategorization {
   try {
+    const jsonText = extractJSONFromMarkdown(content);
+    if (!jsonText) {
+      throw new Error('No JSON found in response');
+    }
     const parsed = JSON.parse(jsonText);
     return {
       labels: parsed.labels || [],
@@ -591,7 +493,6 @@ function extractCategorizationFromResponse(message: Anthropic.Message): TicketCa
 }
 
 export function calculateCost(tokens: { inputTokens: number; outputTokens: number }): number {
-  // Claude Sonnet pricing (approximate, update as needed)
   const INPUT_COST_PER_1K = 0.003;
   const OUTPUT_COST_PER_1K = 0.015;
 

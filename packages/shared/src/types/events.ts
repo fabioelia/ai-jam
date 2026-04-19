@@ -2,6 +2,7 @@ import type { Ticket, Epic, Comment, TransitionGate, AttentionItem } from './boa
 import type { AttentionItemStatus } from '../enums.js';
 import type { AgentActivity } from '../enums.js';
 import type { Notification } from './notification.js';
+import type { PresenceUser, CommentReaction, ActivityEvent } from './presence.js';
 
 // Server -> Client events
 export interface ServerToClientEvents {
@@ -34,6 +35,13 @@ export interface ServerToClientEvents {
   // Comment events
   'comment:created': (data: { comment: Comment }) => void;
 
+  // Collaboration events
+  'presence:update': (data: { context: string; contextId: string; users: PresenceUser[] }) => void;
+  'typing:indicator': (data: { ticketId: string; userId: string; userName: string; isTyping: boolean }) => void;
+  'reaction:added': (data: { reaction: CommentReaction }) => void;
+  'reaction:removed': (data: { commentId: string; userId: string; emoji: string }) => void;
+  'activity:new': (data: { activity: ActivityEvent }) => void;
+
   // Notification events
   'notification:created': (data: { notification: Notification }) => void;
   'notification:read': (data: { notificationId: string; userId: string }) => void;
@@ -65,4 +73,10 @@ export interface ClientToServerEvents {
   'pty:detach': (data: { sessionId: string }) => void;
   'pty:input': (data: { sessionId: string; data: string }) => void;
   'pty:resize': (data: { sessionId: string; cols: number; rows: number }) => void;
+
+  // Collaboration events
+  'presence:viewing': (data: { context: 'board' | 'ticket' | 'feature'; contextId: string }) => void;
+  'presence:leaving': (data: { context: 'board' | 'ticket' | 'feature'; contextId: string }) => void;
+  'typing:start': (data: { ticketId: string }) => void;
+  'typing:stop': (data: { ticketId: string }) => void;
 }

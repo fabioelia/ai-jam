@@ -1,4 +1,5 @@
 import type { TicketStatus, TicketPriority, GateResult, AttentionItemType, AttentionItemStatus } from '../enums.js';
+import type { CommentReaction } from './presence.js';
 
 export interface Epic {
   id: string;
@@ -44,12 +45,20 @@ export interface TicketNote {
   createdAt: string;
 }
 
+export interface CommentReactionSummary {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
 export interface Comment {
   id: string;
   ticketId: string;
   userId: string;
   body: string;
   source: 'human' | 'mcp' | 'api';
+  mentionedUserIds: string[];
+  reactions: CommentReactionSummary[];
   createdAt: string;
   updatedAt: string;
 }
