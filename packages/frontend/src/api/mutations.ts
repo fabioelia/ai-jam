@@ -594,3 +594,52 @@ export function useTicketQuality() {
 
   return { generate, loading, result, setResult };
 }
+
+// -- Blocker & Dependency Analysis --
+
+export interface DependencyEdge {
+  fromTicketId: string;
+  toTicketId: string;
+  reason: string;
+  confidence: 'low' | 'medium' | 'high';
+  source: 'heuristic' | 'ai';
+}
+
+export interface TicketBlockerInfo {
+  ticketId: string;
+  ticketTitle: string;
+  ticketStatus: string;
+  blockerScore: number;
+  blocksCount: number;
+  dependsOnCount: number;
+  riskLevel: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface DependencyAnalysisResult {
+  projectId: string;
+  totalTickets: number;
+  dependencyCount: number;
+  criticalBlockers: TicketBlockerInfo[];
+  allBlockers: TicketBlockerInfo[];
+  edges: DependencyEdge[];
+  riskSummary: string;
+  analyzedAt: string;
+}
+
+export function useBlockerAnalysis() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<DependencyAnalysisResult | null>(null);
+
+  const analyze = async (projectId: string) => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<DependencyAnalysisResult>(`/projects/${projectId}/dependencies`, { method: 'POST' });
+      setResult(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -20,6 +20,7 @@ import SprintIntelligenceModal from '../components/board/SprintIntelligenceModal
 import StandupReportModal from '../components/board/StandupReportModal.js';
 import RetrospectiveReportModal from '../components/board/RetrospectiveReportModal.js';
 import SprintPlanningModal from '../components/board/SprintPlanningModal.js';
+import BlockerDependencyModal from '../components/board/BlockerDependencyModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -144,6 +145,8 @@ export default function BoardPage() {
   const [showSprintPlan, setShowSprintPlan] = useState(false);
   const [showStandup, setShowStandup] = useState(false);
   const [showRetrospective, setShowRetrospective] = useState(false);
+  const [showBlockers, setShowBlockers] = useState(false);
+  const blockerAnalysis = useBlockerAnalysis();
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
   // Keyboard shortcuts: Escape to close modals, ? for shortcuts, H for help
@@ -543,6 +546,27 @@ export default function BoardPage() {
           <span className="hidden sm:inline">Retro</span>
         </button>
 
+        {/* Blocker & Dependency Analysis Button */}
+        {board?.columns?.flatMap((c) => c.tickets).length != null && board.columns.flatMap((c) => c.tickets).length >= 2 && (
+          <button
+            onClick={async () => {
+              setShowBlockers(true);
+              try {
+                await blockerAnalysis.analyze(projectId!);
+              } catch (error) {
+                toast.error(`Failed to analyze dependencies: ${getClientErrorMessage(error)}`);
+              }
+            }}
+            disabled={blockerAnalysis.loading}
+            className="text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-amber-400 hover:text-amber-300 hover:border-amber-500/50 transition-colors flex items-center gap-1 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="hidden sm:inline">Analyze Dependencies</span>
+          </button>
+        )}
+
         <div className="flex-1" />
 
         {/* Primary Actions */}
@@ -776,6 +800,15 @@ export default function BoardPage() {
         <RetrospectiveReportModal
           projectId={projectId!}
           onClose={() => setShowRetrospective(false)}
+        />
+      )}
+
+      {/* Blocker & Dependency Analysis Modal */}
+      {showBlockers && project && (
+        <BlockerDependencyModal
+          projectId={projectId!}
+          projectName={project.name}
+          onClose={() => { blockerAnalysis.setResult(null); setShowBlockers(false); }}
         />
       )}
     </div>
