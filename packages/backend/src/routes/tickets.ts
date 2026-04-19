@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/connection.js';
-import { tickets } from '../db/schema.js';
+import { tickets, projects } from '../db/schema.js';
 import { features } from '../db/schema.js';
 import {
   createTicketSchema,
@@ -22,10 +22,6 @@ import {
   type TicketData,
   type BoardContext
 } from '../services/claude-ticket-service.js';
-import {
-  generateTicketFromCLI,
-  categorizeTicketWithCLI
-} from '../services/claude-cli-wrapper.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
@@ -102,6 +98,9 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       const source = getSourceFromRequest(request);
       const { stream } = request.body as { stream?: boolean };
 
+      const [project] = await db.select().from(projects).where(eq(projects.id, request.params.projectId)).limit(1);
+      if (!project) return reply.status(404).send({ error: 'Project not found' });
+
       // Check if streaming is requested
       if (stream) {
         reply.raw.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
@@ -109,18 +108,14 @@ export async function ticketRoutes(fastify: FastifyInstance) {
         const fullResponse: string[] = [];
 
         try {
-          const { data: ticket, usage } = await generateTicketFromCLI(
+          const { ticket, usage } = await generateTicketFromPrompt(
             parsed.data.userPrompt,
-            {
-              model: 'claude-sonnet-4-20250514',
-              stream: true,
-              onStream: (delta) => {
-                fullResponse.push(delta);
-                reply.raw.write(`data: ${JSON.stringify({ delta })}\n\n`);
-              },
-              codebaseContext: parsed.data.codebaseContext,
-              attachments: parsed.data.attachments,
-            }
+            parsed.data.attachments || [],
+            (delta) => {
+              fullResponse.push(delta);
+              reply.raw.write(`data: ${JSON.stringify({ delta })}\n\n`);
+            },
+            parsed.data.codebaseContext
           );
 
           reply.raw.write(`data: ${JSON.stringify({ done: true, ticket, usage })}\n\n`);
@@ -137,13 +132,11 @@ export async function ticketRoutes(fastify: FastifyInstance) {
 
       // Non-streaming response
       try {
-        const { data: generated, usage } = await generateTicketFromCLI(
+        const { ticket: generated, usage } = await generateTicketFromPrompt(
           parsed.data.userPrompt,
-          {
-            model: 'claude-sonnet-4-7',
-            codebaseContext: parsed.data.codebaseContext,
-            attachments: parsed.data.attachments,
-          }
+          parsed.data.attachments || [],
+          undefined,
+          parsed.data.codebaseContext
         );
 
         const cost = calculateCost(usage);
@@ -388,12 +381,9 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        const { data: categorization, usage } = await categorizeTicketWithCLI(
+        const { categorization, usage } = await categorizeTicket(
           { title, description },
-          {
-            model: 'claude-sonnet-4-7',
-            boardContext,
-          }
+          boardContext
         );
         const cost = calculateCost(usage);
 
