@@ -958,6 +958,46 @@ export function useAgentPerformance() {
   return { analyze, loading, result, setResult };
 }
 
+export interface AgentRouting {
+  agentName: string;
+  score: number;
+  reason: string;
+}
+
+export interface RoutingRecommendation {
+  ticketId: string;
+  ticketTitle: string;
+  ticketPriority: string;
+  rankedAgents: AgentRouting[];
+}
+
+export interface RoutingReport {
+  projectId: string;
+  unassignedCount: number;
+  recommendations: RoutingRecommendation[];
+  rationale: string;
+  analyzedAt: string;
+}
+
+export function useAgentRouting() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<RoutingReport | null>(null);
+
+  const route = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<RoutingReport>(`/projects/${projectId}/agent-routing`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { route, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);
