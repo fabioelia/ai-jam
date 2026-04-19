@@ -1,3 +1,4 @@
+import { spawn, spawnSync } from 'child_process';
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config.js';
 
@@ -82,28 +83,21 @@ async function callClaudeCLI({
   systemPrompt: string;
   model?: string;
 }): Promise<ClaudeCLIResponse> {
-  const client = getAIClient();
-  const modelName = model || config.aiModel;
+  const args = [
+    '-p',
+    `System: ${systemPrompt}\n\nUser: ${prompt}`,
+    '--dangerously-skip-permissions',
+    '--output-format',
+    'text',
+  ];
+  if (model) args.push('--model', model);
 
-  const response = await client.messages.create({
-    model: modelName,
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const result = spawnSync('claude', args, { encoding: 'utf-8', timeout: 120_000 });
 
-  const content = response.content
-    .filter(block => block.type === 'text')
-    .map(block => (block as { type: 'text'; text: string }).text)
-    .join('');
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`claude CLI failed (exit ${result.status}): ${result.stderr}`);
 
-  return {
-    content,
-    usage: {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-    },
-  };
+  return { content: result.stdout, usage: { inputTokens: 0, outputTokens: 0 } };
 }
 
 async function callClaudeCLIStream({
@@ -117,32 +111,39 @@ async function callClaudeCLIStream({
   model?: string;
   onChunk: (chunk: string) => void;
 }): Promise<ClaudeCLIResponse> {
-  const client = getAIClient();
-  const modelName = model || config.aiModel;
+  const args = [
+    '-p',
+    `System: ${systemPrompt}\n\nUser: ${prompt}`,
+    '--dangerously-skip-permissions',
+    '--output-format',
+    'text',
+  ];
+  if (model) args.push('--model', model);
 
-  let fullContent = '';
-  let inputTokens = 0;
-  let outputTokens = 0;
+  return new Promise((resolve, reject) => {
+    let fullContent = '';
+    const child = spawn('claude', args, { timeout: 120_000 });
 
-  const stream = await client.messages.stream({
-    model: modelName,
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: prompt }],
+    child.stdout?.on('data', (chunk: Buffer) => {
+      const text = chunk.toString();
+      fullContent += text;
+      onChunk(text);
+    });
+
+    child.stderr?.on('data', (chunk: Buffer) => {
+      // CLI stderr may contain progress info; pass through as chunks too
+      const text = chunk.toString();
+      fullContent += text;
+      onChunk(text);
+    });
+
+    child.on('error', reject);
+
+    child.on('close', code => {
+      if (code === 0) resolve({ content: fullContent, usage: { inputTokens: 0, outputTokens: 0 } });
+      else reject(new Error(`claude CLI failed (exit ${code}): ${fullContent}`));
+    });
   });
-
-  for await (const chunk of stream) {
-    if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-      fullContent += chunk.delta.text;
-      onChunk(chunk.delta.text);
-    }
-  }
-
-  const finalMessage = await stream.finalMessage();
-  inputTokens = finalMessage.usage.input_tokens;
-  outputTokens = finalMessage.usage.output_tokens;
-
-  return { content: fullContent, usage: { inputTokens, outputTokens } };
 }
 
 const SYSTEM_PROMPT = `You are an expert project manager and technical specification writer. Your task is to transform natural language requests into clear, actionable tickets.
