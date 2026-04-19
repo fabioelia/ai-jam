@@ -149,7 +149,7 @@ export async function handoffRoutes(fastify: FastifyInstance) {
     '/api/tickets/:ticketId/handoffs/override',
     async (request, reply) => {
       try {
-        const result = await handoffService['createManualOverride'](
+        const result = await handoffService.createManualOverride(
           request.params.ticketId,
           request.body
         );
@@ -230,7 +230,7 @@ export async function handoffRoutes(fastify: FastifyInstance) {
     '/api/projects/:projectId/handoffs/board-state',
     async (request, reply) => {
       try {
-        const boardState = await handoffService['getBoardState'](request.params.projectId);
+        const boardState = await handoffService.getBoardState(request.params.projectId);
         return reply.send(boardState);
       } catch (error) {
         return reply.status(500).send({ error: error instanceof Error ? error.message : 'Failed to get board state' });
@@ -255,8 +255,8 @@ export async function handoffRoutes(fastify: FastifyInstance) {
           return reply.status(404).send({ error: 'Ticket not found' });
         }
 
-        const complexity = handoffService['analyzeComplexity'](ticket);
-        const ticketType = handoffService['classifyTicketType'](ticket.title, ticket.description ?? undefined);
+        const complexity = handoffService.analyzeComplexity(ticket);
+        const ticketType = handoffService.classifyTicketType(ticket.title, ticket.description ?? undefined);
 
         return reply.send({ complexity, ticketType });
       } catch (error) {
