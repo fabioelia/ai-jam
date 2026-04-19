@@ -461,3 +461,32 @@ export function useSprintAnalysis() {
 
   return { analyze, loading, analysis, setAnalysis };
 }
+
+// -- Standup Report --
+
+export interface StandupReport {
+  yesterday: string[];
+  today: string[];
+  blockers: string[];
+  confidence: number;
+  reasoning: string;
+}
+
+export function useStandupReport() {
+  const [loading, setLoading] = useState(false);
+  const [report, setReport] = useState<StandupReport | null>(null);
+
+  const generate = async (projectId: string) => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<StandupReport>(`/projects/${projectId}/standup`, { method: 'POST' });
+      setReport(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { generate, loading, report, setReport };
+}
+
