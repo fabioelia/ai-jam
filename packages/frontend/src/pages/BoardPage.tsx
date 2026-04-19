@@ -16,6 +16,7 @@ import KanbanBoard from '../components/board/KanbanBoard.js';
 import TicketDetail from '../components/board/TicketDetail.js';
 import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
 import FiltersPopover from '../components/board/FiltersPopover.js';
+import SprintIntelligenceModal from '../components/board/SprintIntelligenceModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -135,6 +136,7 @@ export default function BoardPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [boardError, setBoardError] = useState<unknown>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSprintAnalysis, setShowSprintAnalysis] = useState(false);
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
   // Keyboard shortcuts: Escape to close modals, ? for shortcuts, H for help
@@ -151,6 +153,7 @@ export default function BoardPage() {
         if (showShortcuts) setShowShortcuts(false);
         if (showMobileMenu) setShowMobileMenu(false);
         if (showHelp) setShowHelp(false);
+        if (showSprintAnalysis) setShowSprintAnalysis(false);
       }
 
       if (e.key === '?' && !e.shiftKey) {
@@ -478,6 +481,17 @@ export default function BoardPage() {
             <span className="hidden sm:inline">Group by Epic</span>
           </button>
         )}
+
+        {/* Sprint Analysis Button */}
+        <button
+          onClick={() => setShowSprintAnalysis(true)}
+          className="text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 transition-colors flex items-center gap-1 shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <span className="hidden sm:inline">Sprint Analysis</span>
+        </button>
 
         <div className="flex-1" />
 

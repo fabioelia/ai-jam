@@ -1,6 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from './client.js';
+import { useState } from 'react';
 import type { Project, Feature, Ticket, Comment, ChatSession, ChatMessage, AttentionItem } from '@ai-jam/shared';
+export interface SprintAnalysis {
+  healthScore: number;
+  risks: Array<{ ticketId: string; title: string; reason: string; severity: 'high' | 'medium' | 'low' }>;
+  bottlenecks: Array<{ status: string; count: number; avgDaysSinceUpdate: number }>;
+  recommendations: string[];
+  analyzedAt: string;
+}
 import type { CreateProjectRequest, CreateFeatureRequest, CreateTicketRequest, MoveTicketRequest, CreateCommentRequest, CreateEpicRequest } from '@ai-jam/shared';
 
 export function useCreateProject() {
@@ -393,4 +401,24 @@ export function useGlobalMarkRead() {
       apiFetch(`/notifications/${notificationId}/read`, { method: 'PATCH' }),
     onSuccess: () => invalidateAllNotifications(qc),
   });
+}
+
+// -- Sprint Intelligence --
+
+export function useSprintAnalysis() {
+  const [loading, setLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<SprintAnalysis | null>(null);
+
+  const analyze = async (projectId: string) => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<SprintAnalysis>(`/projects/${projectId}/sprint/analyze`, { method: 'POST' });
+      setAnalysis(result);
+      return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, analysis, setAnalysis };
 }

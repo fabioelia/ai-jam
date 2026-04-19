@@ -23,6 +23,7 @@ import {
   type BoardContext
 } from '../services/claude-ticket-service.js';
 import { suggestDependencies } from '../services/dependency-detector-service.js';
+import { analyzeSprintHealth } from '../services/sprint-intelligence-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
@@ -423,5 +424,15 @@ export async function ticketRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({ error: message });
       }
     },
+  );
+
+  // Sprint Intelligence
+  fastify.post<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/sprint/analyze',
+    async (request, reply) => {
+      const { projectId } = request.params;
+      const analysis = await analyzeSprintHealth(projectId);
+      return reply.code(200).send(analysis);
+    }
   );
 }
