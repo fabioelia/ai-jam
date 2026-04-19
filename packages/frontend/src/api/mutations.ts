@@ -490,3 +490,32 @@ export function useStandupReport() {
   return { generate, loading, report, setReport };
 }
 
+// -- Retrospective Report --
+
+export interface RetrospectiveReport {
+  wentWell: string[];
+  improvements: string[];
+  actionItems: string[];
+  velocity: { planned: number; completed: number };
+  confidence: number;
+  reasoning: string;
+}
+
+export function useRetrospectiveReport() {
+  const [loading, setLoading] = useState(false);
+  const [report, setReport] = useState<RetrospectiveReport | null>(null);
+
+  const generate = async (projectId: string) => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<RetrospectiveReport>(`/projects/${projectId}/retrospective`, { method: 'POST' });
+      setReport(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { generate, loading, report, setReport };
+}
+

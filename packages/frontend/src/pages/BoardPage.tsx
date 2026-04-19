@@ -18,6 +18,7 @@ import AgentActivityFeed from '../components/agents/AgentActivityFeed.js';
 import FiltersPopover from '../components/board/FiltersPopover.js';
 import SprintIntelligenceModal from '../components/board/SprintIntelligenceModal.js';
 import StandupReportModal from '../components/board/StandupReportModal.js';
+import RetrospectiveReportModal from '../components/board/RetrospectiveReportModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -139,6 +140,7 @@ export default function BoardPage() {
   const [showHelp, setShowHelp] = useState(false);
   const [showSprintAnalysis, setShowSprintAnalysis] = useState(false);
   const [showStandup, setShowStandup] = useState(false);
+  const [showRetrospective, setShowRetrospective] = useState(false);
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
   // Keyboard shortcuts: Escape to close modals, ? for shortcuts, H for help
@@ -157,6 +159,7 @@ export default function BoardPage() {
         if (showHelp) setShowHelp(false);
         if (showSprintAnalysis) setShowSprintAnalysis(false);
         if (showStandup) setShowStandup(false);
+        if (showRetrospective) setShowRetrospective(false);
       }
 
       if (e.key === '?' && !e.shiftKey) {
@@ -507,6 +510,17 @@ export default function BoardPage() {
           <span className="hidden sm:inline">Standup</span>
         </button>
 
+        {/* Retrospective Report Button */}
+        <button
+          onClick={() => setShowRetrospective(true)}
+          className="text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-teal-400 hover:text-teal-300 hover:border-teal-500/50 transition-colors flex items-center gap-1 shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span className="hidden sm:inline">Retro</span>
+        </button>
+
         <div className="flex-1" />
 
         {/* Primary Actions */}
@@ -716,6 +730,22 @@ export default function BoardPage() {
         >
           <HelpContent view={helpView} onViewChange={setHelpView} />
         </HelpModal>
+      )}
+
+      {/* Standup Report Modal */}
+      {showStandup && (
+        <StandupReportModal
+          projectId={projectId!}
+          onClose={() => setShowStandup(false)}
+        />
+      )}
+
+      {/* Retrospective Report Modal */}
+      {showRetrospective && (
+        <RetrospectiveReportModal
+          projectId={projectId!}
+          onClose={() => setShowRetrospective(false)}
+        />
       )}
     </div>
   );

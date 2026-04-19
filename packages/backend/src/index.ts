@@ -23,6 +23,7 @@ import { notificationRoutes } from './routes/notifications.js';
 import { attentionRoutes } from './routes/attention.js';
 import { userRoutes } from './routes/users.js';
 import { standupRoutes } from './routes/standup.js';
+import { retrospectiveRoutes } from './routes/retrospective.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -80,6 +81,7 @@ async function main() {
   await fastify.register(attentionRoutes);
   await fastify.register(userRoutes);
   await fastify.register(standupRoutes);
+  await fastify.register(retrospectiveRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
