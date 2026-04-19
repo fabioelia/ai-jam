@@ -11,6 +11,18 @@ export interface Epic {
   updatedAt: string;
 }
 
+export interface SubtaskProposal {
+  title: string;
+  description: string;
+  storyPoints: number;
+}
+
+export interface SubtaskResult {
+  subtasks: SubtaskProposal[];
+  confidence: number;
+  reasoning: string;
+}
+
 export interface Ticket {
   id: string;
   epicId: string | null;
@@ -27,6 +39,8 @@ export interface Ticket {
   assignedUserId: string | null;
   createdBy: string;
   source: 'human' | 'mcp' | 'api';
+  parentTicketId: string | null;
+  subtasks: SubtaskProposal[];
   createdAt: string;
   updatedAt: string;
 }

@@ -78,6 +78,13 @@
       "when": 1776035019725,
       "tag": "0010_solid_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776623099870,
+      "tag": "0011_cute_silver_sable",
+      "breakpoints": true
     }
   ]
 }

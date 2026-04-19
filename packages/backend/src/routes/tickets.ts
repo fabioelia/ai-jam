@@ -27,6 +27,7 @@ import { analyzeSprintHealth } from '../services/sprint-intelligence-service.js'
 import { generateReleaseNotes } from '../services/release-notes-service.js';
 import { estimateStoryPoints } from '../services/estimate-service.js';
 import { generateAcceptanceCriteria } from '../services/acceptance-criteria-service.js';
+import { generateSubtasks } from '../services/subtask-generator-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
@@ -58,6 +59,7 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
 
       const featureId = (request.body as Record<string, unknown>).featureId as string;
+      const parentTicketId = (request.body as Record<string, unknown>).parentTicketId as string | undefined;
       if (!featureId) return reply.status(400).send({ error: 'featureId is required' });
 
       const { userId } = request.user;
@@ -85,6 +87,7 @@ export async function ticketRoutes(fastify: FastifyInstance) {
         createdBy: userId,
         source,
         dependencies,
+        parentTicketId: parentTicketId || null,
       }).returning();
 
       broadcastToBoard(request.params.projectId, 'board:ticket:created', { ticket });
@@ -471,6 +474,21 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       const { ticketId } = request.params;
       try {
         const result = await generateAcceptanceCriteria(ticketId);
+        return reply.code(200).send(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.code(500).send({ error: message });
+      }
+    }
+  );
+
+  // Sub-task Generation
+  fastify.post<{ Params: { projectId: string; ticketId: string } }>(
+    '/api/projects/:projectId/tickets/:ticketId/subtasks',
+    async (request, reply) => {
+      const { ticketId } = request.params;
+      try {
+        const result = await generateSubtasks(ticketId);
         return reply.code(200).send(result);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

@@ -51,6 +51,12 @@ export const updateTicketSchema = z.object({
   assignedPersona: z.string().max(100).nullable().optional(),
   assignedUserId: z.string().uuid().nullable().optional(),
   acceptanceCriteria: z.array(z.string()).nullable().optional(),
+  parentTicketId: z.string().uuid().nullable().optional(),
+  subtasks: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    storyPoints: z.number(),
+  })).nullable().optional(),
 });
 
 export const createCommentSchema = z.object({

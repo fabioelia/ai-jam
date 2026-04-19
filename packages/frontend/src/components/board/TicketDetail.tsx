@@ -8,7 +8,7 @@ import { useBoardStore } from '../../stores/board-store.js';
 import CommentThread from './CommentThread.js';
 import HandoffTimeline from './HandoffTimeline.js';
 import DependencyChain from './DependencyChain.js';
-import type { Ticket, Epic, Comment, TicketPriority } from '@ai-jam/shared';
+import type { Ticket, Epic, Comment, TicketPriority, SubtaskProposal } from '@ai-jam/shared';
 
 interface DependencySuggestion {
   ticketId: string;
@@ -78,6 +78,16 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
   const [acResult, setAcResult] = useState<AcceptanceCriteriaResult | null>(null);
   const [isGeneratingAC, setIsGeneratingAC] = useState(false);
   const [acError, setAcError] = useState<string | null>(null);
+
+  // State for sub-task generation
+  interface SubtaskResult {
+    subtasks: SubtaskProposal[];
+    confidence: number;
+    reasoning: string;
+  }
+  const [subtaskResult, setSubtaskResult] = useState<SubtaskResult | null>(null);
+  const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
+  const [subtaskError, setSubtaskError] = useState<string | null>(null);
 
   // State for tracking which ticket is currently displayed in the detail view
   const [currentTicketId, setCurrentTicketId] = useState(ticket.id);
@@ -251,6 +261,49 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
     } catch (err) {
       setAcError(err instanceof Error ? err.message : 'Failed to apply acceptance criteria');
     }
+  }
+
+  async function handleGenerateSubtasks() {
+    setIsGeneratingSubtasks(true);
+    setSubtaskError(null);
+    setSubtaskResult(null);
+    try {
+      const result = await apiFetch(`/projects/${ticket.projectId}/tickets/${ticket.id}/subtasks`, { method: 'POST' });
+      setSubtaskResult(result as SubtaskResult);
+    } catch (err) {
+      setSubtaskError(err instanceof Error ? err.message : 'Failed to generate sub-tasks');
+    } finally {
+      setIsGeneratingSubtasks(false);
+    }
+  }
+
+  async function handleCreateAllSubtasks() {
+    if (!subtaskResult || subtaskResult.subtasks.length === 0) return;
+    try {
+      for (const st of subtaskResult.subtasks) {
+        await apiFetch(`/projects/${ticket.projectId}/tickets`, {
+          method: 'POST',
+          body: JSON.stringify({
+            title: st.title,
+            description: st.description,
+            storyPoints: st.storyPoints,
+            featureId: ticket.featureId,
+            parentTicketId: ticket.id,
+          }),
+        });
+      }
+      setSubtaskResult(null);
+      // Reload the board to see the new tickets
+      window.location.reload();
+    } catch (err) {
+      setSubtaskError(err instanceof Error ? err.message : 'Failed to create sub-tasks');
+    }
+  }
+
+  function confidenceColor(confidence: number): string {
+    if (confidence >= 0.8) return 'bg-green-500/20 text-green-400 border border-green-500/40';
+    if (confidence >= 0.5) return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40';
+    return 'bg-red-500/20 text-red-400 border border-red-500/40';
   }
 
   const epic = epics.find((e) => e.id === ticket.epicId);
@@ -493,6 +546,73 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
                     )}
                     <button
                       onClick={() => setAcResult(null)}
+                      className="text-gray-400 hover:text-gray-300 px-3 py-1.5 text-sm"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sub-task Generator */}
+            <div className="border-t border-gray-800 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-300">AI Sub-task Breakdown</h3>
+                <button
+                  onClick={handleGenerateSubtasks}
+                  disabled={isGeneratingSubtasks}
+                  className="text-xs bg-indigo-600/80 hover:bg-indigo-500 disabled:bg-gray-700 text-white px-2 py-1 rounded transition-colors"
+                >
+                  {isGeneratingSubtasks ? 'Generating...' : 'Generate Sub-tasks'}
+                </button>
+              </div>
+
+              {subtaskError && (
+                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                  {subtaskError}
+                </div>
+              )}
+
+              {subtaskResult && (
+                <div className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 space-y-3">
+                  {/* Sub-task list */}
+                  {subtaskResult.subtasks.length > 0 && (
+                    <div className="space-y-3">
+                      {subtaskResult.subtasks.map((st, i) => (
+                        <div key={i} className="border border-gray-700 rounded-md p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="text-sm font-medium text-white">{st.title}</h4>
+                            <span className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-full">
+                              {st.storyPoints} SP
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400">{st.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Confidence badge */}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${confidenceColor(subtaskResult.confidence)}`}>
+                    {Math.round(subtaskResult.confidence * 100)}% confidence
+                  </span>
+
+                  {/* Reasoning */}
+                  <p className="text-sm text-gray-400">{subtaskResult.reasoning}</p>
+
+                  {/* Create All / Dismiss */}
+                  <div className="flex gap-2">
+                    {subtaskResult.subtasks.length > 0 && (
+                      <button
+                        onClick={handleCreateAllSubtasks}
+                        className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm"
+                      >
+                        Create All
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setSubtaskResult(null)}
                       className="text-gray-400 hover:text-gray-300 px-3 py-1.5 text-sm"
                     >
                       Dismiss
