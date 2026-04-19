@@ -1,4 +1,3 @@
-import { spawn, spawnSync } from 'child_process';
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config.js';
 
@@ -74,7 +73,7 @@ function getAIClient(): Anthropic {
   return anthropicClient;
 }
 
-async function callClaudeCLI({
+async function callAI({
   prompt,
   systemPrompt,
   model,
@@ -83,67 +82,67 @@ async function callClaudeCLI({
   systemPrompt: string;
   model?: string;
 }): Promise<ClaudeCLIResponse> {
-  const args = [
-    '-p',
-    `System: ${systemPrompt}\n\nUser: ${prompt}`,
-    '--dangerously-skip-permissions',
-    '--output-format',
-    'text',
-  ];
-  if (model) args.push('--model', model);
+  const client = getAIClient();
+  const modelName = model || config.aiModel;
 
-  const result = spawnSync('claude', args, { encoding: 'utf-8', timeout: 120_000 });
+  const response = await client.messages.create({
+    model: modelName,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
+  });
 
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`claude CLI failed (exit ${result.status}): ${result.stderr}`);
+  const content = response.content
+    .filter(block => block.type === 'text')
+    .map(block => (block as { type: 'text'; text: string }).text)
+    .join('');
 
-  return { content: result.stdout, usage: { inputTokens: 0, outputTokens: 0 } };
+  return {
+    content,
+    usage: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    },
+  };
 }
 
-async function callClaudeCLIStream({
+async function callAIStream({
   prompt,
   systemPrompt,
   model,
-  onChunk,
+  onDelta,
 }: {
   prompt: string;
   systemPrompt: string;
   model?: string;
-  onChunk: (chunk: string) => void;
+  onDelta: StreamCallback;
 }): Promise<ClaudeCLIResponse> {
-  const args = [
-    '-p',
-    `System: ${systemPrompt}\n\nUser: ${prompt}`,
-    '--dangerously-skip-permissions',
-    '--output-format',
-    'text',
-  ];
-  if (model) args.push('--model', model);
+  const client = getAIClient();
+  const modelName = model || config.aiModel;
 
-  return new Promise((resolve, reject) => {
-    let fullContent = '';
-    const child = spawn('claude', args, { timeout: 120_000 });
+  let content = '';
+  let inputTokens = 0;
+  let outputTokens = 0;
 
-    child.stdout?.on('data', (chunk: Buffer) => {
-      const text = chunk.toString();
-      fullContent += text;
-      onChunk(text);
-    });
-
-    child.stderr?.on('data', (chunk: Buffer) => {
-      // CLI stderr may contain progress info; pass through as chunks too
-      const text = chunk.toString();
-      fullContent += text;
-      onChunk(text);
-    });
-
-    child.on('error', reject);
-
-    child.on('close', code => {
-      if (code === 0) resolve({ content: fullContent, usage: { inputTokens: 0, outputTokens: 0 } });
-      else reject(new Error(`claude CLI failed (exit ${code}): ${fullContent}`));
-    });
+  const stream = await client.messages.stream({
+    model: modelName,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
   });
+
+  for await (const chunk of stream) {
+    if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+      content += chunk.delta.text;
+      onDelta(chunk.delta.text);
+    }
+  }
+
+  const finalMessage = await stream.finalMessage();
+  inputTokens = finalMessage.usage.input_tokens;
+  outputTokens = finalMessage.usage.output_tokens;
+
+  return { content, usage: { inputTokens, outputTokens } };
 }
 
 const SYSTEM_PROMPT = `You are an expert project manager and technical specification writer. Your task is to transform natural language requests into clear, actionable tickets.
@@ -354,11 +353,11 @@ async function streamTicketGeneration(
   prompt: string,
   onStream: StreamCallback
 ): Promise<{ ticket: TicketData; usage: { inputTokens: number; outputTokens: number } }> {
-  const response = await callClaudeCLIStream({
+  const response = await callAIStream({
     prompt,
     systemPrompt: SYSTEM_PROMPT,
     model: config.aiModel,
-    onChunk: onStream,
+    onDelta: onStream,
   });
 
   const ticket = extractTicketFromResponse(response.content);
@@ -372,7 +371,7 @@ async function streamTicketGeneration(
 async function generateTicket(
   prompt: string
 ): Promise<{ ticket: TicketData; usage: { inputTokens: number; outputTokens: number } }> {
-  const response = await callClaudeCLI({
+  const response = await callAI({
     prompt,
     systemPrompt: SYSTEM_PROMPT,
     model: config.aiModel,
@@ -455,7 +454,7 @@ ${ticket.description ? `**Ticket Description:**\n${ticket.description}` : ''}`;
   }
 
   try {
-    const response = await callClaudeCLI({
+    const response = await callAI({
       prompt,
       systemPrompt: CATEGORIZATION_SYSTEM_PROMPT,
       model: config.aiModel,
