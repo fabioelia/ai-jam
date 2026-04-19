@@ -57,62 +57,65 @@ export default function EpicHealthModal({ result, isOpen, onClose }: { result: E
 
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
           {result.totalTickets === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <p className="text-sm">No tickets found for this epic.</p>
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <p className="text-base font-medium">No tickets in this epic yet.</p>
+              <p className="text-sm mt-1">Add tickets to see health metrics.</p>
             </div>
-          ) : null}
-
-          {/* Health Score */}
-          <div className="flex items-center gap-4">
-            <div className="flex-shrink-0 w-20 h-20 rounded-full border-4 border-teal-500 flex items-center justify-center">
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">{result.healthScore}</span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Health Score</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">{riskLabels[result.riskLevel]}</p>
-              <p className="text-xs text-gray-400">{result.totalTickets} tickets total</p>
-            </div>
-          </div>
-
-          {/* Dimensions */}
-          <div className="space-y-3">
-            {[
-              { label: 'Completeness', value: dim.completeness, color: 'bg-green-500' },
-              { label: 'Velocity', value: dim.velocity, color: 'bg-blue-500' },
-              { label: 'Readiness', value: dim.readiness, color: 'bg-emerald-500' },
-              { label: 'Scope Risk', value: dim.scopeRisk, color: 'bg-red-500' },
-            ].map(({ label, value, color }) => (
-              <div key={label}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-300">{label}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{Math.round(value)}</span>
+          ) : (
+            <>
+              {/* Health Score */}
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 w-20 h-20 rounded-full border-4 border-teal-500 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{result.healthScore}</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className={`${color} h-2 rounded-full`} style={{ width: `${value}%` }} />
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Health Score</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{riskLabels[result.riskLevel]}</p>
+                  <p className="text-xs text-gray-400">{result.totalTickets} tickets total</p>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Ticket Breakdown */}
-          <div className="grid grid-cols-5 gap-2 text-center">
-            {(['idea', 'backlog', 'inProgress', 'review', 'done'] as const).map((key) => (
-              <div key={key} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{result.ticketBreakdown[key]}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{key === 'inProgress' ? 'In Progress' : key}</p>
+              {/* Dimensions */}
+              <div className="space-y-3">
+                {[
+                  { label: 'Completeness', value: dim.completeness, color: 'bg-green-500' },
+                  { label: 'Velocity', value: dim.velocity, color: 'bg-blue-500' },
+                  { label: 'Readiness', value: dim.readiness, color: 'bg-emerald-500' },
+                  { label: 'Scope Risk', value: dim.scopeRisk, color: 'bg-red-500' },
+                ].map(({ label, value, color }) => (
+                  <div key={label}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600 dark:text-gray-300">{label}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{Math.round(value)}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className={`${color} h-2 rounded-full`} style={{ width: `${value}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Narrative */}
-          <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-4">
-            <p className="text-sm text-indigo-900 dark:text-indigo-200">{result.narrative}</p>
-            {result.topRisk && (
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2">
-                <span className="font-semibold">Top Risk:</span> {result.topRisk}
-              </p>
-            )}
-          </div>
+              {/* Ticket Breakdown */}
+              <div className="grid grid-cols-5 gap-2 text-center">
+                {(['idea', 'backlog', 'inProgress', 'review', 'done'] as const).map((key) => (
+                  <div key={key} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{result.ticketBreakdown[key]}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{key === 'inProgress' ? 'In Progress' : key}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Narrative */}
+              <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-4">
+                <p className="text-sm text-indigo-900 dark:text-indigo-200">{result.narrative}</p>
+                {result.topRisk && (
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2">
+                    <span className="font-semibold">Top Risk:</span> {result.topRisk}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Footer */}
