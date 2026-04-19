@@ -519,3 +519,40 @@ export function useRetrospectiveReport() {
   return { generate, loading, report, setReport };
 }
 
+// -- Sprint Plan --
+
+export interface SprintPlanTicket {
+  id: string;
+  title: string;
+  storyPoints: number;
+  priority: string;
+  reason: string;
+}
+
+export interface SprintPlan {
+  recommendedTickets: SprintPlanTicket[];
+  sprintGoal: string;
+  estimatedPoints: number;
+  capacityUtilization: number;
+  risks: string[];
+  confidence: number;
+  reasoning: string;
+}
+
+export function useSprintPlan() {
+  const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState<SprintPlan | null>(null);
+
+  const generate = async (projectId: string) => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<SprintPlan>(`/projects/${projectId}/sprint-plan`, { method: 'POST' });
+      setPlan(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { generate, loading, plan, setPlan };
+}

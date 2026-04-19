@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -19,6 +19,7 @@ import FiltersPopover from '../components/board/FiltersPopover.js';
 import SprintIntelligenceModal from '../components/board/SprintIntelligenceModal.js';
 import StandupReportModal from '../components/board/StandupReportModal.js';
 import RetrospectiveReportModal from '../components/board/RetrospectiveReportModal.js';
+import SprintPlanningModal from '../components/board/SprintPlanningModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -115,6 +116,7 @@ export default function BoardPage() {
 
   const createFeature = useCreateFeature(projectId!);
   const createTicket = useCreateTicket(projectId!);
+  const sprintPlan = useSprintPlan();
 
   const { data: sessions } = useProjectSessions(projectId!);
   const [showSessionsSidebar, setShowSessionsSidebar] = useState(true);
@@ -139,6 +141,7 @@ export default function BoardPage() {
   const [boardError, setBoardError] = useState<unknown>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showSprintAnalysis, setShowSprintAnalysis] = useState(false);
+  const [showSprintPlan, setShowSprintPlan] = useState(false);
   const [showStandup, setShowStandup] = useState(false);
   const [showRetrospective, setShowRetrospective] = useState(false);
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
@@ -499,6 +502,25 @@ export default function BoardPage() {
           <span className="hidden sm:inline">Sprint Analysis</span>
         </button>
 
+        {/* Plan Sprint Button */}
+        <button
+          onClick={async () => {
+            setShowSprintPlan(true);
+            try {
+              await sprintPlan.generate(projectId!);
+            } catch (error) {
+              toast.error(`Failed to generate sprint plan: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={sprintPlan.loading}
+          className="text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 transition-colors flex items-center gap-1 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="hidden sm:inline">Plan Sprint</span>
+        </button>
+
         {/* Standup Report Button */}
         <button
           onClick={() => setShowStandup(true)}
@@ -730,6 +752,15 @@ export default function BoardPage() {
         >
           <HelpContent view={helpView} onViewChange={setHelpView} />
         </HelpModal>
+      )}
+
+      {/* Sprint Planning Modal */}
+      {showSprintPlan && sprintPlan.plan && (
+        <SprintPlanningModal
+          plan={sprintPlan.plan}
+          velocity={sprintPlan.plan.capacityUtilization > 0 ? Math.round((sprintPlan.plan.estimatedPoints / sprintPlan.plan.capacityUtilization) * 10) / 10 : sprintPlan.plan.estimatedPoints}
+          onClose={() => { sprintPlan.setPlan(null); setShowSprintPlan(false); }}
+        />
       )}
 
       {/* Standup Report Modal */}
