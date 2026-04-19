@@ -28,7 +28,7 @@ export function setupSocketServer(httpServer: HttpServer) {
   });
 
   // Auth middleware
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth.token as string | undefined;
     if (!token) {
       return next(new Error('Authentication required'));

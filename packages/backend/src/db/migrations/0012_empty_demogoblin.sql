@@ -1,0 +1,2 @@
+-- Empty migration placeholder — 0012 applied successfully
+-- Adds ai_assessment jsonb column to transition_gates
