@@ -710,6 +710,60 @@ export interface EpicHealthResult {
   analyzedAt: string;
 }
 
+export interface EpicSummary {
+  epicId: string;
+  epicTitle: string;
+  totalTickets: number;
+  completionRate: number;
+  status: 'not_started' | 'in_progress' | 'complete';
+}
+
+export interface ProjectHealthResult {
+  projectId: string;
+  projectName: string;
+  totalTickets: number;
+  totalEpics: number;
+  healthScore: number;
+  riskLevel: 'critical' | 'at_risk' | 'on_track' | 'healthy';
+  dimensions: {
+    completion: number;
+    velocity: number;
+    quality: number;
+    risk: number;
+  };
+  ticketBreakdown: {
+    idea: number;
+    backlog: number;
+    inProgress: number;
+    review: number;
+    done: number;
+  };
+  epicSummaries: EpicSummary[];
+  topBlockers: string[];
+  executiveSummary: string;
+  recommendedAction: string;
+  analyzedAt: string;
+}
+
+export function useProjectHealth() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ProjectHealthResult | null>(null);
+
+  const analyze = async (projectId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/health`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);

@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -23,6 +23,7 @@ import SprintPlanningModal from '../components/board/SprintPlanningModal.js';
 import BlockerDependencyModal from '../components/board/BlockerDependencyModal.js';
 import TicketPrioritizerModal from '../components/board/TicketPrioritizerModal.js';
 import EpicHealthModal from '../components/board/EpicHealthModal.js';
+import ProjectHealthModal from '../components/board/ProjectHealthModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -153,6 +154,7 @@ export default function BoardPage() {
   const ticketPrioritizer = useTicketPrioritizer();
   const [showEpicHealth, setShowEpicHealth] = useState(false);
   const epicHealth = useEpicHealth();
+  const { analyze: analyzeProjectHealth, loading: projectHealthLoading, result: projectHealthResult, setResult: setProjectHealthResult } = useProjectHealth();
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
   // Keyboard shortcuts: Escape to close modals, ? for shortcuts, H for help
@@ -586,6 +588,19 @@ export default function BoardPage() {
           </button>
         )}
 
+        {/* Project Health Button */}
+        <button
+          onClick={() => { analyzeProjectHealth(projectId!); }}
+          disabled={projectHealthLoading}
+          className='flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50'
+        >
+          {projectHealthLoading ? (
+            <><span className='animate-spin'>⟳</span> Analyzing...</>
+          ) : (
+            <><span>📊</span> Project Health</>
+          )}
+        </button>
+
         {/* Blocker & Dependency Analysis Button */}
         {board?.columns?.flatMap((c) => c.tickets).length != null && board.columns.flatMap((c) => c.tickets).length >= 2 && (
           <button
@@ -867,6 +882,15 @@ export default function BoardPage() {
           result={epicHealth.result}
           isOpen={!!epicHealth.result}
           onClose={() => epicHealth.setResult(null)}
+        />
+      )}
+
+      {/* Project Health Modal */}
+      {projectHealthResult && (
+        <ProjectHealthModal
+          result={projectHealthResult}
+          isOpen={true}
+          onClose={() => setProjectHealthResult(null)}
         />
       )}
     </div>
