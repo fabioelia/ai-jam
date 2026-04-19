@@ -62,6 +62,9 @@ export async function handoffRoutes(fastify: FastifyInstance) {
     '/api/tickets/:ticketId/handoffs',
     async (request, reply) => {
       try {
+        if (!request.body.fromPersona || !request.body.summary) {
+          return reply.status(400).send({ error: 'fromPersona and summary are required' });
+        }
         const result = await handoffService.executeHandoff(
           {
             ticketId: request.params.ticketId,
@@ -121,9 +124,9 @@ export async function handoffRoutes(fastify: FastifyInstance) {
         }
 
         // Check for existing manual override
-        const manualOverride = await handoffService['getManualOverride'](request.params.ticketId) || undefined;
+        const manualOverride = await handoffService.getManualOverride(request.params.ticketId) || undefined;
 
-        const route = await handoffService['determineNextRoute'](ticket, undefined, manualOverride);
+        const route = await handoffService.determineNextRoute(ticket, undefined, manualOverride);
         return reply.send(route);
       } catch (error) {
         return reply.status(500).send({ error: error instanceof Error ? error.message : 'Failed to determine route' });
@@ -158,6 +161,63 @@ export async function handoffRoutes(fastify: FastifyInstance) {
         }
       } catch (error) {
         return reply.status(500).send({ error: error instanceof Error ? error.message : 'Failed to create override' });
+      }
+    }
+  );
+
+  /**
+   * POST /api/handoffs/execute
+   * Execute a handoff for a specific ticket (used by Orchestrator)
+   */
+  fastify.post<{
+    Body: {
+      ticketId: string;
+      fromPersona?: string;
+      summary?: string;
+      requestTransition?: boolean;
+      manualOverride?: {
+        targetPersona?: string;
+        targetStatus?: string;
+        reason: string;
+      };
+    };
+  }>(
+    '/api/handoffs/execute',
+    async (request, reply) => {
+      try {
+        const { ticketId, summary, requestTransition, manualOverride } = request.body;
+
+        if (!ticketId) {
+          return reply.status(400).send({ error: 'ticketId is required' });
+        }
+
+        const { eq } = await import('drizzle-orm');
+        const { db } = await import('../db/connection.js');
+        const { tickets } = await import('../db/schema.js');
+
+        const [ticket] = await db.select().from(tickets).where(eq(tickets.id, ticketId)).limit(1);
+        if (!ticket) {
+          return reply.status(404).send({ error: 'Ticket not found' });
+        }
+
+        const result = await handoffService.executeHandoff(
+          {
+            ticketId,
+            fromPersona: request.body.fromPersona || ticket.assignedPersona || 'unknown',
+            toPersona: undefined,
+            summary: summary || `Automatic handoff for ticket "${ticket.title}"`,
+          },
+          requestTransition ?? true,
+          manualOverride
+        );
+
+        if (result.success) {
+          return reply.send(result);
+        } else {
+          return reply.status(400).send(result);
+        }
+      } catch (error) {
+        return reply.status(500).send({ error: error instanceof Error ? error.message : 'Failed to execute handoff' });
       }
     }
   );
