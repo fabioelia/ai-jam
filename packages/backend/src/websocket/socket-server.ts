@@ -5,6 +5,17 @@ import { config } from '../config.js';
 import { getRuntimeClient } from '../agent-runtime/runtime-manager.js';
 import { getPtyDaemonClient } from '../agent-runtime/pty-daemon-manager.js';
 import type { ServerToClientEvents, ClientToServerEvents, Notification } from '@ai-jam/shared';
+import {
+  setPresence,
+  removePresence,
+  removeAllPresence,
+  getUsersInContext,
+  setTyping,
+  clearTyping,
+} from './presence-store.js';
+import { db } from '../db/connection.js';
+import { users } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 
 let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents> | null = null;
 
@@ -26,6 +37,17 @@ export function setupSocketServer(httpServer: HttpServer) {
       const payload = jwt.verify(token, config.jwtSecret) as { userId: string; email: string };
       (socket.data as Record<string, unknown>).userId = payload.userId;
       (socket.data as Record<string, unknown>).email = payload.email;
+
+      // Look up name and avatar for presence system
+      const [user] = await db
+        .select({ name: users.name, avatarUrl: users.avatarUrl })
+        .from(users)
+        .where(eq(users.id, payload.userId))
+        .limit(1);
+      if (user) {
+        (socket.data as Record<string, unknown>).userName = user.name;
+        (socket.data as Record<string, unknown>).avatarUrl = user.avatarUrl;
+      }
       next();
     } catch {
       next(new Error('Invalid token'));
@@ -69,6 +91,45 @@ export function setupSocketServer(httpServer: HttpServer) {
 
     socket.on('leave:feature', ({ featureId }) => {
       socket.leave(`feature:${featureId}`);
+    });
+
+    // Presence
+    socket.on('presence:viewing', ({ context, contextId }) => {
+      const userId = socket.data.userId as string;
+      const userName = (socket.data as Record<string, unknown>).userName as string ?? '';
+      const avatarUrl = (socket.data as Record<string, unknown>).avatarUrl as string | null ?? null;
+      const room = `${context}:${contextId}`;
+      if (!socket.rooms.has(room)) socket.join(room);
+
+      const users = setPresence({ userId, userName, avatarUrl, context, contextId });
+      io!.to(room).emit('presence:update', { context, contextId, users });
+    });
+
+    socket.on('presence:leaving', ({ context, contextId }) => {
+      const userId = socket.data.userId as string;
+      const room = `${context}:${contextId}`;
+      if (socket.rooms.has(room)) socket.leave(room);
+
+      const users = removePresence(userId, context, contextId);
+      if (users.length > 0 || true) {
+        io!.to(room).emit('presence:update', { context, contextId, users });
+      }
+    });
+
+    // Typing
+    socket.on('typing:start', ({ ticketId }) => {
+      const userId = socket.data.userId as string;
+      const userName = (socket.data as Record<string, unknown>).userName as string ?? '';
+      const room = `ticket:${ticketId}`;
+      if (!socket.rooms.has(room)) socket.join(room);
+      setTyping(userId, userName, ticketId);
+      io!.to(room).emit('typing:indicator', { ticketId, userId, userName, isTyping: true });
+    });
+
+    socket.on('typing:stop', ({ ticketId }) => {
+      const userId = socket.data.userId as string;
+      clearTyping(userId, ticketId);
+      io!.to(`ticket:${ticketId}`).emit('typing:indicator', { ticketId, userId, userName: (socket.data as Record<string, unknown>).userName as string ?? '', isTyping: false });
     });
 
     // Terminal I/O: user sends keystrokes to a PTY session.
@@ -135,6 +196,21 @@ export function setupSocketServer(httpServer: HttpServer) {
 
     socket.on('pty:detach', ({ sessionId }) => {
       socket.leave(`pty:${sessionId}`);
+    });
+
+    // Disconnect cleanup
+    socket.on('disconnect', () => {
+      const userId = socket.data.userId as string;
+      const affectedKeys = removeAllPresence(userId);
+
+      // Re-broadcast updated presence for affected contexts
+      for (const key of affectedKeys) {
+        const parts = key.split(':');
+        const context = parts[0];
+        const contextId = parts.slice(1).join(':');
+        const users = getUsersInContext(context, contextId);
+        io!.to(key).emit('presence:update', { context, contextId, users });
+      }
     });
   });
 
