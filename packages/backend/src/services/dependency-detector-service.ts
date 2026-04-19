@@ -136,7 +136,7 @@ function parseSuggestions(content: string): Omit<DependencySuggestion, 'ticket'>
   try {
     // Extract JSON from possible markdown wrapping
     const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    const jsonText = codeBlockMatch ? codeBlockMatch[1].trim() : content.match(/\{[\s\S]*\}/)?.[0] || content;
+    const jsonText = codeBlockMatch ? codeBlockMatch[1].trim() : content.match(/\[[\s\S]*\]/)?.[0] || content.match(/\{[\s\S]*\}/)?.[0] || content;
 
     const parsed = JSON.parse(jsonText) as unknown[];
 
