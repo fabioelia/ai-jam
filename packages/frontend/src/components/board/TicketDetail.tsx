@@ -69,6 +69,16 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
   const [isEstimating, setIsEstimating] = useState(false);
   const [estimateError, setEstimateError] = useState<string | null>(null);
 
+  // State for acceptance criteria generation
+  interface AcceptanceCriteriaResult {
+    criteria: string[];
+    confidence: 'low' | 'medium' | 'high';
+    reasoning: string;
+  }
+  const [acResult, setAcResult] = useState<AcceptanceCriteriaResult | null>(null);
+  const [isGeneratingAC, setIsGeneratingAC] = useState(false);
+  const [acError, setAcError] = useState<string | null>(null);
+
   // State for tracking which ticket is currently displayed in the detail view
   const [currentTicketId, setCurrentTicketId] = useState(ticket.id);
 
@@ -212,6 +222,34 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
       setEstimationResult(null);
     } catch (err) {
       setEstimateError(err instanceof Error ? err.message : 'Failed to apply estimate');
+    }
+  }
+
+  async function handleGenerateAC() {
+    setIsGeneratingAC(true);
+    setAcError(null);
+    setAcResult(null);
+    try {
+      const result = await apiFetch(`/projects/${ticket.projectId}/tickets/${ticket.id}/acceptance-criteria`, { method: 'POST' });
+      setAcResult(result as AcceptanceCriteriaResult);
+    } catch (err) {
+      setAcError(err instanceof Error ? err.message : 'Failed to generate acceptance criteria');
+    } finally {
+      setIsGeneratingAC(false);
+    }
+  }
+
+  async function handleApplyAC() {
+    if (!acResult || acResult.criteria.length === 0) return;
+    try {
+      await apiFetch(`/tickets/${ticket.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ acceptanceCriteria: acResult.criteria }),
+      });
+      updateTicketStore(ticket.id, { acceptanceCriteria: acResult.criteria as unknown as string });
+      setAcResult(null);
+    } catch (err) {
+      setAcError(err instanceof Error ? err.message : 'Failed to apply acceptance criteria');
     }
   }
 
@@ -390,6 +428,71 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
                     )}
                     <button
                       onClick={() => setEstimationResult(null)}
+                      className="text-gray-400 hover:text-gray-300 px-3 py-1.5 text-sm"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Acceptance Criteria Generator */}
+            <div className="border-t border-gray-800 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-300">AI Acceptance Criteria</h3>
+                <button
+                  onClick={handleGenerateAC}
+                  disabled={isGeneratingAC}
+                  className="text-xs bg-indigo-600/80 hover:bg-indigo-500 disabled:bg-gray-700 text-white px-2 py-1 rounded transition-colors"
+                >
+                  {isGeneratingAC ? 'Generating...' : 'Generate AC'}
+                </button>
+              </div>
+
+              {acError && (
+                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                  {acError}
+                </div>
+              )}
+
+              {acResult && (
+                <div className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 space-y-3">
+                  {/* Criteria list */}
+                  {acResult.criteria.length > 0 && (
+                    <ol className="list-decimal list-inside space-y-1.5 text-sm text-gray-200">
+                      {acResult.criteria.map((c, i) => (
+                        <li key={i}>{c}</li>
+                      ))}
+                    </ol>
+                  )}
+
+                  {/* Confidence badge */}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    acResult.confidence === 'high'
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                      : acResult.confidence === 'medium'
+                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
+                        : 'bg-red-500/20 text-red-400 border border-red-500/40'
+                  }`}>
+                    {acResult.confidence} confidence
+                  </span>
+
+                  {/* Reasoning */}
+                  <p className="text-sm text-gray-400">{acResult.reasoning}</p>
+
+                  {/* Apply / Dismiss */}
+                  <div className="flex gap-2">
+                    {acResult.criteria.length > 0 && (
+                      <button
+                        onClick={handleApplyAC}
+                        className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm"
+                      >
+                        Apply
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setAcResult(null)}
                       className="text-gray-400 hover:text-gray-300 px-3 py-1.5 text-sm"
                     >
                       Dismiss

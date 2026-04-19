@@ -50,6 +50,7 @@ export const updateTicketSchema = z.object({
   storyPoints: z.number().int().positive().nullable().optional(),
   assignedPersona: z.string().max(100).nullable().optional(),
   assignedUserId: z.string().uuid().nullable().optional(),
+  acceptanceCriteria: z.array(z.string()).nullable().optional(),
 });
 
 export const createCommentSchema = z.object({

@@ -22,6 +22,7 @@ export interface Ticket {
   priority: TicketPriority;
   sortOrder: number;
   storyPoints: number | null;
+  acceptanceCriteria: string[];
   assignedPersona: string | null;
   assignedUserId: string | null;
   createdBy: string;

@@ -126,6 +126,7 @@ export const tickets = pgTable('tickets', {
   priority: ticketPriorityEnum('priority').default('medium').notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   storyPoints: integer('story_points'),
+  acceptanceCriteria: jsonb('acceptance_criteria').default([]).notNull(),
   assignedPersona: varchar('assigned_persona', { length: 100 }),
   assignedUserId: uuid('assigned_user_id').references(() => users.id, { onDelete: 'set null' }),
   createdBy: uuid('created_by').notNull().references(() => users.id),
