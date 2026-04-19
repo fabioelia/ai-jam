@@ -1,14 +1,31 @@
 import type { FastifyInstance } from 'fastify';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/connection.js';
 import { tickets } from '../db/schema.js';
-import { createTicketSchema, moveTicketSchema, updateTicketSchema, createClaudeTicketSchema } from '@ai-jam/shared';
+import { features } from '../db/schema.js';
+import {
+  createTicketSchema,
+  moveTicketSchema,
+  updateTicketSchema,
+  createClaudeTicketSchema,
+  categorizeTicketSchema
+} from '@ai-jam/shared';
 import { broadcastToBoard } from '../websocket/socket-server.js';
 import { getSourceFromRequest } from '../utils/source-header.js';
 import { notifyTicketStakeholders } from '../services/notification-service.js';
 import { requestGateAwareMove } from '../services/transition-service.js';
 import { validateNoCircularDependencies, validateDependencies, cascadeStatusUpdate, getDependencyChain } from '../services/dependency-service.js';
-import { generateTicketFromPrompt, calculateCost, type TicketData } from '../services/claude-ticket-service.js';
+import {
+  generateTicketFromPrompt,
+  calculateCost,
+  categorizeTicket,
+  type TicketData,
+  type BoardContext
+} from '../services/claude-ticket-service.js';
+import {
+  generateTicketFromCLI,
+  categorizeTicketWithCLI
+} from '../services/claude-cli-wrapper.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
@@ -92,12 +109,17 @@ export async function ticketRoutes(fastify: FastifyInstance) {
         const fullResponse: string[] = [];
 
         try {
-          const { ticket, usage } = await generateTicketFromPrompt(
+          const { data: ticket, usage } = await generateTicketFromCLI(
             parsed.data.userPrompt,
-            parsed.data.attachments,
-            (delta) => {
-              fullResponse.push(delta);
-              reply.raw.write(`data: ${JSON.stringify({ delta })}\n\n`);
+            {
+              model: 'claude-sonnet-4-20250514',
+              stream: true,
+              onStream: (delta) => {
+                fullResponse.push(delta);
+                reply.raw.write(`data: ${JSON.stringify({ delta })}\n\n`);
+              },
+              codebaseContext: parsed.data.codebaseContext,
+              attachments: parsed.data.attachments,
             }
           );
 
@@ -115,9 +137,13 @@ export async function ticketRoutes(fastify: FastifyInstance) {
 
       // Non-streaming response
       try {
-        const { ticket: generated, usage } = await generateTicketFromPrompt(
+        const { data: generated, usage } = await generateTicketFromCLI(
           parsed.data.userPrompt,
-          parsed.data.attachments
+          {
+            model: 'claude-sonnet-4-7',
+            codebaseContext: parsed.data.codebaseContext,
+            attachments: parsed.data.attachments,
+          }
         );
 
         const cost = calculateCost(usage);
@@ -295,6 +321,91 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       const maxDepth = request.query.maxDepth ? parseInt(request.query.maxDepth, 10) : 5;
       const chain = await getDependencyChain(request.params.id, maxDepth);
       return chain;
+    }
+  );
+
+  // Categorize a ticket using AI
+  fastify.post<{ Params: { projectId: string }; Body: { featureId?: string; includeBoardContext?: boolean } & Record<string, unknown> }>(
+    '/api/projects/:projectId/tickets/categorize',
+    async (request, reply) => {
+      const parsed = categorizeTicketSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() });
+
+      const { title, description, featureId, includeBoardContext } = parsed.data;
+      const { projectId } = request.params;
+
+      let boardContext: BoardContext | undefined;
+
+      if (includeBoardContext) {
+        // Gather board context if featureId is provided
+        if (featureId) {
+          const [feature] = await db.select().from(features).where(eq(features.id, featureId)).limit(1);
+
+          if (feature) {
+            boardContext = {
+              featureTitle: feature.title,
+              featureDescription: feature.description || undefined,
+            };
+
+            // Get related tickets for the feature
+            const relatedTickets = await db
+              .select()
+              .from(tickets)
+              .where(and(eq(tickets.featureId, featureId), eq(tickets.projectId, projectId)))
+              .orderBy(tickets.createdAt)
+              .limit(5);
+
+            if (relatedTickets.length > 0) {
+              boardContext.relatedTickets = relatedTickets.map(t => ({
+                title: t.title,
+                description: t.description || '',
+                status: t.status,
+                priority: t.priority,
+              }));
+            }
+          }
+        }
+
+        // Get project-level related tickets if no featureId
+        if (!boardContext?.relatedTickets) {
+          const projectTickets = await db
+            .select()
+            .from(tickets)
+            .where(eq(tickets.projectId, projectId))
+            .orderBy(tickets.createdAt)
+            .limit(5);
+
+          if (projectTickets.length > 0) {
+            if (!boardContext) boardContext = {};
+            boardContext.relatedTickets = projectTickets.map(t => ({
+              title: t.title,
+              description: t.description || '',
+              status: t.status,
+              priority: t.priority,
+            }));
+          }
+        }
+      }
+
+      try {
+        const { data: categorization, usage } = await categorizeTicketWithCLI(
+          { title, description },
+          {
+            model: 'claude-sonnet-4-7',
+            boardContext,
+          }
+        );
+        const cost = calculateCost(usage);
+
+        return reply.send({
+          categorization,
+          usage,
+          cost,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.status(500).send({ error: message });
+      }
     }
   );
 }

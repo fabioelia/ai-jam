@@ -145,6 +145,10 @@ export const NotificationType = {
   PROPOSAL_CREATED: 'proposal_created',
   PROPOSAL_RESOLVED: 'proposal_resolved',
   SCAN_COMPLETED: 'scan_completed',
+  HANDOFF_RECEIVED: 'handoff_received',
+  HANDOFF_COMPLETED: 'handoff_completed',
+  HANDOFF_FAILED: 'handoff_failed',
+  HANDOFF_OVERRIDE_CREATED: 'handoff_override_created',
 } as const;
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];

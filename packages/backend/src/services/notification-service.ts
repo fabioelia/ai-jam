@@ -349,3 +349,253 @@ export async function notifyProjectOwner(
     actionUrl,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Handoff Notification Functions (Phase 3: Notification System)
+// ---------------------------------------------------------------------------
+
+export interface HandoffNotificationMetadata {
+  fromPersona: string;
+  toPersona?: string;
+  ticketTitle: string;
+  ticketPriority: string;
+  ticketType?: string;
+  complexity?: string;
+  manualOverride?: boolean;
+  routingReason?: string;
+  transitionFrom?: string;
+  transitionTo?: string;
+}
+
+/**
+ * Send a handoff received notification to target persona.
+ * Notifies recipient that a ticket has been handed off to them.
+ */
+export async function notifyHandoffReceived(
+  ticketId: string,
+  fromPersona: string,
+  toPersona: string,
+  metadata: HandoffNotificationMetadata,
+): Promise<string[]> {
+  const [ticket] = await db
+    .select({
+      projectId: tickets.projectId,
+      featureId: tickets.featureId,
+      title: tickets.title,
+      status: tickets.status,
+    })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+
+  if (!ticket) return [];
+
+  const members = await db
+    .select({ userId: projectMembers.userId })
+    .from(projectMembers)
+    .where(eq(projectMembers.projectId, ticket.projectId));
+
+  const notifiedUserIds: string[] = [];
+
+  await Promise.all(
+    members.map(async (member) => {
+      const notification = await createNotification({
+        userId: member.userId,
+        projectId: ticket.projectId,
+        type: 'handoff_received',
+        title: `Handoff Received: ${fromPersona} → ${toPersona}`,
+        body: `Ticket "${ticket.title}" has been handed off from ${fromPersona} to ${toPersona}. ${metadata.routingReason || ''}`,
+        actionUrl: `/projects/${ticket.projectId}/tickets/${ticketId}`,
+        featureId: ticket.featureId ?? undefined,
+        ticketId,
+        metadata: {
+          ...metadata,
+          fromPersona,
+          toPersona,
+          ticketTitle: ticket.title,
+        },
+      });
+
+      if (notification) {
+        notifiedUserIds.push(member.userId);
+      }
+    }),
+  );
+
+  return notifiedUserIds;
+}
+
+/**
+ * Send a handoff completed notification.
+ * Notifies stakeholders that a handoff has been successfully completed.
+ */
+export async function notifyHandoffCompleted(
+  ticketId: string,
+  fromPersona: string,
+  toPersona: string,
+  metadata: HandoffNotificationMetadata,
+): Promise<string[]> {
+  const [ticket] = await db
+    .select({
+      projectId: tickets.projectId,
+      featureId: tickets.featureId,
+      title: tickets.title,
+      assignedUserId: tickets.assignedUserId,
+      createdBy: tickets.createdBy,
+    })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+
+  if (!ticket) return [];
+
+  const recipientIds = [...new Set(
+    [ticket.createdBy, ticket.assignedUserId].filter((id): id is string => !!id),
+  )];
+
+  const notifiedUserIds: string[] = [];
+
+  await Promise.all(
+    recipientIds.map(async (userId) => {
+      const notification = await createNotification({
+        userId,
+        projectId: ticket.projectId,
+        type: 'handoff_completed',
+        title: `Handoff Completed: ${fromPersona} → ${toPersona}`,
+        body: `Handoff for ticket "${ticket.title}" has been completed. ${metadata.routingReason || ''}`,
+        actionUrl: `/projects/${ticket.projectId}/tickets/${ticketId}`,
+        featureId: ticket.featureId ?? undefined,
+        ticketId,
+        metadata: {
+          ...metadata,
+          fromPersona,
+          toPersona,
+          ticketTitle: ticket.title,
+        },
+      });
+
+      if (notification) {
+        notifiedUserIds.push(userId);
+      }
+    }),
+  );
+
+  return notifiedUserIds;
+}
+
+/**
+ * Send a handoff failed notification.
+ * Notifies stakeholders that a handoff has failed and needs attention.
+ */
+export async function notifyHandoffFailed(
+  ticketId: string,
+  fromPersona: string,
+  error: string,
+  metadata: Partial<HandoffNotificationMetadata>,
+): Promise<string[]> {
+  const [ticket] = await db
+    .select({
+      projectId: tickets.projectId,
+      featureId: tickets.featureId,
+      title: tickets.title,
+      assignedUserId: tickets.assignedUserId,
+      createdBy: tickets.createdBy,
+    })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+
+  if (!ticket) return [];
+
+  const recipientIds = [...new Set(
+    [ticket.createdBy, ticket.assignedUserId].filter((id): id is string => !!id),
+  )];
+
+  const notifiedUserIds: string[] = [];
+
+  await Promise.all(
+    recipientIds.map(async (userId) => {
+      const notification = await createNotification({
+        userId,
+        projectId: ticket.projectId,
+        type: 'handoff_failed',
+        title: `Handoff Failed: ${fromPersona}`,
+        body: `Handoff for ticket "${ticket.title}" failed. Error: ${error}`,
+        actionUrl: `/projects/${ticket.projectId}/tickets/${ticketId}`,
+        featureId: ticket.featureId ?? undefined,
+        ticketId,
+        metadata: {
+          ...metadata,
+          fromPersona,
+          ticketTitle: ticket.title,
+          error,
+        },
+      });
+
+      if (notification) {
+        notifiedUserIds.push(userId);
+      }
+    }),
+  );
+
+  return notifiedUserIds;
+}
+
+/**
+ * Send a manual override created notification.
+ * Notifies relevant users that a manual routing override has been created.
+ */
+export async function notifyHandoffOverrideCreated(
+  ticketId: string,
+  override: { targetPersona?: string; targetStatus?: string; reason: string },
+  metadata: Partial<HandoffNotificationMetadata>,
+): Promise<string[]> {
+  const [ticket] = await db
+    .select({
+      projectId: tickets.projectId,
+      featureId: tickets.featureId,
+      title: tickets.title,
+      assignedUserId: tickets.assignedUserId,
+      createdBy: tickets.createdBy,
+    })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+
+  if (!ticket) return [];
+
+  const members = await db
+    .select({ userId: projectMembers.userId })
+    .from(projectMembers)
+    .where(eq(projectMembers.projectId, ticket.projectId));
+
+  const notifiedUserIds: string[] = [];
+
+  await Promise.all(
+    members.map(async (member) => {
+      const notification = await createNotification({
+        userId: member.userId,
+        projectId: ticket.projectId,
+        type: 'handoff_override_created',
+        title: `Manual Override Created: ${ticket.title}`,
+        body: `Manual routing override created for ticket "${ticket.title}". Reason: ${override.reason}${override.targetPersona ? ` Target: ${override.targetPersona}` : ''}${override.targetStatus ? ` Status: ${override.targetStatus}` : ''}`,
+        actionUrl: `/projects/${ticket.projectId}/tickets/${ticketId}`,
+        featureId: ticket.featureId ?? undefined,
+        ticketId,
+        metadata: {
+          ...metadata,
+          ticketTitle: ticket.title,
+          targetPersona: override.targetPersona,
+          targetStatus: override.targetStatus,
+          overrideReason: override.reason,
+        },
+      });
+
+      if (notification) {
+        notifiedUserIds.push(member.userId);
+      }
+    }),
+  );
+
+  return notifiedUserIds;
+}

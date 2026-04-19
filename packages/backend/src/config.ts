@@ -17,9 +17,10 @@ export const config = {
   maxConcurrentAgents: parseInt(process.env.MAX_CONCURRENT_AGENTS || '12', 10),
   /** Static service token for agent-runtime orchestrator authentication. */
   serviceToken: process.env.AIJAM_SERVICE_TOKEN || '',
-  // Claude API integration
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
-  claudeModel: process.env.CLAUDE_MODEL || 'claude-sonnet-4-7',
+  // AI via OpenRouter
+  openrouterApiKey: process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY || '',
+  openrouterBaseUrl: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api',
+  aiModel: process.env.ANTHROPIC_DEFAULT_SONNET_MODEL || process.env.CLAUDE_MODEL || 'qwen/qwen3.6-plus',
   // S3 avatar storage
   s3Region: process.env.S3_REGION || 'us-east-1',
   s3Bucket: process.env.S3_BUCKET || 'ai-jam-avatars',

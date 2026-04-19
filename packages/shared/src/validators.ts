@@ -96,9 +96,29 @@ export const createClaudeTicketSchema = z.object({
     mimeType: z.string(),
     url: z.string(),
   })).default([]),
+  codebaseContext: z.object({
+    files: z.array(z.object({
+      path: z.string(),
+      content: z.string().optional(),
+      summary: z.string().optional(),
+    })).optional(),
+    projectStructure: z.string().optional(),
+    techStack: z.array(z.string()).optional(),
+    relatedTickets: z.array(z.object({
+      title: z.string(),
+      description: z.string(),
+    })).optional(),
+  }).optional(),
 });
 
 export const uploadAttachmentSchema = z.object({
   file: z.any(),
   type: z.enum(['image', 'document']).optional().default('document'),
+});
+
+export const categorizeTicketSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().optional(),
+  featureId: z.string().uuid().optional(),
+  includeBoardContext: z.boolean().optional().default(true),
 });

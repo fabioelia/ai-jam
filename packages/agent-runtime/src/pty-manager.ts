@@ -2,11 +2,16 @@ import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { execSync } from 'child_process';
 import { writeFileSync, mkdirSync, unlinkSync, existsSync, rmSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { tmpdir } from 'os';
+import { fileURLToPath } from 'url';
 import { v4 as uuid } from 'uuid';
 import { ActivityDetector, type Activity } from './activity-detector.js';
 import type { SessionType } from './protocol.js';
+
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Resolve a command to its full path using the user's shell environment.
