@@ -643,3 +643,87 @@ export function useBlockerAnalysis() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface PrioritizedTicket {
+  ticketId: string;
+  ticketTitle: string;
+  ticketStatus: string;
+  storyPoints: number | null;
+  priorityScore: number;
+  priorityRank: number;
+  rationale: string;
+  dimensions: {
+    impact: number;
+    urgency: number;
+    dependency: number;
+    readiness: number;
+  };
+}
+
+export interface PrioritizationResult {
+  projectId: string;
+  totalTickets: number;
+  rankedTickets: PrioritizedTicket[];
+  rationaleSummary: string;
+  analyzedAt: string;
+}
+
+export function useTicketPrioritizer() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<PrioritizationResult | null>(null);
+
+  const prioritize = async (projectId: string) => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<PrioritizationResult>(`/projects/${projectId}/prioritize`, { method: 'POST' });
+      setResult(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { prioritize, loading, result, setResult };
+}
+
+export interface EpicHealthResult {
+  epicId: string;
+  epicTitle: string;
+  healthScore: number;
+  riskLevel: 'critical' | 'at_risk' | 'on_track' | 'healthy';
+  totalTickets: number;
+  dimensions: {
+    completeness: number;
+    velocity: number;
+    readiness: number;
+    scopeRisk: number;
+  };
+  ticketBreakdown: {
+    idea: number;
+    backlog: number;
+    inProgress: number;
+    review: number;
+    done: number;
+  };
+  narrative: string;
+  topRisk: string;
+  analyzedAt: string;
+}
+
+export function useEpicHealth() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<EpicHealthResult | null>(null);
+
+  const analyze = async (epicId: string) => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<EpicHealthResult>(`/epics/${epicId}/health`, { method: 'POST' });
+      setResult(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

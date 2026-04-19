@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -21,6 +21,8 @@ import StandupReportModal from '../components/board/StandupReportModal.js';
 import RetrospectiveReportModal from '../components/board/RetrospectiveReportModal.js';
 import SprintPlanningModal from '../components/board/SprintPlanningModal.js';
 import BlockerDependencyModal from '../components/board/BlockerDependencyModal.js';
+import TicketPrioritizerModal from '../components/board/TicketPrioritizerModal.js';
+import EpicHealthModal from '../components/board/EpicHealthModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -147,6 +149,10 @@ export default function BoardPage() {
   const [showRetrospective, setShowRetrospective] = useState(false);
   const [showBlockers, setShowBlockers] = useState(false);
   const blockerAnalysis = useBlockerAnalysis();
+  const [showPrioritizer, setShowPrioritizer] = useState(false);
+  const ticketPrioritizer = useTicketPrioritizer();
+  const [showEpicHealth, setShowEpicHealth] = useState(false);
+  const epicHealth = useEpicHealth();
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
   // Keyboard shortcuts: Escape to close modals, ? for shortcuts, H for help
@@ -546,6 +552,40 @@ export default function BoardPage() {
           <span className="hidden sm:inline">Retro</span>
         </button>
 
+        {/* Prioritize Button */}
+        <button
+          onClick={async () => {
+            setShowPrioritizer(true);
+            try {
+              await ticketPrioritizer.prioritize(projectId!);
+            } catch (error) {
+              toast.error(`Failed to prioritize tickets: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={ticketPrioritizer.loading}
+          className="text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 transition-colors flex items-center gap-1 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h9m-9 4h5m4 0l4-4m0 0l4 4m-4-4v12" />
+          </svg>
+          <span className="hidden sm:inline">{ticketPrioritizer.loading ? 'Analyzing...' : 'Prioritize'}</span>
+        </button>
+
+        {/* Blocker & Dependency Analysis Button */}
+        {/* Epic Health Button */}
+        {board?.epics?.[0]?.id != null && (
+          <button
+            onClick={() => epicHealth.analyze(board?.epics?.[0]?.id!)}
+            disabled={epicHealth.loading}
+            className="text-xs sm:text-sm px-2 md:px-2.5 py-1.5 rounded-lg border bg-gray-800 border-gray-700 text-teal-400 hover:text-teal-300 hover:border-teal-500/50 transition-colors flex items-center gap-1 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span className="hidden sm:inline">{epicHealth.loading ? 'Analyzing...' : 'Epic Health'}</span>
+          </button>
+        )}
+
         {/* Blocker & Dependency Analysis Button */}
         {board?.columns?.flatMap((c) => c.tickets).length != null && board.columns.flatMap((c) => c.tickets).length >= 2 && (
           <button
@@ -809,6 +849,24 @@ export default function BoardPage() {
           projectId={projectId!}
           projectName={project.name}
           onClose={() => { blockerAnalysis.setResult(null); setShowBlockers(false); }}
+        />
+      )}
+
+      {/* Ticket Prioritizer Modal */}
+      {showPrioritizer && project && ticketPrioritizer.result && (
+        <TicketPrioritizerModal
+          result={ticketPrioritizer.result}
+          projectName={project.name}
+          onClose={() => { ticketPrioritizer.setResult(null); setShowPrioritizer(false); }}
+        />
+      )}
+
+      {/* Epic Health Modal */}
+      {epicHealth.result && (
+        <EpicHealthModal
+          result={epicHealth.result}
+          isOpen={!!epicHealth.result}
+          onClose={() => epicHealth.setResult(null)}
         />
       )}
     </div>
