@@ -25,6 +25,7 @@ import { userRoutes } from './routes/users.js';
 import { standupRoutes } from './routes/standup.js';
 import { retrospectiveRoutes } from './routes/retrospective.js';
 import { sprintPlanningRoutes } from './routes/sprint-planning.js';
+import { ticketQualityRoutes } from './routes/ticket-quality.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -84,6 +85,7 @@ async function main() {
   await fastify.register(standupRoutes);
   await fastify.register(retrospectiveRoutes);
   await fastify.register(sprintPlanningRoutes);
+  await fastify.register(ticketQualityRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

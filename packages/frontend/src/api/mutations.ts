@@ -556,3 +556,41 @@ export function useSprintPlan() {
 
   return { generate, loading, plan, setPlan };
 }
+
+export interface DimensionScore {
+  score: number;
+  label: string;
+  note: string;
+}
+
+export interface TicketQualityResult {
+  overallScore: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  dimensions: {
+    clarity: DimensionScore;
+    completeness: DimensionScore;
+    sizing: DimensionScore;
+    specificity: DimensionScore;
+    readiness: DimensionScore;
+  };
+  suggestions: string[];
+  confidence: 'low' | 'medium' | 'high';
+}
+
+export function useTicketQuality() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<TicketQualityResult | null>(null);
+
+  const generate = async (ticketId: string) => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<TicketQualityResult>(`/tickets/${ticketId}/quality`, { method: 'POST' });
+      setResult(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { generate, loading, result, setResult };
+}

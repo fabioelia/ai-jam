@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useComments, useTicketNotes, useTransitionGates, useAgentSessions, useDependencyChain } from '../../api/queries.js';
-import { useCreateComment } from '../../api/mutations.js';
+import { useCreateComment, useTicketQuality } from '../../api/mutations.js';
+import type { TicketQualityResult } from '../../api/mutations.js';
+import TicketQualityModal from './TicketQualityModal.js';
 import { apiFetch } from '../../api/client.js';
 import { getSocket, joinTicket, leaveTicket } from '../../api/socket.js';
 import { useAuthStore } from '../../stores/auth-store.js';
@@ -88,6 +90,12 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
   const [subtaskResult, setSubtaskResult] = useState<SubtaskResult | null>(null);
   const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
   const [subtaskError, setSubtaskError] = useState<string | null>(null);
+
+  // State for ticket quality scoring
+  const { generate: generateQuality, loading: isScoring } = useTicketQuality();
+  const [qualityResult, setQualityResult] = useState<TicketQualityResult | null>(null);
+  const [showQualityModal, setShowQualityModal] = useState(false);
+  const [qualityError, setQualityError] = useState<string | null>(null);
 
   // State for tracking which ticket is currently displayed in the detail view
   const [currentTicketId, setCurrentTicketId] = useState(ticket.id);
@@ -274,6 +282,19 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
       setSubtaskError(err instanceof Error ? err.message : 'Failed to generate sub-tasks');
     } finally {
       setIsGeneratingSubtasks(false);
+    }
+  }
+
+  async function handleScoreQuality() {
+    setQualityError(null);
+    try {
+      const result = await generateQuality(ticket.id);
+      if (result) {
+        setQualityResult(result);
+        setShowQualityModal(true);
+      }
+    } catch (err) {
+      setQualityError(err instanceof Error ? err.message : 'Failed to score ticket quality');
     }
   }
 
@@ -622,6 +643,25 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
               )}
             </div>
 
+            {/* Ticket Quality Scorer */}
+            <div className="border-t border-gray-800 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-300">Ticket Quality</h3>
+                <button
+                  onClick={handleScoreQuality}
+                  disabled={isScoring}
+                  className="text-xs bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white px-2 py-1 rounded transition-colors"
+                >
+                  {isScoring ? 'Scoring...' : 'Score Quality'}
+                </button>
+              </div>
+              {qualityError && (
+                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                  {qualityError}
+                </div>
+              )}
+            </div>
+
             {ticket.dependencies && ticket.dependencies.length > 0 && (
               <div className="border-t border-gray-800 pt-4">
                 <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
@@ -783,6 +823,15 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
           </div>
         </div>
       </div>
+
+      {qualityResult && showQualityModal && (
+        <TicketQualityModal
+          result={qualityResult}
+          ticketTitle={ticket.title}
+          isOpen={showQualityModal}
+          onClose={() => setShowQualityModal(false)}
+        />
+      )}
     </>
   );
 }
