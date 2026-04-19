@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useComments, useTicketNotes, useTransitionGates, useAgentSessions, useDependencyChain } from '../../api/queries.js';
-import { useCreateComment, useTicketQuality } from '../../api/mutations.js';
-import type { TicketQualityResult } from '../../api/mutations.js';
+import { useComments, useTicketNotes, useTransitionGates, useAgentSessions } from '../../api/queries.js';
+import { useCreateComment, useTicketQuality, useTicketTriage } from '../../api/mutations.js';
+import type { TicketQualityResult, TriageResult } from '../../api/mutations.js';
 import TicketQualityModal from './TicketQualityModal.js';
+import TicketTriageModal from './TicketTriageModal.js';
 import { apiFetch } from '../../api/client.js';
 import { getSocket, joinTicket, leaveTicket } from '../../api/socket.js';
 import { useAuthStore } from '../../stores/auth-store.js';
 import { useBoardStore } from '../../stores/board-store.js';
 import CommentThread from './CommentThread.js';
 import HandoffTimeline from './HandoffTimeline.js';
-import DependencyChain from './DependencyChain.js';
 import type { Ticket, Epic, Comment, TicketPriority, SubtaskProposal } from '@ai-jam/shared';
 
 interface DependencySuggestion {
@@ -45,7 +45,6 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
   const { data: ticketNotes } = useTicketNotes(ticket.id);
   const { data: transitionGates } = useTransitionGates(ticket.id);
   const { data: agentSessionsData } = useAgentSessions(ticket.id);
-  const { data: dependencyChain } = useDependencyChain(ticket.id, 5);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(ticket.title);
@@ -96,6 +95,11 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
   const [qualityResult, setQualityResult] = useState<TicketQualityResult | null>(null);
   const [showQualityModal, setShowQualityModal] = useState(false);
   const [qualityError, setQualityError] = useState<string | null>(null);
+
+  // State for ticket triage
+  const { triage: runTriage, loading: isTriaging } = useTicketTriage();
+  const [triageResult, setTriageResult] = useState<TriageResult | null>(null);
+  const [showTriageModal, setShowTriageModal] = useState(false);
 
   // State for tracking which ticket is currently displayed in the detail view
   const [currentTicketId, setCurrentTicketId] = useState(ticket.id);
@@ -298,6 +302,37 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
     }
   }
 
+  async function handleTriage() {
+    try {
+      const result = await runTriage(ticket.id);
+      if (result) {
+        setTriageResult(result);
+        setShowTriageModal(true);
+      }
+    } catch (err) {
+      console.error('Failed to triage ticket:', err);
+    }
+  }
+
+  async function handleApplyTriage(result: TriageResult) {
+    const patch: Record<string, unknown> = {};
+    if (result.suggestedPriority) patch.priority = result.suggestedPriority;
+    if (result.suggestedStoryPoints != null) patch.storyPoints = result.suggestedStoryPoints;
+    if (result.suggestedEpicId != null) patch.epicId = result.suggestedEpicId;
+    if (result.suggestedAssignee != null) patch.assignedPersona = result.suggestedAssignee;
+    try {
+      await apiFetch(`/tickets/${ticket.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      });
+      updateTicketStore(ticket.id, patch as Parameters<typeof updateTicketStore>[1]);
+    } catch (err) {
+      console.error('Failed to apply triage suggestions:', err);
+    }
+    setShowTriageModal(false);
+    setTriageResult(null);
+  }
+
   async function handleCreateAllSubtasks() {
     if (!subtaskResult || subtaskResult.subtasks.length === 0) return;
     try {
@@ -347,6 +382,29 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: epic.color || '#6b7280' }} />
                 {epic.title}
               </span>
+            )}
+            {(ticket.status === 'backlog' || ticket.status === 'todo') && (
+              <button
+                onClick={handleTriage}
+                disabled={isTriaging}
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-violet-800 disabled:opacity-50 text-white transition-colors"
+              >
+                {isTriaging ? (
+                  <>
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Triaging...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Triage
+                  </>
+                )}
+              </button>
             )}
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-lg">&times;</button>
@@ -768,31 +826,6 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
               )}
             </div>
 
-            {/* Dependency Chain */}
-            {(dependencyChain && (dependencyChain.upstream.length > 0 || dependencyChain.downstream.length > 0)) && (
-              <div className="border-t border-gray-800 pt-4">
-                <h3 className="text-sm font-medium text-gray-300 mb-3">
-                  Dependency Chain
-                </h3>
-                <DependencyChain
-                  chain={dependencyChain}
-                  onTicketClick={(ticketId) => {
-                    // Open the clicked ticket in the detail view
-                    apiFetch<Ticket>(`/tickets/${ticketId}`)
-                      .then((clickedTicket) => {
-                        setCurrentTicketId(ticketId);
-                        // Note: This would require restructuring to support navigation
-                        // For now, we could emit an event or use a callback
-                        console.log('Navigate to ticket:', clickedTicket);
-                      })
-                      .catch((err) => {
-                        console.error('Failed to load ticket:', err);
-                      });
-                  }}
-                />
-              </div>
-            )}
-
             {/* Agent Activity / Handoff Timeline */}
             {(ticketNotes?.length || transitionGates?.length || agentSessionsData?.length) ? (
               <div className="border-t border-gray-800 pt-4">
@@ -830,6 +863,15 @@ export default function TicketDetail({ ticket, epics, onClose }: TicketDetailPro
           ticketTitle={ticket.title}
           isOpen={showQualityModal}
           onClose={() => setShowQualityModal(false)}
+        />
+      )}
+
+      {triageResult && showTriageModal && (
+        <TicketTriageModal
+          result={triageResult}
+          isOpen={showTriageModal}
+          onClose={() => { setShowTriageModal(false); setTriageResult(null); }}
+          onApply={handleApplyTriage}
         />
       )}
     </>

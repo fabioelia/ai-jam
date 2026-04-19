@@ -844,6 +844,36 @@ export function useReleaseReadiness() {
   return { check, loading, result, setResult };
 }
 
+export interface TriageResult {
+  ticketId: string;
+  suggestedPriority: 'critical' | 'high' | 'medium' | 'low';
+  suggestedStoryPoints: number;
+  suggestedEpicId: string | null;
+  suggestedEpicName: string | null;
+  suggestedAssignee: string | null;
+  reasoning: string;
+  confidence: 'high' | 'medium' | 'low';
+  analyzedAt: string;
+}
+
+export function useTicketTriage() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<TriageResult | null>(null);
+
+  const triage = async (ticketId: string) => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<TriageResult>(`/tickets/${ticketId}/triage`, { method: 'POST' });
+      setResult(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { triage, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);
