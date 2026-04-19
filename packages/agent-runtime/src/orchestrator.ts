@@ -161,6 +161,12 @@ export class TicketOrchestrator {
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
 
+  // Phase 4: automatic handoff properties
+  private handoffRetryMap: Map<string, { attempts: number; lastAttempt: number }> = new Map();
+  private handoffStats = { triggered: 0, succeeded: 0, failed: 0, retried: 0 };
+  private readonly MAX_HANDOFF_RETRIES = 3;
+  private readonly HANDOFF_RETRY_DELAY_MS = 30_000;
+
   constructor(sessionManager: SessionManager, config: OrchestratorConfig) {
     this.sessionManager = sessionManager;
     this.config = {
@@ -184,6 +190,8 @@ export class TicketOrchestrator {
       `[orchestrator] Starting — polling every ${this.config.pollIntervalMs / 1000}s, ${mode}`,
     );
 
+    this.wireSessionEvents();
+
     // Run first tick after a short delay to let the runtime settle
     setTimeout(() => this.tick(), 5_000);
     this.timer = setInterval(() => this.tick(), this.config.pollIntervalMs);
@@ -198,6 +206,114 @@ export class TicketOrchestrator {
       this.timer = null;
     }
     console.log('[orchestrator] Stopped');
+  }
+
+  // -------------------------------------------------------------------------
+  // Phase 4: Automatic handoff integration
+  // -------------------------------------------------------------------------
+
+  /**
+   * Listen to session completion events and trigger automatic handoffs.
+   */
+  private wireSessionEvents(): void {
+    this.sessionManager.on('session:completed', async ({ sessionId }: { sessionId: string }) => {
+      try {
+        await this.handleSessionCompletion(sessionId);
+      } catch (err) {
+        console.error('[orchestrator] handleSessionCompletion error:', err instanceof Error ? err.message : err);
+      }
+    });
+  }
+
+  /**
+   * On agent session completion, look up any tickets associated with the session
+   * and trigger automatic handoffs for those in handoff-ready states.
+   */
+  private async handleSessionCompletion(sessionId: string): Promise<void> {
+    let session: AgentSessionRecord;
+    try {
+      session = await this.api.get<AgentSessionRecord>(`/api/agent-sessions/${sessionId}`);
+    } catch {
+      return; // session not found — not a tracked ticket session
+    }
+
+    if (!session.ticketId) return;
+
+    this.cleanupStaleRetries();
+    await this.triggerAutomaticHandoff(session.ticketId);
+  }
+
+  /**
+   * Trigger a handoff for a ticket via backend API, with retry logic.
+   */
+  private async triggerAutomaticHandoff(ticketId: string): Promise<void> {
+    const entry = this.handoffRetryMap.get(ticketId);
+    const now = Date.now();
+
+    if (entry) {
+      if (entry.attempts >= this.MAX_HANDOFF_RETRIES) {
+        console.warn(`[orchestrator] Handoff max retries reached for ticket ${ticketId.slice(0, 8)}`);
+        this.handoffStats.failed++;
+        this.handoffRetryMap.delete(ticketId);
+        return;
+      }
+      if (now - entry.lastAttempt < this.HANDOFF_RETRY_DELAY_MS) {
+        return; // too soon to retry
+      }
+      this.handoffStats.retried++;
+    }
+
+    this.handoffRetryMap.set(ticketId, {
+      attempts: (entry?.attempts ?? 0) + 1,
+      lastAttempt: now,
+    });
+
+    this.handoffStats.triggered++;
+
+    try {
+      await this.api.post(`/api/handoffs/execute`, { ticketId, requestTransition: true });
+      this.handoffStats.succeeded++;
+      this.handoffRetryMap.delete(ticketId);
+      console.log(`[orchestrator] Automatic handoff triggered for ticket ${ticketId.slice(0, 8)}`);
+    } catch (err) {
+      console.error(
+        `[orchestrator] Handoff failed for ticket ${ticketId.slice(0, 8)}:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+
+  /**
+   * Request a ticket transition via backend API.
+   */
+  private async requestTicketTransition(ticketId: string, targetStatus: string): Promise<void> {
+    await this.api.post(`/api/tickets/${ticketId}/move`, { toStatus: targetStatus });
+  }
+
+  /**
+   * Return current handoff statistics.
+   */
+  public getHandoffStats(): typeof this.handoffStats {
+    return { ...this.handoffStats };
+  }
+
+  /**
+   * Return current retry status snapshot.
+   */
+  public getHandoffRetryStatus(): Map<string, { attempts: number; lastAttempt: number }> {
+    return new Map(this.handoffRetryMap);
+  }
+
+  /**
+   * Remove stale retry entries older than 1 hour.
+   */
+  private cleanupStaleRetries(): void {
+    const oneHourAgo = Date.now() - 3_600_000;
+    for (const [ticketId, entry] of this.handoffRetryMap) {
+      if (entry.lastAttempt < oneHourAgo) {
+        this.handoffRetryMap.delete(ticketId);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------

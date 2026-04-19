@@ -22,6 +22,7 @@ import {
   notifyHandoffOverrideCreated,
   type HandoffNotificationMetadata,
 } from './notification-service.js';
+import { requestGateAwareMove } from './transition-service.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -99,7 +100,7 @@ export class HandoffService {
    * Classify ticket type based on title and description content.
    * Uses keyword matching and pattern analysis.
    */
-  private classifyTicketType(title: string, description?: string): TicketType {
+  public classifyTicketType(title: string, description?: string): TicketType {
     const text = `${title} ${description || ''}`.toLowerCase();
 
     // Bug indicators
@@ -145,7 +146,7 @@ export class HandoffService {
    * Analyze ticket complexity based on multiple factors.
    * Returns a complexity level and detailed scoring.
    */
-  private analyzeComplexity(ticket: any): ComplexityScore {
+  public analyzeComplexity(ticket: any): ComplexityScore {
     let score = 0;
     const factors: string[] = [];
 
@@ -216,7 +217,7 @@ export class HandoffService {
    * Fetch board state for a project to understand workflow context.
    * Identifies bottlenecks and workflow patterns.
    */
-  private async getBoardState(projectId: string): Promise<BoardState> {
+  public async getBoardState(projectId: string): Promise<BoardState> {
     try {
       // Get ticket counts by status
       const statusCounts = await db
@@ -231,7 +232,7 @@ export class HandoffService {
       const totalTickets = statusCounts.reduce((sum, row) => sum + row.count, 0);
 
       // Identify bottlenecks (columns with significantly more tickets than average)
-      const avgTicketsPerColumn = totalTickets / statusCounts.length;
+      const avgTicketsPerColumn = statusCounts.length > 0 ? totalTickets / statusCounts.length : 0;
       const bottlenecks: string[] = [];
       statusCounts.forEach((row) => {
         if (row.count > avgTicketsPerColumn * 2) {
@@ -258,7 +259,7 @@ export class HandoffService {
   /**
    * Check for existing manual override for this ticket.
    */
-  private async getManualOverride(ticketId: string): Promise<{ targetPersona?: string; targetStatus?: string; reason?: string } | null> {
+  public async getManualOverride(ticketId: string): Promise<{ targetPersona?: string; targetStatus?: string; reason?: string } | null> {
     try {
       // Look for override notes in the ticket notes
       const overrideNotes = await db
@@ -535,9 +536,16 @@ export class HandoffService {
       // Request transition if specified
       let transitionRequested = false;
       if (requestTransition && targetStatus !== ticket.status) {
-        // Transition would be handled by the transition service
-        // For now, we'll note that it was requested
-        transitionRequested = true;
+        try {
+          await requestGateAwareMove({
+            ticketId: context.ticketId,
+            toStatus: targetStatus as any,
+            requestedBy: context.fromPersona,
+          });
+          transitionRequested = true;
+        } catch (err) {
+          console.error('[handoff-service] Transition request failed:', err instanceof Error ? err.message : err);
+        }
       }
 
       return {
@@ -728,7 +736,7 @@ export class HandoffService {
 
     // Filter in code since we need complex logic
     const allNotes = await query;
-    return allNotes.filter((note) => note.handoffFrom && !note.handoffTo);
+    return allNotes.filter((note) => note.handoffTo !== null);
   }
 }
 
