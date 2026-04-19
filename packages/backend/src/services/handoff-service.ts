@@ -721,21 +721,14 @@ export class HandoffService {
    * Get pending handoffs that need attention.
    */
   async getPendingHandoffs(projectId?: string): Promise<any[]> {
-    // This would be enhanced with actual "pending" status tracking
-    // For now, return recent handoffs
     let query = db
       .select()
       .from(ticketNotes)
-      .where(
-        and(
-          // handoffFrom is not null (it's a handoff)
-        ),
-      )
       .orderBy(desc(ticketNotes.createdAt))
-      .limit(20);
+      .limit(50);
 
-    // Return handoffs that have both a source and destination (pending handoff notes)
-    return allNotes.filter(
+    const allHandoffNotes = await query;
+    return allHandoffNotes.filter(
       (note) => note.handoffFrom !== null && note.handoffTo !== null
     );
   }
