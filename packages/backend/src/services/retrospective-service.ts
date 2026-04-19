@@ -31,7 +31,7 @@ export async function generateRetrospective(projectId: string): Promise<Retrospe
     t => ['done', 'review', 'qa', 'acceptance'].includes(t.status),
   );
   const inProgressTickets = projectTickets.filter(t => t.status === 'in_progress');
-  const blockedTickets = projectTickets.filter(t => t.status === 'blocked');
+  const backlogTickets = projectTickets.filter(t => t.status === 'backlog');
 
   const plannedPoints = projectTickets.reduce((sum, t) => sum + (t.storyPoints ?? 0), 0);
   const completedPoints = completedTickets.reduce((sum, t) => sum + (t.storyPoints ?? 0), 0);
@@ -54,8 +54,8 @@ ${formatTickets(completedTickets)}
 IN PROGRESS tickets (incomplete work) — candidates for "Needs Improvement":
 ${formatTickets(inProgressTickets)}
 
-BLOCKED tickets — candidates for "Needs Improvement":
-${formatTickets(blockedTickets)}
+BACKLOG tickets (not started) — candidates for "Needs Improvement":
+${formatTickets(backlogTickets)}
 
 Velocity: ${completedPoints} of ${plannedPoints} story points completed.
 
