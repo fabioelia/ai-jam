@@ -70,7 +70,7 @@ async function callClaudeCLI({
   systemPrompt: string;
   model?: string;
 }): Promise<ClaudeCLIResponse> {
-  const modelName = model || config.claudeModel || 'claude-sonnet-4-7';
+  const modelName = model || config.claudeModel || 'claude-sonnet-4-6';
   const args = ['--model', modelName, '--output-format', 'json', '--print'];
 
   if (systemPrompt) {
@@ -135,7 +135,7 @@ async function callClaudeCLIStream({
   model?: string;
   onChunk: (chunk: string) => void;
 }): Promise<ClaudeCLIResponse> {
-  const modelName = model || config.claudeModel || 'claude-sonnet-4-7';
+  const modelName = model || config.claudeModel || 'claude-sonnet-4-6';
   const args = ['--model', modelName, '--output-format', 'stream-json', '--print', '--include-partial-messages', '--verbose'];
 
   if (systemPrompt) {

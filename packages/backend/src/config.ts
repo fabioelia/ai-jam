@@ -19,7 +19,7 @@ export const config = {
   serviceToken: process.env.AIJAM_SERVICE_TOKEN || '',
   // Claude API integration
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
-  claudeModel: process.env.CLAUDE_MODEL || 'claude-sonnet-4-7',
+  claudeModel: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
   // S3 avatar storage
   s3Region: process.env.S3_REGION || 'us-east-1',
   s3Bucket: process.env.S3_BUCKET || 'ai-jam-avatars',
