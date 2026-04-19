@@ -229,13 +229,13 @@ export class HandoffService {
         .where(eq(tickets.projectId, projectId))
         .groupBy(tickets.status);
 
-      const totalTickets = statusCounts.reduce((sum, row) => sum + row.count, 0);
+      const totalTickets = statusCounts.reduce((sum, row) => sum + Number(row.count), 0);
 
       // Identify bottlenecks (columns with significantly more tickets than average)
       const avgTicketsPerColumn = statusCounts.length > 0 ? totalTickets / statusCounts.length : 0;
       const bottlenecks: string[] = [];
       statusCounts.forEach((row) => {
-        if (row.count > avgTicketsPerColumn * 2) {
+        if (Number(row.count) > avgTicketsPerColumn * 2) {
           bottlenecks.push(row.status);
         }
       });
@@ -734,9 +734,10 @@ export class HandoffService {
       .orderBy(desc(ticketNotes.createdAt))
       .limit(20);
 
-    // Filter in code since we need complex logic
-    const allNotes = await query;
-    return allNotes.filter((note) => note.handoffTo !== null);
+    // Return handoffs that have both a source and destination (pending handoff notes)
+    return allNotes.filter(
+      (note) => note.handoffFrom !== null && note.handoffTo !== null
+    );
   }
 }
 
