@@ -24,6 +24,7 @@ import {
 } from '../services/claude-ticket-service.js';
 import { suggestDependencies } from '../services/dependency-detector-service.js';
 import { analyzeSprintHealth } from '../services/sprint-intelligence-service.js';
+import { generateReleaseNotes } from '../services/release-notes-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
 export async function ticketRoutes(fastify: FastifyInstance) {
@@ -433,6 +434,16 @@ export async function ticketRoutes(fastify: FastifyInstance) {
       const { projectId } = request.params;
       const analysis = await analyzeSprintHealth(projectId);
       return reply.code(200).send(analysis);
+    }
+  );
+
+  // Release Notes
+  fastify.post<{ Params: { projectId: string; featureId: string } }>(
+    '/api/projects/:projectId/features/:featureId/release-notes',
+    async (request, reply) => {
+      const { featureId } = request.params;
+      const result = await generateReleaseNotes(featureId);
+      return reply.code(200).send(result);
     }
   );
 }

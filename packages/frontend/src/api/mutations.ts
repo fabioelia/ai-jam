@@ -405,6 +405,45 @@ export function useGlobalMarkRead() {
 
 // -- Sprint Intelligence --
 
+export interface ReleaseNoteItem {
+  ticketId: string;
+  title: string;
+  headline: string;
+}
+
+export interface ReleaseNotes {
+  version: string;
+  summary: string;
+  features: ReleaseNoteItem[];
+  bugFixes: ReleaseNoteItem[];
+  improvements: ReleaseNoteItem[];
+  infrastructure: ReleaseNoteItem[];
+  markdown: string;
+  generatedAt: string;
+}
+
+// -- Release Notes --
+
+export function useReleaseNotes(projectId: string, featureId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ReleaseNotes | null>(null);
+
+  const generate = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<ReleaseNotes>(`/projects/${projectId}/features/${featureId}/release-notes`, { method: 'POST' });
+      setResult(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { generate, loading, result, setResult };
+}
+
+// -- Sprint Intelligence --
+
 export function useSprintAnalysis() {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<SprintAnalysis | null>(null);
