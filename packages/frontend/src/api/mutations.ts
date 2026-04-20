@@ -1200,42 +1200,41 @@ export interface HandoffIssue {
   description: string;
 }
 
-export interface HandoffQualityScore {
-  handoffId: string;
-  ticketId: string;
-  ticketTitle: string;
-  fromAgent: string;
-  toAgent: string;
-  score: number;
-  grade: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
-  qualityTier: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
-  perHandoffDetails: { quality: number; completeness: number };
-  issues: HandoffIssue[];
-  suggestions: string[];
-  analyzedAt: string;
+export interface AgentHandoffRole {
+  agentId: string;
+  agentName: string;
+  handoffsSent: number;
+  handoffsReceived: number;
+  avgContextScore: number;
+  avgResolutionRate: number;
+  handoffEfficiency: number;
+  role: 'initiator' | 'receiver' | 'collaborator' | 'isolated';
 }
 
-export interface HandoffQualityReport {
+export interface AgentHandoffQualityReport {
   projectId: string;
-  totalHandoffs: number;
-  averageScore: number;
-  excellentCount: number;
-  goodCount: number;
-  needsImprovementCount: number;
-  poorCount: number;
-  handoffs: HandoffQualityScore[];
-  topIssues: { category: string; count: number }[];
-  analyzedAt: string;
+  generatedAt: string;
+  summary: {
+    totalHandoffs: number;
+    avgContextScore: number;
+    avgResolutionRate: number;
+    topSender: string;
+    topReceiver: string;
+    lowQualityHandoffCount: number;
+  };
+  agents: AgentHandoffRole[];
+  insights: string[];
+  recommendations: string[];
 }
 
 export function useAgentHandoffQuality() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<HandoffQualityReport | null>(null);
+  const [result, setResult] = useState<AgentHandoffQualityReport | null>(null);
 
   const analyze = async (projectId: string): Promise<void> => {
     setLoading(true);
     try {
-      const data = await apiFetch<HandoffQualityReport>(`/projects/${projectId}/agent-handoff-quality`, {
+      const data = await apiFetch<AgentHandoffQualityReport>(`/projects/${projectId}/agent-handoff-quality`, {
         method: 'POST',
       });
       setResult(data);
@@ -1244,7 +1243,7 @@ export function useAgentHandoffQuality() {
     }
   };
 
-  return { analyze, loading, result, setResult };
+  return { loading, result, setResult, analyze };
 }
 
 export function useEpicHealth() {
@@ -4435,23 +4434,28 @@ export function useAgentContextWindow(projectId: string) {
 export interface AgentOutputConsistencyMetrics {
   agentId: string;
   agentName: string;
-  totalOutputs: number;
-  consistentOutputs: number;
-  consistencyRate: number;
-  formatAdherenceRate: number;
-  outputConsistencyScore: number;
-  consistencyTier: 'consistent' | 'variable' | 'erratic' | 'unreliable';
+  taskGroupsAnalyzed: number;
+  avgOutputLength: number;
+  outputLengthVariance: number;
+  formatConsistencyRate: number;
+  completionPhraseConsistency: number;
+  consistencyScore: number;
+  consistencyTier: 'stable' | 'mostly-stable' | 'variable' | 'erratic';
 }
 
 export interface AgentOutputConsistencyReport {
   projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalTaskGroups: number;
+    avgConsistencyScore: number;
+    mostConsistentAgent: string;
+    highVarianceAgents: number;
+  };
   agents: AgentOutputConsistencyMetrics[];
-  avgConsistencyScore: number;
-  mostConsistentAgent: string | null;
-  leastConsistentAgent: string | null;
-  outputCategories: { consistent: number; variable: number; erratic: number; unreliable: number };
-  aiSummary: string;
-  aiRecommendations: string[];
+  insights: string[];
+  recommendations: string[];
 }
 
 export function useAgentOutputConsistency(projectId: string) {
@@ -4990,6 +4994,65 @@ export function useAgentSessionQuality(projectId: string) {
     try {
       const r = await apiFetch<AgentSessionQualityReport>(
         `/projects/${projectId}/agent-session-quality`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
+
+// FEAT-128: Agent Workflow State Transition Analyzer
+export interface AgentWorkflowTransitionMetrics {
+  agentId: string;
+  agentName: string;
+  totalTransitions: number;
+  avgTransitionTimeHours: number;
+  fastestTransitionHours: number;
+  slowestTransitionHours: number;
+  stalledTickets: number;
+  transitionEfficiencyScore: number;
+  efficiencyTier: 'fluid' | 'steady' | 'sluggish' | 'blocked';
+}
+
+export interface WorkflowStateStats {
+  state: string;
+  avgDurationHours: number;
+  ticketCount: number;
+  stalledCount: number;
+}
+
+export interface AgentWorkflowTransitionReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalTransitions: number;
+    avgTransitionTimeHours: number;
+    fastestAgent: string | null;
+    stalledTotal: number;
+    fluidAgents: number;
+  };
+  agents: AgentWorkflowTransitionMetrics[];
+  stateStats: WorkflowStateStats[];
+  insights: string[];
+  recommendations: string[];
+  aiSummary?: string;
+  aiRecommendations?: string[];
+}
+
+export function useAgentWorkflowTransitions(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentWorkflowTransitionReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentWorkflowTransitionReport>(
+        `/projects/${projectId}/agent-workflow-transitions`,
         { method: 'POST' },
       );
       setData(r);
