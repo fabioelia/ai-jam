@@ -1,7 +1,163 @@
 import { db } from '../db/connection.js';
-import { tickets, ticketNotes } from '../db/schema.js';
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { tickets, ticketNotes, agentSessions } from '../db/schema.js';
+import { and, eq, isNotNull, inArray } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type * as schema from '../db/schema.js';
+
+// FEAT-120 types
+export interface AgentEscalationPatternMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  escalatedTasks: number;
+  escalationRate: number;
+  unnecessaryEscalations: number;
+  avgResolutionTime: number;
+  escalationScore: number;
+  escalationTier: 'autonomous' | 'measured' | 'dependent' | 'over-reliant';
+}
+
+export interface AgentEscalationPatternReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgEscalationScore: number;
+    mostAutonomous: string;
+    overReliantAgents: number;
+    avgEscalationRate: number;
+  };
+  agents: AgentEscalationPatternMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export type DrizzleDb = NodePgDatabase<typeof schema>;
+
+export function computeEscalationScore(
+  escalationRate: number,
+  unnecessaryEscalations: number,
+  avgResolutionTime: number,
+): number {
+  let score = (1 - escalationRate) * 100;
+  if (unnecessaryEscalations === 0) score += 10;
+  if (avgResolutionTime > 60) score -= 15;
+  return Math.max(0, Math.min(100, score));
+}
+
+export function escalationTier(score: number): AgentEscalationPatternMetrics['escalationTier'] {
+  if (score >= 80) return 'autonomous';
+  if (score >= 60) return 'measured';
+  if (score >= 40) return 'dependent';
+  return 'over-reliant';
+}
+
+export async function analyzeAgentEscalationPatterns(
+  _db: DrizzleDb,
+  projectId: string,
+): Promise<AgentEscalationPatternReport> {
+  const now = new Date().toISOString();
+
+  const projectTickets = await db
+    .select({ id: tickets.id })
+    .from(tickets)
+    .where(eq(tickets.projectId, projectId));
+
+  const ticketIds = projectTickets.map((t) => t.id);
+  let sessions: { personaType: string; status: string; startedAt: Date | null; completedAt: Date | null }[] = [];
+
+  if (ticketIds.length > 0) {
+    sessions = await db
+      .select({
+        personaType: agentSessions.personaType,
+        status: agentSessions.status,
+        startedAt: agentSessions.startedAt,
+        completedAt: agentSessions.completedAt,
+      })
+      .from(agentSessions)
+      .where(inArray(agentSessions.ticketId, ticketIds));
+  }
+
+  if (sessions.length === 0) {
+    return {
+      projectId,
+      generatedAt: now,
+      summary: { totalAgents: 0, avgEscalationScore: 0, mostAutonomous: '', overReliantAgents: 0, avgEscalationRate: 0 },
+      agents: [],
+      insights: [],
+      recommendations: [],
+    };
+  }
+
+  const sessionsByAgent = new Map<string, typeof sessions>();
+  for (const s of sessions) {
+    const list = sessionsByAgent.get(s.personaType) ?? [];
+    list.push(s);
+    sessionsByAgent.set(s.personaType, list);
+  }
+
+  const agents: AgentEscalationPatternMetrics[] = [];
+
+  for (const [personaType, agentSess] of sessionsByAgent.entries()) {
+    const totalTasks = agentSess.length;
+    const escalatedTasks = agentSess.filter((s) => s.status === 'failed').length;
+    const escalationRate = totalTasks > 0 ? escalatedTasks / totalTasks : 0;
+    const unnecessaryEscalations = 0;
+
+    const durations: number[] = [];
+    for (const s of agentSess) {
+      if (s.startedAt && s.completedAt) {
+        durations.push((new Date(s.completedAt).getTime() - new Date(s.startedAt).getTime()) / 60000);
+      }
+    }
+    const avgResolutionTime = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+
+    const escScore = computeEscalationScore(escalationRate, unnecessaryEscalations, avgResolutionTime);
+    const tier = escalationTier(escScore);
+
+    agents.push({
+      agentId: personaType,
+      agentName: personaType,
+      totalTasks,
+      escalatedTasks,
+      escalationRate: Math.round(escalationRate * 100),
+      unnecessaryEscalations,
+      avgResolutionTime: Math.round(avgResolutionTime),
+      escalationScore: Math.round(escScore),
+      escalationTier: tier,
+    });
+  }
+
+  agents.sort((a, b) => b.escalationScore - a.escalationScore);
+
+  const avgEscalationScore = agents.length > 0
+    ? Math.round(agents.reduce((s, a) => s + a.escalationScore, 0) / agents.length)
+    : 0;
+  const mostAutonomous = agents.length > 0 ? agents[0].agentName : '';
+  const overReliantAgents = agents.filter((a) => a.escalationTier === 'over-reliant').length;
+  const avgEscalationRate = agents.length > 0
+    ? Math.round(agents.reduce((s, a) => s + a.escalationRate, 0) / agents.length)
+    : 0;
+
+  const insights: string[] = [];
+  if (overReliantAgents > 0) insights.push(`${overReliantAgents} agent(s) are over-reliant on escalation.`);
+  const autonomous = agents.filter((a) => a.escalationTier === 'autonomous');
+  if (autonomous.length > 0) insights.push(`${autonomous.length} agent(s) operate autonomously.`);
+
+  const recommendations: string[] = [];
+  if (overReliantAgents > 0) recommendations.push('Review and reduce unnecessary escalations for over-reliant agents.');
+  recommendations.push('Encourage autonomous decision-making for low-risk tasks.');
+
+  return {
+    projectId,
+    generatedAt: now,
+    summary: { totalAgents: agents.length, avgEscalationScore, mostAutonomous, overReliantAgents, avgEscalationRate },
+    agents,
+    insights,
+    recommendations,
+  };
+}
 
 export interface EscalationChain {
   fromAgent: string;

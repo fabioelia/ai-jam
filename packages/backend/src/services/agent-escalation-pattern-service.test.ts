@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzeEscalationPatterns } from './agent-escalation-pattern-service.js';
+import {
+  analyzeEscalationPatterns,
+  computeEscalationScore,
+  escalationTier,
+  analyzeAgentEscalationPatterns,
+} from './agent-escalation-pattern-service.js';
 
 vi.mock('../db/connection.js', () => ({ db: { select: vi.fn() } }));
 vi.mock('@anthropic-ai/sdk', () => ({
@@ -119,5 +124,67 @@ describe('analyzeEscalationPatterns', () => {
     mockDbSequence([{ id: 't1' }], [makeNote('a', 'b')]);
     const result = await analyzeEscalationPatterns('proj-1');
     expect(result.aiSummary).toBe('Review escalation patterns to identify bottlenecks and improve agent handoff processes.');
+  });
+});
+
+// FEAT-120 tests
+describe('computeEscalationScore', () => {
+  it('no unnecessary escalations and fast resolution → bonus applied', () => {
+    const score = computeEscalationScore(0.1, 0, 30);
+    expect(score).toBeCloseTo(100, 0);
+  });
+
+  it('unnecessary escalations present → no bonus', () => {
+    const score = computeEscalationScore(0.1, 2, 30);
+    expect(score).toBeCloseTo(90, 0);
+  });
+
+  it('avgResolutionTime > 60 → -15 penalty', () => {
+    const score = computeEscalationScore(0.0, 0, 90);
+    expect(score).toBeCloseTo(95, 0);
+  });
+
+  it('clamps to 0 minimum', () => {
+    const score = computeEscalationScore(1.5, 5, 200);
+    expect(score).toBe(0);
+  });
+
+  it('clamps to 100 maximum', () => {
+    const score = computeEscalationScore(0, 0, 0);
+    expect(score).toBe(100);
+  });
+});
+
+describe('escalationTier', () => {
+  it('returns correct tier for each threshold', () => {
+    expect(escalationTier(85)).toBe('autonomous');
+    expect(escalationTier(65)).toBe('measured');
+    expect(escalationTier(45)).toBe('dependent');
+    expect(escalationTier(20)).toBe('over-reliant');
+  });
+});
+
+describe('analyzeAgentEscalationPatterns', () => {
+  it('returns report with correct shape', async () => {
+    (db as any).select.mockImplementation(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([]),
+    }));
+    const result = await analyzeAgentEscalationPatterns({} as any, 'proj-1');
+    expect(result.projectId).toBe('proj-1');
+    expect(result.generatedAt).toBeTruthy();
+    expect(Array.isArray(result.agents)).toBe(true);
+    expect(result.summary).toBeDefined();
+  });
+
+  it('summary fields computed correctly for empty project', async () => {
+    (db as any).select.mockImplementation(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([]),
+    }));
+    const result = await analyzeAgentEscalationPatterns({} as any, 'proj-empty');
+    expect(result.summary.totalAgents).toBe(0);
+    expect(result.summary.mostAutonomous).toBe('');
+    expect(result.summary.avgEscalationRate).toBe(0);
   });
 });
