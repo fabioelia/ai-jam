@@ -76,7 +76,7 @@ import AgentSessionDepthModal from '../components/board/AgentSessionDepthModal.j
 import AgentFeedbackLoopModal from '../components/board/AgentFeedbackLoopModal.js';
 import AgentReassignmentRatesModal from '../components/board/AgentReassignmentRatesModal.js';
 import AgentLearningCurveModal from '../components/board/AgentLearningCurveModal.js';
-import AgentAutonomyModal from '../components/board/AgentAutonomyModal.js';
+import AgentAutonomyLevelModal from '../components/board/AgentAutonomyLevelModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -2399,7 +2399,7 @@ export default function BoardPage() {
         <AgentLearningCurveModal report={learningCurveData} onClose={() => { setLearningCurveData(null); setShowLearningCurveModal(false); }} />
       )}
       {showAgentAutonomy && (
-        <AgentAutonomyModal result={agentAutonomy.result} isOpen={showAgentAutonomy} loading={agentAutonomy.loading} onClose={() => { agentAutonomy.setResult(null); setShowAgentAutonomy(false); }} />
+        <AgentAutonomyLevelModal result={agentAutonomy.result} isOpen={showAgentAutonomy} loading={agentAutonomy.loading} onClose={() => { agentAutonomy.setResult(null); setShowAgentAutonomy(false); }} />
       )}
     </div>
   );

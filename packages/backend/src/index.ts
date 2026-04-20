@@ -84,6 +84,7 @@ import { agentFeedbackLoopRoutes } from './routes/agent-feedback-loop.js';
 import { agentReassignmentRatesRoutes } from './routes/agent-reassignment-rates.js';
 import { agentLearningCurvesRoutes } from './routes/agent-learning-curves.js';
 import { agentAutonomyRoutes } from './routes/agent-autonomy.js';
+import { agentReworkRateRoutes } from './routes/agent-rework-rate.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -202,6 +203,7 @@ async function main() {
   await fastify.register(agentReassignmentRatesRoutes);
   await fastify.register(agentLearningCurvesRoutes);
   await fastify.register(agentAutonomyRoutes);
+  await fastify.register(agentReworkRateRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
