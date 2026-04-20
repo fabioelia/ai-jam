@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -44,6 +44,7 @@ import AgentContextRetentionModal from '../components/board/AgentContextRetentio
 import AgentFocusAdvisorModal from '../components/board/AgentFocusAdvisorModal.js';
 import AgentResponseTimeModal from '../components/board/AgentResponseTimeModal.js';
 import AgentPriorityAlignmentModal from '../components/board/AgentPriorityAlignmentModal.js';
+import AgentStallDetectorModal from '../components/board/AgentStallDetectorModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -212,6 +213,8 @@ export default function BoardPage() {
   const [showAgentResponseTime, setShowAgentResponseTime] = useState(false);
   const agentPriorityAlignment = useAgentPriorityAlignment();
   const [showPriorityAlignment, setShowPriorityAlignment] = useState(false);
+  const agentStallDetector = useAgentStallDetector();
+  const [showStallDetector, setShowStallDetector] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1037,6 +1040,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Stall Detector Button */}
+        <button
+          onClick={async () => {
+            setShowStallDetector(true);
+            try {
+              await agentStallDetector.detect(projectId!);
+            } catch (error) {
+              toast.error(`Stall detection failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentStallDetector.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+        >
+          {agentStallDetector.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Stall Detector</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1507,6 +1530,10 @@ export default function BoardPage() {
 
       {showPriorityAlignment && (
         <AgentPriorityAlignmentModal result={agentPriorityAlignment.result} isOpen={showPriorityAlignment} loading={agentPriorityAlignment.loading} onClose={() => { agentPriorityAlignment.setResult(null); setShowPriorityAlignment(false); }} />
+      )}
+
+      {showStallDetector && (
+        <AgentStallDetectorModal result={agentStallDetector.result} isOpen={showStallDetector} loading={agentStallDetector.loading} onClose={() => { agentStallDetector.setResult(null); setShowStallDetector(false); }} />
       )}
     </div>
   );

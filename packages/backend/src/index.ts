@@ -51,6 +51,7 @@ import { agentContextRetentionRoutes } from './routes/agent-context-retention.js
 import { agentFocusAdvisorRoutes } from './routes/agent-focus-advisor.js';
 import { agentResponseTimeRoutes } from './routes/agent-response-time.js';
 import { agentPriorityAlignmentRoutes } from './routes/agent-priority-alignment.js';
+import { agentStallDetectorRoutes } from './routes/agent-stall-detector.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -136,6 +137,7 @@ async function main() {
   await fastify.register(agentFocusAdvisorRoutes);
   await fastify.register(agentResponseTimeRoutes);
   await fastify.register(agentPriorityAlignmentRoutes);
+  await fastify.register(agentStallDetectorRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

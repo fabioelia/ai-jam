@@ -1604,3 +1604,51 @@ export function useAgentPriorityAlignment() {
 
   return { analyze, loading, result, setResult };
 }
+
+export type StallSeverity = 'critical' | 'high' | 'moderate' | 'low';
+
+export interface StalledTicket {
+  ticketId: string;
+  title: string;
+  status: string;
+  assignedPersona: string;
+  stalledForHours: number;
+  severity: StallSeverity;
+}
+
+export interface AgentStallSummary {
+  agentPersona: string;
+  stalledCount: number;
+  avgStalledHours: number;
+  worstStallHours: number;
+  stalledTickets: StalledTicket[];
+}
+
+export interface StallDetectionReport {
+  projectId: string;
+  totalStalledTickets: number;
+  criticalStalls: number;
+  agentSummaries: AgentStallSummary[];
+  mostStalledAgent: string | null;
+  aiRecommendation: string;
+  analyzedAt: string;
+}
+
+export function useAgentStallDetector() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<StallDetectionReport | null>(null);
+
+  const detect = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<StallDetectionReport>(`/projects/${projectId}/agent-stall-detector`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { detect, loading, result, setResult };
+}
