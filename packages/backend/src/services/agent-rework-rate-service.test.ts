@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import {
-  analyzeReworkRate,
+  analyzeAgentReworkRate,
   buildReworkMetrics,
-  qualityTier,
-  FALLBACK_SUMMARY,
-  FALLBACK_RECOMMENDATIONS,
+  reworkTier,
   type NoteRow,
 } from './agent-rework-rate-service.js';
 
@@ -63,40 +62,36 @@ beforeEach(() => vi.clearAllMocks());
 // Test 1: empty project returns empty report
 it('returns empty report when project has no tickets', async () => {
   mockDb([], []);
-  const report = await analyzeReworkRate('proj-1');
+  const report = await analyzeAgentReworkRate('proj-1');
   expect(report.agents).toHaveLength(0);
-  expect(report.systemReworkRate).toBe(0);
-  expect(report.lowestReworkAgent).toBeNull();
-  expect(report.highestReworkAgent).toBeNull();
-  expect(report.totalReworkEvents).toBe(0);
+  expect(report.summary.totalAgents).toBe(0);
+  expect(report.summary.avgReworkRate).toBe(0);
+  expect(report.summary.cleanAgents).toBe(0);
+  expect(report.summary.problematicAgents).toEqual([]);
 });
 
-// Test 2: qualityTier excellent < 10%
-it('assigns qualityTier excellent when rework rate < 10%', () => {
-  expect(qualityTier(0)).toBe('excellent');
-  expect(qualityTier(5)).toBe('excellent');
-  expect(qualityTier(9.9)).toBe('excellent');
+// Test 2: reworkTier clean <= 0.05
+it('assigns reworkTier clean when reworkRate <= 0.05', () => {
+  expect(reworkTier(0)).toBe('clean');
+  expect(reworkTier(0.05)).toBe('clean');
 });
 
-// Test 3: qualityTier good < 25%
-it('assigns qualityTier good when rework rate is between 10% and 25%', () => {
-  expect(qualityTier(10)).toBe('good');
-  expect(qualityTier(20)).toBe('good');
-  expect(qualityTier(24.9)).toBe('good');
+// Test 3: reworkTier acceptable <= 0.15
+it('assigns reworkTier acceptable when reworkRate is between 0.05 and 0.15', () => {
+  expect(reworkTier(0.06)).toBe('acceptable');
+  expect(reworkTier(0.15)).toBe('acceptable');
 });
 
-// Test 4: qualityTier fair < 50%
-it('assigns qualityTier fair when rework rate is between 25% and 50%', () => {
-  expect(qualityTier(25)).toBe('fair');
-  expect(qualityTier(40)).toBe('fair');
-  expect(qualityTier(49.9)).toBe('fair');
+// Test 4: reworkTier concerning <= 0.30
+it('assigns reworkTier concerning when reworkRate is between 0.15 and 0.30', () => {
+  expect(reworkTier(0.16)).toBe('concerning');
+  expect(reworkTier(0.30)).toBe('concerning');
 });
 
-// Test 5: qualityTier poor >= 50%
-it('assigns qualityTier poor when rework rate >= 50%', () => {
-  expect(qualityTier(50)).toBe('poor');
-  expect(qualityTier(75)).toBe('poor');
-  expect(qualityTier(100)).toBe('poor');
+// Test 5: reworkTier problematic > 0.30
+it('assigns reworkTier problematic when reworkRate > 0.30', () => {
+  expect(reworkTier(0.31)).toBe('problematic');
+  expect(reworkTier(1.0)).toBe('problematic');
 });
 
 // Test 6: reworkSourceBreakdown counts correctly by source stage
@@ -112,52 +107,50 @@ it('counts rework source breakdown by stage correctly', () => {
     makeNote('t4', 'PM', 'another review rework', 'AgentA', 'review', 3000),
   ];
   const { agents } = buildReworkMetrics(notes);
-  const agentA = agents.find(a => a.personaId === 'AgentA');
+  const agentA = agents.find(a => a.agentId === 'AgentA');
   expect(agentA).toBeDefined();
   expect(agentA!.reworkSourceBreakdown.fromReview).toBe(2);
   expect(agentA!.reworkSourceBreakdown.fromQA).toBe(1);
   expect(agentA!.reworkSourceBreakdown.fromAcceptance).toBe(1);
 });
 
-// Test 7: lowestReworkAgent / highestReworkAgent correct
-it('identifies lowestReworkAgent (best) and highestReworkAgent (worst) correctly', () => {
+// Test 7: agents sorted by reworkRate ascending
+it('sorts agents by reworkRate ascending (lowest rework first)', () => {
   const notes: NoteRow[] = [
-    // AgentA: 1 rework out of 2 tickets = 50% (poor)
+    // AgentA: 1 rework out of 2 tickets = 50%
     makeNote('t1', 'PM', 'rework for AgentA', 'AgentA', 'review', 0),
     makeNote('t1', 'AgentA', 'working on t1', null, null, 1000),
     makeNote('t2', 'AgentA', 'working on t2 no rework', null, null, 2000),
-    // AgentB: 0 rework out of 2 tickets = 0% (excellent)
+    // AgentB: 0 rework
     makeNote('t3', 'PM', 'handoff to AgentB', 'AgentB', null, 0),
     makeNote('t3', 'AgentB', 'working on t3', null, null, 1000),
     makeNote('t4', 'AgentB', 'working on t4', null, null, 2000),
   ];
   const { agents } = buildReworkMetrics(notes);
-  // Sort by reworkRate asc: AgentB (0%) first, AgentA (higher) last
-  const agentB = agents.find(a => a.personaId === 'AgentB');
-  const agentA = agents.find(a => a.personaId === 'AgentA');
+  const agentB = agents.find(a => a.agentId === 'AgentB');
+  const agentA = agents.find(a => a.agentId === 'AgentA');
   expect(agentB).toBeDefined();
   expect(agentA).toBeDefined();
   expect(agentB!.reworkRate).toBeLessThan(agentA!.reworkRate);
-  // lowestReworkAgent = first in sorted list = AgentB
-  expect(agents[0].personaId).toBe('AgentB');
+  // lowest rework first
+  expect(agents[0].agentId).toBe('AgentB');
 });
 
-// Test 8: AI fallback on error
-it('returns fallback aiSummary and aiRecommendations when AI call fails', async () => {
-  const AISdk = (await import('@anthropic-ai/sdk')).default as ReturnType<typeof vi.fn>;
-  AISdk.mockImplementationOnce(function () {
-    return {
-      messages: {
-        create: vi.fn().mockRejectedValue(new Error('AI service unavailable')),
-      },
-    };
-  });
-
-  mockDb([{ id: 't1', assignedPersona: 'AgentA' }], [
-    makeNote('t1', 'AgentA', 'working on ticket', null, null, 0),
-  ]);
-
-  const report = await analyzeReworkRate('proj-1');
-  expect(report.aiSummary).toBe(FALLBACK_SUMMARY);
-  expect(report.aiRecommendations).toEqual(FALLBACK_RECOMMENDATIONS);
+// Test 8: new field names totalTasks, reworkedTasks, avgReworkCycles present
+it('uses new field names: totalTasks, reworkedTasks, avgReworkCycles, reworkTier', () => {
+  const notes: NoteRow[] = [
+    makeNote('t1', 'AgentA', 'working on t1', null, null, 0),
+    makeNote('t2', 'PM', 'rework', 'AgentA', 'review', 1000),
+    makeNote('t2', 'AgentA', 'working on t2', null, null, 2000),
+  ];
+  const { agents } = buildReworkMetrics(notes);
+  const agentA = agents.find(a => a.agentId === 'AgentA');
+  expect(agentA).toBeDefined();
+  expect(agentA).toHaveProperty('totalTasks');
+  expect(agentA).toHaveProperty('reworkedTasks');
+  expect(agentA).toHaveProperty('avgReworkCycles');
+  expect(agentA).toHaveProperty('reworkTier');
+  expect(agentA).toHaveProperty('agentId');
+  expect(agentA).toHaveProperty('agentName');
+  expect(agentA).toHaveProperty('commonReworkReasons');
 });

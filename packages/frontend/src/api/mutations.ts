@@ -3004,37 +3004,43 @@ export function useAgentAutonomy(projectId: string) {
 }
 
 export interface AgentReworkMetrics {
-  personaId: string;
-  totalTicketsWorked: number;
-  reworkCount: number;
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  reworkedTasks: number;
   reworkRate: number;
-  avgReworksPerTicket: number;
+  avgReworkCycles: number;
+  commonReworkReasons: string[];
   reworkSourceBreakdown: {
     fromReview: number;
     fromQA: number;
     fromAcceptance: number;
   };
-  qualityTier: 'excellent' | 'good' | 'fair' | 'poor';
+  reworkTier: 'clean' | 'acceptable' | 'concerning' | 'problematic';
 }
 
-export interface ReworkRateReport {
+export interface AgentReworkRateReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgReworkRate: number;
+    cleanAgents: number;
+    problematicAgents: string[];
+  };
   agents: AgentReworkMetrics[];
-  systemReworkRate: number;
-  lowestReworkAgent: string | null;
-  highestReworkAgent: string | null;
-  totalReworkEvents: number;
-  aiSummary: string;
-  aiRecommendations: string[];
+  insights: string[];
+  recommendations: string[];
 }
 
 export function useAgentReworkRate(projectId: string) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ReworkRateReport | null>(null);
+  const [result, setResult] = useState<AgentReworkRateReport | null>(null);
 
   const analyze = async (): Promise<void> => {
     setLoading(true);
     try {
-      const data = await apiFetch<ReworkRateReport>(`/projects/${projectId}/agent-rework-rate`, {
+      const data = await apiFetch<AgentReworkRateReport>(`/projects/${projectId}/agent-rework-rate`, {
         method: 'POST',
       });
       setResult(data);

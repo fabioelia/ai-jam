@@ -4,27 +4,33 @@ import { eq, inArray } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
 export interface AgentReworkMetrics {
-  personaId: string;
-  totalTicketsWorked: number;
-  reworkCount: number;
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  reworkedTasks: number;
   reworkRate: number;
-  avgReworksPerTicket: number;
+  avgReworkCycles: number;
+  commonReworkReasons: string[];
   reworkSourceBreakdown: {
     fromReview: number;
     fromQA: number;
     fromAcceptance: number;
   };
-  qualityTier: 'excellent' | 'good' | 'fair' | 'poor';
+  reworkTier: 'clean' | 'acceptable' | 'concerning' | 'problematic';
 }
 
-export interface ReworkRateReport {
+export interface AgentReworkRateReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgReworkRate: number;
+    cleanAgents: number;
+    problematicAgents: string[];
+  };
   agents: AgentReworkMetrics[];
-  systemReworkRate: number;
-  lowestReworkAgent: string | null;
-  highestReworkAgent: string | null;
-  totalReworkEvents: number;
-  aiSummary: string;
-  aiRecommendations: string[];
+  insights: string[];
+  recommendations: string[];
 }
 
 export const FALLBACK_SUMMARY = 'Rework rate analysis complete.';
@@ -42,11 +48,11 @@ export type NoteRow = {
 
 type TicketRow = { id: string; assignedPersona: string | null };
 
-export function qualityTier(reworkRate: number): AgentReworkMetrics['qualityTier'] {
-  if (reworkRate < 10) return 'excellent';
-  if (reworkRate < 25) return 'good';
-  if (reworkRate < 50) return 'fair';
-  return 'poor';
+export function reworkTier(reworkRate: number): AgentReworkMetrics['reworkTier'] {
+  if (reworkRate <= 0.05) return 'clean';
+  if (reworkRate <= 0.15) return 'acceptable';
+  if (reworkRate <= 0.30) return 'concerning';
+  return 'problematic';
 }
 
 // Stage that sent the ticket back — derived from handoffFrom field on backward notes
@@ -103,14 +109,8 @@ export function buildReworkMetrics(notes: NoteRow[]): {
 
   let totalReworkEvents = 0;
 
-  // Detect rework: a note with handoffFrom indicating a backward stage transition
-  // This means the ticket went from review/qa/acceptance back to in_progress and was re-assigned
-  // We look for notes where handoffFrom is a "forward" stage (review, qa, acceptance)
-  // and handoffTo is set to an agent (indicating re-assignment back)
   for (const [, ticketNoteList] of notesByTicket.entries()) {
     for (const note of ticketNoteList) {
-      // A backward handoff: handoffFrom is a review/qa/acceptance stage
-      // handoffTo is the agent being re-assigned (rework)
       if (note.handoffTo && note.handoffFrom) {
         const fromLower = note.handoffFrom.toLowerCase();
         const isBackward = BACKWARD_FROM_STATUSES.has(fromLower) ||
@@ -133,7 +133,6 @@ export function buildReworkMetrics(notes: NoteRow[]): {
         }
       }
 
-      // Also track any agent who received a regular handoff (to get total tickets worked)
       if (note.handoffTo) {
         const agent = note.handoffTo;
         const acc = getAcc(agent);
@@ -142,7 +141,6 @@ export function buildReworkMetrics(notes: NoteRow[]): {
     }
   }
 
-  // Also count tickets that agents were assigned to via notes authored by agents
   for (const [ticketId, ticketNoteList] of notesByTicket.entries()) {
     const seenAuthors = new Set<string>();
     for (const note of ticketNoteList) {
@@ -155,20 +153,22 @@ export function buildReworkMetrics(notes: NoteRow[]): {
   }
 
   const agents: AgentReworkMetrics[] = [];
-  for (const [personaId, acc] of agentMap.entries()) {
-    const totalTicketsWorked = acc.ticketsWorked.size;
-    const reworkCount = acc.reworkTickets.size;
-    const reworkRate = totalTicketsWorked > 0 ? (reworkCount / totalTicketsWorked) * 100 : 0;
-    const avgReworksPerTicket = totalTicketsWorked > 0 ? acc.reworkEvents / totalTicketsWorked : 0;
+  for (const [agentId, acc] of agentMap.entries()) {
+    const totalTasks = acc.ticketsWorked.size;
+    const reworkedTasks = acc.reworkTickets.size;
+    const reworkRate = totalTasks > 0 ? reworkedTasks / totalTasks : 0;
+    const avgReworkCycles = totalTasks > 0 ? acc.reworkEvents / totalTasks : 0;
 
     agents.push({
-      personaId,
-      totalTicketsWorked,
-      reworkCount,
-      reworkRate: Math.round(reworkRate * 10) / 10,
-      avgReworksPerTicket: Math.round(avgReworksPerTicket * 10) / 10,
+      agentId,
+      agentName: agentId,
+      totalTasks,
+      reworkedTasks,
+      reworkRate: Math.round(reworkRate * 1000) / 1000,
+      avgReworkCycles: Math.round(avgReworkCycles * 10) / 10,
+      commonReworkReasons: [],
       reworkSourceBreakdown: { ...acc.sourceBreakdown },
-      qualityTier: qualityTier(reworkRate),
+      reworkTier: reworkTier(reworkRate),
     });
   }
 
@@ -178,7 +178,7 @@ export function buildReworkMetrics(notes: NoteRow[]): {
   return { agents, totalReworkEvents };
 }
 
-export async function analyzeReworkRate(projectId: string): Promise<ReworkRateReport> {
+export async function analyzeAgentReworkRate(projectId: string): Promise<AgentReworkRateReport> {
   const projectTickets: TicketRow[] = await db
     .select({ id: tickets.id, assignedPersona: tickets.assignedPersona })
     .from(tickets)
@@ -204,61 +204,33 @@ export async function analyzeReworkRate(projectId: string): Promise<ReworkRateRe
     allNotes = rawNotes;
   }
 
-  const { agents, totalReworkEvents } = buildReworkMetrics(allNotes);
+  const { agents } = buildReworkMetrics(allNotes);
 
-  const totalWorked = agents.reduce((s, a) => s + a.totalTicketsWorked, 0);
-  const totalReworks = agents.reduce((s, a) => s + a.reworkCount, 0);
-  const systemReworkRate = totalWorked > 0 ? Math.round((totalReworks / totalWorked) * 100 * 10) / 10 : 0;
+  const avgReworkRate = agents.length > 0
+    ? Math.round((agents.reduce((s, a) => s + a.reworkRate, 0) / agents.length) * 1000) / 1000
+    : 0;
 
-  const lowestReworkAgent = agents.length > 0 ? agents[0].personaId : null;
-  const highestReworkAgent = agents.length > 1 ? agents[agents.length - 1].personaId : null;
+  const cleanAgents = agents.filter(a => a.reworkTier === 'clean').length;
+  const problematicAgents = agents.filter(a => a.reworkTier === 'problematic').map(a => a.agentName);
 
-  let aiSummary = FALLBACK_SUMMARY;
-  let aiRecommendations = FALLBACK_RECOMMENDATIONS;
+  const insights: string[] = [];
+  if (problematicAgents.length > 0) insights.push(`${problematicAgents.length} agent(s) have problematic rework rates (>30%)`);
+  if (cleanAgents > 0) insights.push(`${cleanAgents} agent(s) have clean rework rates (≤5%)`);
 
-  try {
-    const client = new Anthropic({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
-    });
-
-    const summary = agents
-      .map(a =>
-        `${a.personaId}: reworkRate=${a.reworkRate}%, totalWorked=${a.totalTicketsWorked}, reworkCount=${a.reworkCount}, tier=${a.qualityTier}`,
-      )
-      .join('\n');
-
-    const prompt = `Analyze this agent rework rate data:\n${summary}\n\nReturn JSON with:\n- summary: one paragraph describing overall rework rate health\n- recommendations: array of 2-3 actionable recommendations to reduce rework\n\nRespond ONLY with valid JSON.`;
-
-    const response = await client.messages.create({
-      model: process.env.AI_MODEL || 'qwen/qwen3-6b',
-      max_tokens: 300,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed.summary) aiSummary = parsed.summary;
-        if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
-          aiRecommendations = parsed.recommendations;
-        }
-      } catch {
-        aiSummary = raw;
-      }
-    }
-  } catch (e) {
-    console.warn('Rework rate AI analysis failed, using fallback:', e);
-  }
+  const recommendations: string[] = [];
+  if (problematicAgents.length > 0) recommendations.push('Review tasks assigned to problematic agents for quality issues');
 
   return {
+    projectId,
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalAgents: agents.length,
+      avgReworkRate,
+      cleanAgents,
+      problematicAgents,
+    },
     agents,
-    systemReworkRate,
-    lowestReworkAgent,
-    highestReworkAgent,
-    totalReworkEvents,
-    aiSummary,
-    aiRecommendations,
+    insights,
+    recommendations,
   };
 }
