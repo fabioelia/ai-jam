@@ -4006,3 +4006,44 @@ export function useAgentPriorityAdherence(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentCognitiveLoadMetrics {
+  personaId: string;
+  totalSessions: number;
+  avgConcurrentTasks: number;
+  contextSwitches: number;
+  avgTokenBudget: number;
+  complexTaskRatio: number;
+  cognitiveLoadScore: number;
+  loadTier: 'critical' | 'high' | 'moderate' | 'low';
+}
+
+export interface AgentCognitiveLoadReport {
+  projectId: string;
+  agents: AgentCognitiveLoadMetrics[];
+  mostOverloadedAgent: string | null;
+  leastLoadedAgent: string | null;
+  avgCognitiveLoadScore: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentCognitiveLoad(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentCognitiveLoadReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentCognitiveLoadReport>(
+        `/projects/${projectId}/agent-cognitive-load`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
