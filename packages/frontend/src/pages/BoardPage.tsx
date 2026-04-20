@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -52,6 +52,7 @@ import AgentSkillGapModal from '../components/board/AgentSkillGapModal.js';
 import AgentConflictDetectorModal from '../components/board/AgentConflictDetectorModal.js';
 import AgentDecisionQualityModal from '../components/board/AgentDecisionQualityModal.js';
 import AgentPerformanceTrendModal from '../components/board/AgentPerformanceTrendModal.js';
+import AgentCoverageGapModal from '../components/board/AgentCoverageGapModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -236,6 +237,8 @@ export default function BoardPage() {
   const [showAgentDecisionQuality, setShowAgentDecisionQuality] = useState(false);
   const agentPerformanceTrend = useAgentPerformanceTrend();
   const [showAgentPerformanceTrend, setShowAgentPerformanceTrend] = useState(false);
+  const agentCoverageGap = useAgentCoverageGap();
+  const [showAgentCoverageGap, setShowAgentCoverageGap] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1221,6 +1224,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Coverage Gaps Button */}
+        <button
+          onClick={async () => {
+            setShowAgentCoverageGap(true);
+            try {
+              await agentCoverageGap.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Coverage gap analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentCoverageGap.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+        >
+          {agentCoverageGap.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7' /></svg> Coverage Gaps</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1723,6 +1746,10 @@ export default function BoardPage() {
 
       {showAgentPerformanceTrend && (
         <AgentPerformanceTrendModal result={agentPerformanceTrend.result} isOpen={showAgentPerformanceTrend} loading={agentPerformanceTrend.loading} onClose={() => { agentPerformanceTrend.setResult(null); setShowAgentPerformanceTrend(false); }} />
+      )}
+
+      {showAgentCoverageGap && (
+        <AgentCoverageGapModal result={agentCoverageGap.result} isOpen={showAgentCoverageGap} loading={agentCoverageGap.loading} onClose={() => { agentCoverageGap.setResult(null); setShowAgentCoverageGap(false); }} />
       )}
     </div>
   );

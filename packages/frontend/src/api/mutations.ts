@@ -1964,3 +1964,46 @@ export function useAgentPerformanceTrend() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface CoverageArea {
+  areaType: 'status' | 'epic' | 'label';
+  areaId: string;
+  areaName: string;
+  activeTickets: number;
+  agentsCovering: number;
+  lastAgentActivity: string | null;
+  gapSeverity: 'critical' | 'high' | 'moderate' | 'low';
+  recommendation: string;
+}
+
+export interface CoverageGapReport {
+  projectId: string;
+  analyzedAt: string;
+  totalAreas: number;
+  coveredAreas: number;
+  uncoveredAreas: number;
+  criticalGaps: number;
+  coverageScore: number;
+  areas: CoverageArea[];
+  aiSummary: string;
+}
+
+export function useAgentCoverageGap() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CoverageGapReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<CoverageGapReport>(
+        `/projects/${projectId}/agent-coverage-gap`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

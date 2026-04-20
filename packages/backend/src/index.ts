@@ -59,6 +59,7 @@ import { agentSkillGapRoutes } from './routes/agent-skill-gap.js';
 import { agentConflictDetectorRoutes } from './routes/agent-conflict-detector.js';
 import { agentDecisionQualityRoutes } from './routes/agent-decision-quality.js';
 import { agentPerformanceTrendRoutes } from './routes/agent-performance-trend.js';
+import { agentCoverageGapRoutes } from './routes/agent-coverage-gap.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -152,6 +153,7 @@ async function main() {
   await fastify.register(agentConflictDetectorRoutes);
   await fastify.register(agentDecisionQualityRoutes);
   await fastify.register(agentPerformanceTrendRoutes);
+  await fastify.register(agentCoverageGapRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
