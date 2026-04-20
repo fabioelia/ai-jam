@@ -1871,3 +1871,47 @@ export function useAgentConflictDetector() {
 
   return { analyze, loading, result, setResult };
 }
+
+export type QualityRating = 'excellent' | 'good' | 'needs_improvement' | 'poor';
+
+export interface AgentDecisionQuality {
+  agentPersona: string;
+  totalTickets: number;
+  completedTickets: number;
+  regressionCount: number;
+  revisionRate: number;
+  qualityScore: number;
+  rating: QualityRating;
+  recommendation: string;
+}
+
+export interface DecisionQualityReport {
+  projectId: string;
+  analyzedAt: string;
+  totalAgents: number;
+  poorQualityAgents: number;
+  excellentAgents: number;
+  avgQualityScore: number;
+  agentQualities: AgentDecisionQuality[];
+  aiSummary: string;
+}
+
+export function useAgentDecisionQuality() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<DecisionQualityReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<DecisionQualityReport>(
+        `/projects/${projectId}/agent-decision-quality`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

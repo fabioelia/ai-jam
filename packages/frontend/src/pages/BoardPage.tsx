@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -50,6 +50,7 @@ import AgentBottleneckAnalyzerModal from '../components/board/AgentBottleneckAna
 import AgentQueueDepthModal from '../components/board/AgentQueueDepthModal.js';
 import AgentSkillGapModal from '../components/board/AgentSkillGapModal.js';
 import AgentConflictDetectorModal from '../components/board/AgentConflictDetectorModal.js';
+import AgentDecisionQualityModal from '../components/board/AgentDecisionQualityModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -230,6 +231,8 @@ export default function BoardPage() {
   const [showAgentSkillGap, setShowAgentSkillGap] = useState(false);
   const agentConflictDetector = useAgentConflictDetector();
   const [showAgentConflictDetector, setShowAgentConflictDetector] = useState(false);
+  const agentDecisionQuality = useAgentDecisionQuality();
+  const [showAgentDecisionQuality, setShowAgentDecisionQuality] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1175,6 +1178,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Quality Button */}
+        <button
+          onClick={async () => {
+            setShowAgentDecisionQuality(true);
+            try {
+              await agentDecisionQuality.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Decision quality analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentDecisionQuality.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {agentDecisionQuality.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Quality</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1669,6 +1692,10 @@ export default function BoardPage() {
 
       {showAgentConflictDetector && (
         <AgentConflictDetectorModal result={agentConflictDetector.result} isOpen={showAgentConflictDetector} loading={agentConflictDetector.loading} onClose={() => { agentConflictDetector.setResult(null); setShowAgentConflictDetector(false); }} />
+      )}
+
+      {showAgentDecisionQuality && (
+        <AgentDecisionQualityModal result={agentDecisionQuality.result} isOpen={showAgentDecisionQuality} loading={agentDecisionQuality.loading} onClose={() => { agentDecisionQuality.setResult(null); setShowAgentDecisionQuality(false); }} />
       )}
     </div>
   );
