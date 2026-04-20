@@ -139,6 +139,7 @@ export const tickets = pgTable('tickets', {
   /** Origin of this record: 'human' (UI), 'mcp' (agent tool), 'api' (direct API call) */
   source: varchar('source', { length: 20 }).default('human').notNull(),
   parentTicketId: uuid('parent_ticket_id').references((): AnyPgColumn => tickets.id, { onDelete: 'set null' }),
+  blockedBy: uuid('blocked_by').references((): AnyPgColumn => tickets.id, { onDelete: 'set null' }),
   subtasks: jsonb('subtasks').default([]).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

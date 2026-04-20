@@ -2007,3 +2007,43 @@ export function useAgentCoverageGap() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentDependencyEdge {
+  blockingAgent: string;
+  waitingAgent: string;
+  blockedTickets: number;
+  totalBlockingTickets: number;
+  blockingScore: number;
+  severity: 'critical' | 'high' | 'moderate' | 'low';
+  recommendation: string;
+}
+
+export interface AgentDependencyMapReport {
+  projectId: string;
+  analyzedAt: string;
+  totalEdges: number;
+  criticalEdges: number;
+  independentAgents: number;
+  agentDependencyEdges: AgentDependencyEdge[];
+  aiSummary: string;
+}
+
+export function useAgentDependencyMapper() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentDependencyMapReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentDependencyMapReport>(
+        `/projects/${projectId}/agent-dependency-mapper`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
