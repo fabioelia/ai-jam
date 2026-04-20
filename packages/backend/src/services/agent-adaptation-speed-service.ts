@@ -52,17 +52,17 @@ export function computeAdaptationTier(
 
 type SessionRow = {
   id: string;
-  ticketId: string;
+  ticketId: string | null;
   personaType: string;
   status: string;
   startedAt: Date | null;
 };
 
 type NoteRow = {
-  ticketId: string;
+  ticketId: string | null;
   handoffFrom: string | null;
   handoffTo: string | null;
-  notes: string | null;
+  content: string | null;
 };
 
 type TicketRow = {
@@ -232,7 +232,7 @@ export async function analyzeAgentAdaptationSpeed(
         ticketId: ticketNotes.ticketId,
         handoffFrom: ticketNotes.handoffFrom,
         handoffTo: ticketNotes.handoffTo,
-        notes: ticketNotes.notes,
+        content: ticketNotes.content,
       })
       .from(ticketNotes)
       .where(inArray(ticketNotes.ticketId, ticketIds));

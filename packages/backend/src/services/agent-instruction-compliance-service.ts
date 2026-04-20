@@ -64,7 +64,7 @@ export function computeComplianceTier(
 
 type SessionRow = {
   id: string;
-  ticketId: string;
+  ticketId: string | null;
   personaType: string;
   status: string;
 };

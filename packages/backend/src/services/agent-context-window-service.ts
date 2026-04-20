@@ -34,6 +34,14 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+// computeUtilizationScore per FEAT-111 spec
+export function computeUtilizationScore(avgUtilizationRate: number, overflowSessions: number, totalSessions: number): number {
+  let score = 100 - Math.abs(avgUtilizationRate - 70) * 1.5;
+  if (overflowSessions > totalSessions * 0.2) score -= 20;
+  if (avgUtilizationRate >= 60 && avgUtilizationRate <= 80) score += 10;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
 export function computeContextEfficiencyScore(
   avgWindowUsage: number,
   windowOverflows: number,
@@ -64,7 +72,7 @@ type NoteRow = {
 
 type SessionRow = {
   id: string;
-  ticketId: string;
+  ticketId: string | null;
   personaType: string;
   status: string;
 };
@@ -87,7 +95,7 @@ export function buildContextWindowMetrics(
     const sessionUsages: number[] = [];
 
     for (const session of agentSessionList) {
-      const notesCount = notesByTicket.get(session.ticketId) ?? 0;
+      const notesCount = notesByTicket.get(session.ticketId ?? '') ?? 0;
       const usage = notesCount * 10; // 10% per note
       sessionUsages.push(usage);
     }
@@ -101,7 +109,7 @@ export function buildContextWindowMetrics(
     // Overflow = session where notes > 20 (i.e. usage > 200, but capped: usage = count * 10, overflow at count > 20)
     // Using raw notesCount > 20
     const windowOverflows = agentSessionList.filter((session) => {
-      const notesCount = notesByTicket.get(session.ticketId) ?? 0;
+      const notesCount = notesByTicket.get(session.ticketId ?? '') ?? 0;
       return notesCount > 20;
     }).length;
 
