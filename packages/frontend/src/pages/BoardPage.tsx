@@ -90,6 +90,7 @@ import AgentErrorRecoveryModal from '../components/board/AgentErrorRecoveryModal
 import AgentConfidenceCalibrationModal from '../components/board/AgentConfidenceCalibrationModal.js';
 import AgentFeedbackIncorporationModal from '../components/board/AgentFeedbackIncorporationModal.js';
 import AgentThroughputRateModal from '../components/board/AgentThroughputRateModal.js';
+import AgentSuccessRateModal from '../components/board/AgentSuccessRateModal.js';
 import AgentPersonaAlignmentModal from '../components/board/AgentPersonaAlignmentModal.js';
 import AgentCollaborationGraphModal from '../components/board/AgentCollaborationGraphModal.js';
 import AgentMultitaskingEfficiencyModal from '../components/board/AgentMultitaskingEfficiencyModal.js';
@@ -372,6 +373,8 @@ export default function BoardPage() {
   const [showAgentInterruptionImpact, setShowAgentInterruptionImpact] = useState(false);
   const agentThroughputRate = useAgentThroughputRate(projectId!);
   const [showAgentThroughputRate, setShowAgentThroughputRate] = useState(false);
+  const agentSuccessRate = useAgentSuccessRate(projectId!);
+  const [showAgentSuccessRate, setShowAgentSuccessRate] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -2243,6 +2246,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Success Rate Button */}
+        <button
+          onClick={async () => {
+            setShowAgentSuccessRate(true);
+            try {
+              await agentSuccessRate.analyze();
+            } catch (error) {
+              toast.error(`Success rate analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentSuccessRate.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+        >
+          {agentSuccessRate.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Success Rate</>
+          )}
+        </button>
+
                 {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -2900,6 +2923,9 @@ export default function BoardPage() {
       )}
       {showAgentThroughputRate && (
         <AgentThroughputRateModal result={agentThroughputRate.result} isOpen={showAgentThroughputRate} loading={agentThroughputRate.loading} onClose={() => { agentThroughputRate.setResult(null); setShowAgentThroughputRate(false); }} />
+      )}
+      {showAgentSuccessRate && (
+        <AgentSuccessRateModal result={agentSuccessRate.result} isOpen={showAgentSuccessRate} loading={agentSuccessRate.loading} onClose={() => { agentSuccessRate.setResult(null); setShowAgentSuccessRate(false); }} />
       )}
     </div>
   );
