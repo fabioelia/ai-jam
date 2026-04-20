@@ -3506,3 +3506,45 @@ export function useAgentResponseLatency(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentErrorRecoveryData {
+  personaId: string;
+  totalErrors: number;
+  recoveredErrors: number;
+  errorRecoveryRate: number;
+  avgRecoveryTimeHours: number;
+  failedHandoffs: number;
+  retryAttempts: number;
+  resilienceScore: number;
+  resilienceTier: 'resilient' | 'adaptive' | 'fragile' | 'critical';
+}
+
+export interface AgentErrorRecoveryReport {
+  projectId: string;
+  agents: AgentErrorRecoveryData[];
+  mostResilientAgent: string | null;
+  mostFragileAgent: string | null;
+  avgProjectResilienceScore: number;
+  criticalAgentCount: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentErrorRecovery(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentErrorRecoveryReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentErrorRecoveryReport>(`/projects/${projectId}/agent-error-recovery`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
