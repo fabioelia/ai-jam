@@ -4907,3 +4907,53 @@ export function useAgentDecisionLatency(projectId: string) {
 
   return { analyze, loading, data, setData };
 }
+
+// FEAT-125: Agent Resource Consumption Analyzer
+export interface AgentResourceMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  totalTokensUsed: number;
+  totalApiCalls: number;
+  avgTokensPerTask: number;
+  avgApiCallsPerTask: number;
+  avgSessionDurationMs: number;
+  consumptionScore: number;
+  consumptionTier: 'efficient' | 'normal' | 'heavy' | 'excessive';
+}
+
+export interface AgentResourceConsumptionReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalTokensUsed: number;
+    avgTokensPerAgent: number;
+    avgApiCallsPerTask: number;
+    mostEfficient: string;
+    mostExpensive: string;
+  };
+  agents: AgentResourceMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentResourceConsumption(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentResourceConsumptionReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentResourceConsumptionReport>(
+        `/projects/${projectId}/agent-resource-consumption`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
