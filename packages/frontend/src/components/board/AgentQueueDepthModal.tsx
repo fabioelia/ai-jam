@@ -90,7 +90,7 @@ export default function AgentQueueDepthModal({
             </div>
           ) : !result ? null : result.agentProfiles.length === 0 ? (
             <div className="flex items-center justify-center py-12">
-              <p className="text-gray-400 text-sm italic">No assigned tickets found for queue depth analysis.</p>
+              <p className="text-gray-400 text-sm italic">No queue issues detected.</p>
             </div>
           ) : (
             <div className="space-y-3">

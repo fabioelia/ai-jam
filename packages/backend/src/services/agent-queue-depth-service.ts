@@ -24,7 +24,7 @@ export interface QueueDepthReport {
   generatedAt: string;
 }
 
-const QUEUE_STATUSES = ['backlog', 'todo'] as const;
+const QUEUE_STATUSES = ['backlog'] as const;
 const ACTIVE_STATUSES = ['in_progress', 'review', 'qa', 'acceptance'] as const;
 
 function computeOverflowRisk(queueDepth: number): 'low' | 'medium' | 'high' {

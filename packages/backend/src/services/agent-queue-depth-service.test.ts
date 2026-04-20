@@ -43,10 +43,10 @@ describe('monitorQueueDepths', () => {
     expect(report.idleAgents).toBe(0);
   });
 
-  it('correctly computes queueDepth from backlog+todo only', async () => {
+  it('correctly computes queueDepth from backlog only', async () => {
     mockDb([
       makeTicket({ id: 't1', status: 'backlog' }),
-      makeTicket({ id: 't2', status: 'todo' }),
+      makeTicket({ id: 't2', status: 'backlog' }),
       makeTicket({ id: 't3', status: 'in_progress' }),
       makeTicket({ id: 't4', status: 'done' }),
     ]);
@@ -59,7 +59,7 @@ describe('monitorQueueDepths', () => {
   it('overflowRisk = low when queueDepth < 3', async () => {
     mockDb([
       makeTicket({ id: 't1', status: 'backlog' }),
-      makeTicket({ id: 't2', status: 'todo' }),
+      makeTicket({ id: 't2', status: 'backlog' }),
     ]);
     const report = await monitorQueueDepths('proj-1');
     expect(report.agentProfiles[0].overflowRisk).toBe('low');
@@ -76,7 +76,7 @@ describe('monitorQueueDepths', () => {
 
   it('overflowRisk = high when queueDepth > 6', async () => {
     const tickets = Array.from({ length: 7 }, (_, i) =>
-      makeTicket({ id: `t${i}`, status: 'todo' }),
+      makeTicket({ id: `t${i}`, status: 'backlog' }),
     );
     mockDb(tickets);
     const report = await monitorQueueDepths('proj-1');
