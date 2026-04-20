@@ -109,6 +109,9 @@ import { agentRetryPatternRoutes } from './routes/agent-retry-pattern.js';
 import { agentToolUsagePatternRoutes } from './routes/agent-tool-usage-pattern.js';
 import { agentPriorityAdherenceRoutes } from './routes/agent-priority-adherence-route.js';
 import { agentCognitiveLoadRoutes } from './routes/agent-cognitive-load.js';
+import { agentGoalCompletionRoutes } from './routes/agent-goal-completion-route.js';
+import { agentParallelTaskEfficiencyRoutes } from './routes/agent-parallel-task-efficiency-route.js';
+import { agentLearningVelocityRoutes } from './routes/agent-learning-velocity.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -252,6 +255,9 @@ async function main() {
   await fastify.register(agentToolUsagePatternRoutes);
   await fastify.register(agentPriorityAdherenceRoutes);
   await fastify.register(agentCognitiveLoadRoutes);
+  await fastify.register(agentGoalCompletionRoutes);
+  await fastify.register(agentParallelTaskEfficiencyRoutes);
+  await fastify.register(agentLearningVelocityRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

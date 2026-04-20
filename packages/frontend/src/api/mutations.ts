@@ -4047,3 +4047,340 @@ export function useAgentCognitiveLoad(projectId: string) {
 
   return { analyze, loading, data, setData };
 }
+
+export interface AgentParallelTaskMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  parallelTasks: number;
+  maxConcurrentTasks: number;
+  avgConcurrentTasks: number;
+  contextSwitches: number;
+  parallelCompletionRate: number;
+  avgParallelDuration: number;
+  efficiencyScore: number;
+  efficiencyTier: 'expert' | 'capable' | 'struggling' | 'overwhelmed';
+}
+
+export interface AgentParallelTaskReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalTasks: number;
+    totalParallelTasks: number;
+    overallParallelRate: number;
+    mostEfficientAgent: string | null;
+    expertAgents: number;
+  };
+  agents: AgentParallelTaskMetrics[];
+  insights: string[];
+  recommendations: string[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentParallelTaskEfficiency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentParallelTaskReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentParallelTaskReport>(
+        `/projects/${projectId}/agent-parallel-task-efficiency`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
+
+// FEAT-102: Agent Goal Completion Analyzer
+export interface AgentGoalMetrics {
+  agentId: string;
+  totalGoals: number;
+  completedGoals: number;
+  partialGoals: number;
+  failedGoals: number;
+  completionRate: number;
+  partialRate: number;
+  avgGoalsPerSession: number;
+  completionScore: number;
+  completionTier: 'exceptional' | 'solid' | 'partial' | 'struggling';
+}
+
+export interface AgentGoalCompletionReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalGoals: number;
+    overallCompletionRate: number;
+    topPerformer: string | null;
+    exceptionalAgents: number;
+  };
+  agents: AgentGoalMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentGoalCompletion(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentGoalCompletionReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentGoalCompletionReport>(
+        `/projects/${projectId}/agent-goal-completion`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-105: Agent Communication Pattern Analyzer
+export interface AgentCommunicationMetrics {
+  agentId: string;
+  agentName: string;
+  totalMessages: number;
+  messagesSent: number;
+  messagesReceived: number;
+  uniquePartners: number;
+  avgChainDepth: number;
+  maxChainDepth: number;
+  avgResponseLatencyMs: number;
+  bottleneckScore: number;
+  communicationRole: 'hub' | 'relay' | 'leaf' | 'isolated';
+}
+
+export interface AgentCommunicationReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalMessages: number;
+    avgChainDepth: number;
+    maxChainDepth: number;
+    topBottleneck: string | null;
+    hubAgents: number;
+  };
+  agents: AgentCommunicationMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentCommunicationPatterns(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCommunicationReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentCommunicationReport>(
+        `/projects/${projectId}/agent-communication-patterns`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-106: Agent Decision Quality Analyzer (new spec)
+export interface AgentDecisionQualityMetrics {
+  agentId: string;
+  agentName: string;
+  totalDecisions: number;
+  correctnessRate: number;
+  revisionRate: number;
+  impactScore: number;
+  qualityScore: number;
+  qualityTier: 'excellent' | 'good' | 'improving' | 'struggling';
+}
+
+export interface AgentDecisionQualityReportV2 {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalDecisions: number;
+    topDecisionMaker: string | null;
+    avgCorrectnessRate: number;
+    highQualityAgents: number;
+  };
+  agents: AgentDecisionQualityMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentDecisionQualityV2(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentDecisionQualityReportV2 | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentDecisionQualityReportV2>(
+        `/projects/${projectId}/agent-decision-quality-v2`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-107: Agent Self-Correction Rate Analyzer
+export interface AgentSelfCorrectionMetrics {
+  agentId: string;
+  agentName: string;
+  totalRevisions: number;
+  selfDetectedErrors: number;
+  externalDetectedErrors: number;
+  correctionRate: number;
+  correctionScore: number;
+  correctionTier: 'excellent' | 'good' | 'improving' | 'struggling';
+}
+
+export interface AgentSelfCorrectionReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgCorrectionRate: number;
+    topSelfCorrector: string | null;
+    mostErrorProne: string | null;
+    totalCorrections: number;
+  };
+  agents: AgentSelfCorrectionMetrics[];
+  aiSummary: string;
+  recommendations: string[];
+}
+
+export function useAgentSelfCorrectionRate(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSelfCorrectionReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentSelfCorrectionReport>(
+        `/projects/${projectId}/agent-self-correction-rate`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-109: Agent Dependency Resolution Analyzer
+export interface BlockedTicketInfo {
+  ticketId: string;
+  ticketTitle: string;
+  blockedBy: string[];
+  waitTimeHours: number;
+  riskLevel: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface CircularDependencyChain {
+  chain: string[];
+  detectedAt: string;
+}
+
+export interface AgentDependencyResolutionReport {
+  projectId: string;
+  totalDependencies: number;
+  resolvedDependencies: number;
+  blockedTickets: BlockedTicketInfo[];
+  circularDependencies: CircularDependencyChain[];
+  avgResolutionTimeHours: number;
+  longestBlockChain: number;
+  dependencyResolutionRate: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentDependencyResolution(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentDependencyResolutionReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentDependencyResolutionReport>(
+        `/projects/${projectId}/agent-dependency-resolution`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-096: Agent Learning Velocity Analyzer
+export interface AgentLearningMetrics {
+  personaId: string;
+  totalSessions: number;
+  earlySuccessRate: number;
+  recentSuccessRate: number;
+  velocityScore: number;
+  improvementDelta: number;
+  trend: 'improving' | 'stable' | 'regressing';
+  sessionsToFirstSuccess: number | null;
+  learningPhase: 'novice' | 'learning' | 'proficient' | 'expert';
+}
+
+export interface AgentLearningVelocityReport {
+  agents: AgentLearningMetrics[];
+  avgVelocityScore: number;
+  fastestLearner: string | null;
+  slowestLearner: string | null;
+  mostRegressing: string | null;
+  systemImprovementDelta: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentLearningVelocity(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentLearningVelocityReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentLearningVelocityReport>(
+        `/projects/${projectId}/agent-learning-velocity`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
