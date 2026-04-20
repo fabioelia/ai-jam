@@ -4957,3 +4957,46 @@ export function useAgentResourceConsumption(projectId: string) {
 
   return { analyze, loading, data, setData };
 }
+
+// FEAT-126: Agent Session Quality Scorer
+export interface AgentSessionQualityMetrics {
+  agentId: string;
+  agentName: string;
+  totalSessions: number;
+  avgSessionScore: number;
+  outputCompleteness: number;
+  handoffRate: number;
+  avgSessionDurationMinutes: number;
+  qualityTier: 'excellent' | 'good' | 'adequate' | 'poor';
+}
+
+export interface AgentSessionQualityReport {
+  projectId: string;
+  agents: AgentSessionQualityMetrics[];
+  avgQualityScore: number;
+  highQualityAgents: number;
+  topAgent: string | null;
+  sessionQualityCategories: { excellent: number; good: number; adequate: number; poor: number };
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentSessionQuality(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentSessionQualityReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentSessionQualityReport>(
+        `/projects/${projectId}/agent-session-quality`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
