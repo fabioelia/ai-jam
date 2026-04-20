@@ -67,8 +67,14 @@ import { agentIdleTimeRoutes } from './routes/agent-idle-time.js';
 import { agentThroughputEfficiencyRoutes } from './routes/agent-throughput-efficiency.js';
 import { agentWorkloadFairnessRoutes } from './routes/agent-workload-fairness.js';
 import { agentErrorRatesRoutes } from './routes/agent-error-rates.js';
-import { agentEscalationPatternRoutes } from './routes/agent-escalation-pattern.js';
+import { agentEscalationPatternRoutes } from './routes/agent-escalation-patterns.js';
+import { agentRecoveryPatternRoutes } from './routes/agent-recovery-patterns.js';
+import { agentTaskVelocityRoutes } from './routes/agent-task-velocity.js';
+import { agentContextSwitchRoutes } from './routes/agent-context-switch.js';
+import { agentParallelCapacityRoutes } from './routes/agent-parallel-capacity.js';
+import { agentEstimationAccuracyRoutes } from './routes/agent-estimation-accuracy.js';
 import { agentGoalAlignmentRoutes } from './routes/agent-goal-alignment.js';
+import { agentOutputQualityRoutes } from './routes/agent-output-quality.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -171,7 +177,13 @@ async function main() {
   await fastify.register(agentWorkloadFairnessRoutes);
   await fastify.register(agentErrorRatesRoutes);
   await fastify.register(agentEscalationPatternRoutes);
+  await fastify.register(agentRecoveryPatternRoutes);
+  await fastify.register(agentTaskVelocityRoutes);
+  await fastify.register(agentContextSwitchRoutes);
+  await fastify.register(agentParallelCapacityRoutes);
+  await fastify.register(agentEstimationAccuracyRoutes);
   await fastify.register(agentGoalAlignmentRoutes);
+  await fastify.register(agentOutputQualityRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

@@ -2259,23 +2259,19 @@ export interface AgentErrorMetrics {
   errorRate: number;
   retryRate: number;
   reliabilityScore: number;
-  severity: 'critical' | 'high' | 'moderate' | 'low';
-  recommendedAction: string;
-}
-
-export interface ErrorRateSummary {
-  totalAgents: number;
-  avgErrorRate: number;
-  highRiskAgents: number;
-  mostReliableAgent: string | null;
+  classification: 'critical' | 'high' | 'moderate' | 'low';
 }
 
 export interface AgentErrorRateReport {
   projectId: string;
   analyzedAt: string;
   agents: AgentErrorMetrics[];
-  summary: ErrorRateSummary;
+  criticalCount: number;
+  avgReliabilityScore: number;
+  mostReliableAgent: string | null;
+  leastReliableAgent: string | null;
   aiSummary: string;
+  recommendations: string[];
 }
 
 export function useAgentErrorRates() {
@@ -2302,19 +2298,17 @@ export interface EscalationChain {
   fromAgent: string;
   toAgent: string;
   count: number;
-  avgResolutionTime: number | null;
-  topTriggers: string[];
 }
 
 export interface EscalationHotspot {
-  agentId: string;
-  escalationsReceived: number;
-  escalationsSent: number;
-  escalationRate: number;
+  agentPersona: string;
+  escalationCount: number;
   severity: 'critical' | 'high' | 'moderate' | 'low';
 }
 
-export interface EscalationAnalysis {
+export interface AgentEscalationPatternReport {
+  projectId: string;
+  analyzedAt: string;
   chains: EscalationChain[];
   hotspots: EscalationHotspot[];
   circularPatterns: string[][];
@@ -2324,14 +2318,14 @@ export interface EscalationAnalysis {
   aiRecommendations: string[];
 }
 
-export function useAgentEscalationPatternAnalyzer() {
+export function useAgentEscalationPatterns() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<EscalationAnalysis | null>(null);
+  const [result, setResult] = useState<AgentEscalationPatternReport | null>(null);
 
   const analyze = async (projectId: string): Promise<void> => {
     setLoading(true);
     try {
-      const data = await apiFetch<EscalationAnalysis>(
+      const data = await apiFetch<AgentEscalationPatternReport>(
         `/projects/${projectId}/agent-escalation-pattern`,
         { method: 'POST' },
       );
@@ -2386,3 +2380,236 @@ export function useAgentGoalAlignment() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface RecoveryEvent {
+  ticketId: string;
+  agentPersona: string;
+  status: string;
+  recoveryMethod: 'self' | 'handoff' | 'escalation' | 'unresolved';
+  cycleTimeHours: number;
+}
+
+export interface AgentRecoveryProfile {
+  agentPersona: string;
+  totalFailureEvents: number;
+  recoveredCount: number;
+  failedToRecover: number;
+  recoveryRate: number;
+  avgRecoveryTimeHours: number;
+  selfRecoveryRate: number;
+}
+
+export interface RecoveryPatternReport {
+  projectId: string;
+  analyzedAt: string;
+  totalFailureEvents: number;
+  overallRecoveryRate: number;
+  avgRecoveryTimeHours: number;
+  agentProfiles: AgentRecoveryProfile[];
+  recentEvents: RecoveryEvent[];
+  aiInsights: string;
+  recommendations: string[];
+}
+
+export function useAgentRecoveryPatterns() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<RecoveryPatternReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<RecoveryPatternReport>(
+        `/projects/${projectId}/agent-recovery-patterns`,
+        { method: 'GET' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface StatusDuration {
+  status: string;
+  avgHoursHeld: number;
+  isBottleneck: boolean;
+}
+
+export interface AgentVelocityMetrics {
+  agentPersona: string;
+  avgTotalCycleHours: number;
+  velocityScore: number;
+  rating: 'fast' | 'normal' | 'slow' | 'bottleneck';
+  statusDurations: StatusDuration[];
+  completedTickets: number;
+}
+
+export interface AgentTaskVelocityReport {
+  projectId: string;
+  analyzedAt: string;
+  totalAgents: number;
+  bottleneckAgents: number;
+  fastestAgent: string | null;
+  slowestAgent: string | null;
+  agents: AgentVelocityMetrics[];
+  aiSummary: string;
+}
+
+export function useAgentTaskVelocity() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTaskVelocityReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentTaskVelocityReport>(
+        `/projects/${projectId}/agent-task-velocity`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentContextSwitchMetrics {
+  agentPersona: string;
+  totalTickets: number;
+  contextSwitches: number;
+  switchRate: number;
+  focusScore: number;
+  rating: 'focused' | 'moderate' | 'scattered' | 'chaotic';
+  avgSwitchesPerDay: number;
+  dominantEpic: string | null;
+}
+
+export interface AgentContextSwitchReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentContextSwitchMetrics[];
+  totalSwitches: number;
+  avgSwitchRate: number;
+  mostScatteredAgent: string | null;
+  focusedAgentCount: number;
+  aiSummary: string;
+  recommendations: string[];
+}
+
+export function useAgentContextSwitch() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextSwitchReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentContextSwitchReport>(
+        `/projects/${projectId}/agent-context-switch`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentParallelMetrics {
+  agentPersona: string;
+  currentParallelCount: number;
+  efficiencyScore: number;
+  rating: 'optimal' | 'loaded' | 'overloaded' | 'saturated';
+}
+
+export interface AgentParallelCapacityReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentParallelMetrics[];
+  maxParallelLoad: number;
+  avgParallelLoad: number;
+  overloadedAgentCount: number;
+  optimalConcurrency: number;
+  aiSummary: string;
+  recommendations: string[];
+}
+
+export function useAgentParallelCapacity() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentParallelCapacityReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentParallelCapacityReport>(
+        `/projects/${projectId}/agent-parallel-capacity`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentEstimationMetrics {
+  agentPersona: string;
+  ticketsAnalyzed: number;
+  avgAccuracyScore: number;
+  avgEstimatedHours: number;
+  avgActualHours: number;
+  bias: 'overestimator' | 'underestimator' | 'accurate';
+}
+
+export interface AgentEstimationAccuracyReport {
+  projectId: string;
+  analyzedAt: string;
+  agentCount: number;
+  ticketsAnalyzed: number;
+  baselineHoursPerPoint: number;
+  avgAccuracyScore: number;
+  mostAccurateAgent: string | null;
+  leastAccurateAgent: string | null;
+  agents: AgentEstimationMetrics[];
+  aiSummary: string;
+}
+
+export function useAgentEstimationAccuracy() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentEstimationAccuracyReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentEstimationAccuracyReport>(
+        `/projects/${projectId}/agent-estimation-accuracy`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentOutputQualityScore {
+  personaId: string;
+  handoffAcceptanceRate: number;
+  ticketCompletionRate: number;
+  reworkRate: number;
+  sessionSuccessRate: number;
+  overallQualityScore: number;
+  qualityTier: 'excellent' | 'good' | 'fair' | 'poor';
+}
+
+export const getAgentOutputQuality = (projectId: string) =>
+  fetch(`/api/agent-output-quality/${projectId}`).then((r) => r.json());

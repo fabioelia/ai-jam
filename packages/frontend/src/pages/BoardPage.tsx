@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatternAnalyzer, useAgentGoalAlignment } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -62,6 +62,12 @@ import AgentWorkloadFairnessModal from '../components/board/AgentWorkloadFairnes
 import AgentErrorRateModal from '../components/board/AgentErrorRateModal.js';
 import AgentEscalationPatternModal from '../components/board/AgentEscalationPatternModal.js';
 import AgentGoalAlignmentModal from '../components/board/AgentGoalAlignmentModal.js';
+import AgentRecoveryPatternModal from '../components/board/AgentRecoveryPatternModal.js';
+import AgentTaskVelocityModal from '../components/board/AgentTaskVelocityModal.js';
+import AgentContextSwitchModal from '../components/board/AgentContextSwitchModal.js';
+import AgentParallelCapacityModal from '../components/board/AgentParallelCapacityModal.js';
+import AgentEstimationAccuracyModal from '../components/board/AgentEstimationAccuracyModal.js';
+import AgentOutputQualityModal from '../components/board/AgentOutputQualityModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -262,10 +268,23 @@ export default function BoardPage() {
   const [showAgentWorkloadFairness, setShowAgentWorkloadFairness] = useState(false);
   const agentErrorRates = useAgentErrorRates();
   const [showAgentErrorRates, setShowAgentErrorRates] = useState(false);
-  const agentEscalationPattern = useAgentEscalationPatternAnalyzer();
-  const [showAgentEscalationPattern, setShowAgentEscalationPattern] = useState(false);
+  const agentEscalationPatterns = useAgentEscalationPatterns();
+  const [showAgentEscalationPatterns, setShowAgentEscalationPatterns] = useState(false);
   const agentGoalAlignment = useAgentGoalAlignment();
   const [showAgentGoalAlignment, setShowAgentGoalAlignment] = useState(false);
+  const agentRecoveryPatterns = useAgentRecoveryPatterns();
+  const [showAgentRecoveryPatterns, setShowAgentRecoveryPatterns] = useState(false);
+  const agentTaskVelocity = useAgentTaskVelocity();
+  const [showAgentTaskVelocity, setShowAgentTaskVelocity] = useState(false);
+  const agentContextSwitch = useAgentContextSwitch();
+  const [showAgentContextSwitch, setShowAgentContextSwitch] = useState(false);
+  const agentParallelCapacity = useAgentParallelCapacity();
+  const [showAgentParallelCapacity, setShowAgentParallelCapacity] = useState(false);
+  const agentEstimationAccuracy = useAgentEstimationAccuracy();
+  const [showAgentEstimationAccuracy, setShowAgentEstimationAccuracy] = useState(false);
+  const [agentOutputQualityScores, setAgentOutputQualityScores] = useState<AgentOutputQualityScore[] | null>(null);
+  const [agentOutputQualityLoading, setAgentOutputQualityLoading] = useState(false);
+  const [showAgentOutputQuality, setShowAgentOutputQuality] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1411,23 +1430,23 @@ export default function BoardPage() {
           )}
         </button>
 
-        {/* Escalations Button */}
+        {/* Escalation Pattern Button */}
         <button
           onClick={async () => {
-            setShowAgentEscalationPattern(true);
+            setShowAgentEscalationPatterns(true);
             try {
-              await agentEscalationPattern.analyze(projectId!);
+              await agentEscalationPatterns.analyze(projectId!);
             } catch (error) {
               toast.error(`Escalation analysis failed: ${getClientErrorMessage(error)}`);
             }
           }}
-          disabled={agentEscalationPattern.loading}
+          disabled={agentEscalationPatterns.loading}
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
         >
-          {agentEscalationPattern.loading ? (
+          {agentEscalationPatterns.loading ? (
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           ) : (
-            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' /></svg> Escalations</>
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4' /></svg> Escalation</>
           )}
         </button>
 
@@ -1448,6 +1467,130 @@ export default function BoardPage() {
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           ) : (
             <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Goal Alignment</>
+          )}
+        </button>
+
+        {/* Recovery Pattern Button */}
+        <button
+          onClick={async () => {
+            setShowAgentRecoveryPatterns(true);
+            try {
+              await agentRecoveryPatterns.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Recovery analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentRecoveryPatterns.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+        >
+          {agentRecoveryPatterns.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' /></svg> Recovery</>
+          )}
+        </button>
+
+        {/* Task Velocity Button */}
+        <button
+          onClick={async () => {
+            setShowAgentTaskVelocity(true);
+            try {
+              await agentTaskVelocity.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Velocity analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentTaskVelocity.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {agentTaskVelocity.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M13 10V3L4 14h7v7l9-11h-7z' /></svg> Velocity</>
+          )}
+        </button>
+
+        {/* Context Switch Button */}
+        <button
+          onClick={async () => {
+            setShowAgentContextSwitch(true);
+            try {
+              await agentContextSwitch.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Context switch analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentContextSwitch.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+        >
+          {agentContextSwitch.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' /></svg> Context Switch</>
+          )}
+        </button>
+
+        {/* Parallel Load Button */}
+        <button
+          onClick={async () => {
+            setShowAgentParallelCapacity(true);
+            try {
+              await agentParallelCapacity.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Parallel capacity analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentParallelCapacity.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-cyan-600 hover:bg-cyan-700 text-white disabled:opacity-50"
+        >
+          {agentParallelCapacity.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 6h16M4 12h16M4 18h16' /></svg> Parallel Load</>
+          )}
+        </button>
+
+        {/* Estimation Button */}
+        <button
+          onClick={async () => {
+            setShowAgentEstimationAccuracy(true);
+            try {
+              await agentEstimationAccuracy.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Estimation analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentEstimationAccuracy.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+        >
+          {agentEstimationAccuracy.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z' /></svg> Estimation</>
+          )}
+        </button>
+
+        {/* Agent Output Quality Button */}
+        <button
+          onClick={async () => {
+            setShowAgentOutputQuality(true);
+            setAgentOutputQualityLoading(true);
+            try {
+              const data = await getAgentOutputQuality(projectId!);
+              setAgentOutputQualityScores(data);
+            } catch (error) {
+              toast.error(`Output quality scoring failed: ${getClientErrorMessage(error)}`);
+            } finally {
+              setAgentOutputQualityLoading(false);
+            }
+          }}
+          disabled={agentOutputQualityLoading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+        >
+          {agentOutputQualityLoading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' /></svg> Agent Output Quality</>
           )}
         </button>
 
@@ -1987,12 +2130,36 @@ export default function BoardPage() {
         <AgentErrorRateModal result={agentErrorRates.result} isOpen={showAgentErrorRates} loading={agentErrorRates.loading} onClose={() => { agentErrorRates.setResult(null); setShowAgentErrorRates(false); }} />
       )}
 
-      {showAgentEscalationPattern && (
-        <AgentEscalationPatternModal result={agentEscalationPattern.result} isOpen={showAgentEscalationPattern} loading={agentEscalationPattern.loading} onClose={() => { agentEscalationPattern.setResult(null); setShowAgentEscalationPattern(false); }} />
+      {showAgentEscalationPatterns && (
+        <AgentEscalationPatternModal result={agentEscalationPatterns.result} isOpen={showAgentEscalationPatterns} loading={agentEscalationPatterns.loading} onClose={() => { agentEscalationPatterns.setResult(null); setShowAgentEscalationPatterns(false); }} />
       )}
 
       {showAgentGoalAlignment && (
         <AgentGoalAlignmentModal result={agentGoalAlignment.result} isOpen={showAgentGoalAlignment} loading={agentGoalAlignment.loading} onClose={() => { agentGoalAlignment.setResult(null); setShowAgentGoalAlignment(false); }} />
+      )}
+
+      {showAgentRecoveryPatterns && (
+        <AgentRecoveryPatternModal result={agentRecoveryPatterns.result} isOpen={showAgentRecoveryPatterns} loading={agentRecoveryPatterns.loading} onClose={() => { agentRecoveryPatterns.setResult(null); setShowAgentRecoveryPatterns(false); }} />
+      )}
+
+      {showAgentTaskVelocity && (
+        <AgentTaskVelocityModal result={agentTaskVelocity.result} isOpen={showAgentTaskVelocity} loading={agentTaskVelocity.loading} onClose={() => { agentTaskVelocity.setResult(null); setShowAgentTaskVelocity(false); }} />
+      )}
+
+      {showAgentContextSwitch && (
+        <AgentContextSwitchModal result={agentContextSwitch.result} isOpen={showAgentContextSwitch} loading={agentContextSwitch.loading} onClose={() => { agentContextSwitch.setResult(null); setShowAgentContextSwitch(false); }} />
+      )}
+
+      {showAgentParallelCapacity && (
+        <AgentParallelCapacityModal result={agentParallelCapacity.result} isOpen={showAgentParallelCapacity} loading={agentParallelCapacity.loading} onClose={() => { agentParallelCapacity.setResult(null); setShowAgentParallelCapacity(false); }} />
+      )}
+
+      {showAgentEstimationAccuracy && (
+        <AgentEstimationAccuracyModal result={agentEstimationAccuracy.result} isOpen={showAgentEstimationAccuracy} loading={agentEstimationAccuracy.loading} onClose={() => { agentEstimationAccuracy.setResult(null); setShowAgentEstimationAccuracy(false); }} />
+      )}
+
+      {showAgentOutputQuality && (
+        <AgentOutputQualityModal scores={agentOutputQualityScores} isOpen={showAgentOutputQuality} loading={agentOutputQualityLoading} onClose={() => { setAgentOutputQualityScores(null); setShowAgentOutputQuality(false); }} />
       )}
     </div>
   );

@@ -1,25 +1,23 @@
 import { db } from '../db/connection.js';
 import { tickets, ticketNotes } from '../db/schema.js';
-import { eq, isNotNull } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
 export interface EscalationChain {
   fromAgent: string;
   toAgent: string;
   count: number;
-  avgResolutionTime: number | null;
-  topTriggers: string[];
 }
 
 export interface EscalationHotspot {
-  agentId: string;
-  escalationsReceived: number;
-  escalationsSent: number;
-  escalationRate: number;
+  agentPersona: string;
+  escalationCount: number;
   severity: 'critical' | 'high' | 'moderate' | 'low';
 }
 
-export interface EscalationAnalysis {
+export interface EscalationPatternReport {
+  projectId: string;
+  analyzedAt: string;
   chains: EscalationChain[];
   hotspots: EscalationHotspot[];
   circularPatterns: string[][];
@@ -29,9 +27,8 @@ export interface EscalationAnalysis {
   aiRecommendations: string[];
 }
 
-const FALLBACK_SUMMARY = 'Analysis unavailable';
-const FALLBACK_RECOMMENDATIONS: string[] = [];
-const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+const FALLBACK_SUMMARY = 'Review escalation patterns to identify bottlenecks and improve agent handoff processes.';
+const FALLBACK_RECOMMENDATIONS = ['Investigate agents with high escalation rates and consider redistributing workload.'];
 
 function extractJSONFromText(text: string): string {
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -41,260 +38,154 @@ function extractJSONFromText(text: string): string {
   return text;
 }
 
-function computeSeverity(rate: number): EscalationHotspot['severity'] {
-  if (rate >= 60) return 'critical';
-  if (rate >= 40) return 'high';
-  if (rate >= 20) return 'moderate';
-  return 'low';
-}
-
-function detectCycles(edges: { from: string; to: string }[]): string[][] {
+function detectCycles(chains: EscalationChain[]): string[][] {
+  // Build adjacency list
   const graph = new Map<string, Set<string>>();
-  for (const e of edges) {
-    if (!graph.has(e.from)) graph.set(e.from, new Set());
-    graph.get(e.from)!.add(e.to);
+  for (const chain of chains) {
+    if (!graph.has(chain.fromAgent)) graph.set(chain.fromAgent, new Set());
+    graph.get(chain.fromAgent)!.add(chain.toAgent);
   }
 
   const cycles: string[][] = [];
-  const visited = new Set<string>();
-  const inStack = new Set<string>();
-  const path: string[] = [];
+  const seen = new Set<string>();
 
-  function dfs(node: string): void {
+  function dfs(path: string[], visited: Set<string>): void {
     if (cycles.length >= 10) return;
-    visited.add(node);
-    inStack.add(node);
-    path.push(node);
-
-    for (const neighbor of graph.get(node) ?? []) {
-      if (inStack.has(neighbor)) {
-        // Found a cycle — extract it
-        const cycleStart = path.indexOf(neighbor);
-        const rawCycle = path.slice(cycleStart);
-        const len = rawCycle.length;
-        if (len >= 2 && len <= 5) {
-          // Normalize: start with lex-smallest agent
-          const minIdx = rawCycle.indexOf([...rawCycle].sort()[0]);
-          const normalized = [...rawCycle.slice(minIdx), ...rawCycle.slice(0, minIdx)];
-          normalized.push(normalized[0]);
-          // Deduplicate cycles
-          const key = normalized.join('→');
-          if (!cycles.some((c) => c.join('→') === key)) {
+    const current = path[path.length - 1];
+    const neighbors = graph.get(current) || new Set();
+    for (const neighbor of neighbors) {
+      const cycleStart = path.indexOf(neighbor);
+      if (cycleStart !== -1) {
+        const cycle = path.slice(cycleStart);
+        if (cycle.length >= 2 && cycle.length <= 5) {
+          // Normalize: start with lex-smallest
+          const minIdx = cycle.indexOf([...cycle].sort()[0]);
+          const normalized = [...cycle.slice(minIdx), ...cycle.slice(0, minIdx)];
+          const key = normalized.join('->');
+          if (!seen.has(key)) {
+            seen.add(key);
             cycles.push(normalized);
           }
         }
-      } else if (!visited.has(neighbor)) {
-        dfs(neighbor);
-        if (cycles.length >= 10) break;
+      } else if (!visited.has(neighbor) && path.length < 5) {
+        visited.add(neighbor);
+        dfs([...path, neighbor], visited);
+        visited.delete(neighbor);
       }
     }
-
-    path.pop();
-    inStack.delete(node);
   }
 
-  for (const node of graph.keys()) {
-    if (!visited.has(node)) dfs(node);
-    if (cycles.length >= 10) break;
+  const allAgents = new Set([...graph.keys()]);
+  for (const agent of allAgents) {
+    dfs([agent], new Set([agent]));
   }
 
-  return cycles;
+  return cycles.slice(0, 10);
 }
 
-export async function analyzeEscalationPatterns(projectId: string): Promise<EscalationAnalysis> {
-  const empty: EscalationAnalysis = {
-    chains: [],
-    hotspots: [],
-    circularPatterns: [],
-    totalEscalations: 0,
-    avgChainLength: 0,
-    aiSummary: FALLBACK_SUMMARY,
-    aiRecommendations: FALLBACK_RECOMMENDATIONS,
-  };
+export async function analyzeEscalationPatterns(projectId: string): Promise<EscalationPatternReport> {
+  const now = new Date();
 
-  const [allTickets, allNotes] = await Promise.all([
-    db.select({ id: tickets.id, title: tickets.title, status: tickets.status, updatedAt: tickets.updatedAt })
-      .from(tickets)
-      .where(eq(tickets.projectId, projectId)),
-    db.select({
-      id: ticketNotes.id,
-      ticketId: ticketNotes.ticketId,
-      handoffFrom: ticketNotes.handoffFrom,
-      handoffTo: ticketNotes.handoffTo,
-      createdAt: ticketNotes.createdAt,
-    })
+  // Get handoff notes for tickets in this project
+  const projectTickets = await db
+    .select({ id: tickets.id })
+    .from(tickets)
+    .where(eq(tickets.projectId, projectId));
+
+  const ticketIds = projectTickets.map(t => t.id);
+
+  let handoffs: { handoffFrom: string | null; handoffTo: string | null }[] = [];
+
+  if (ticketIds.length > 0) {
+    // Get all notes with handoff data for project tickets
+    const allNotes = await db
+      .select({ handoffFrom: ticketNotes.handoffFrom, handoffTo: ticketNotes.handoffTo })
       .from(ticketNotes)
-      .where(isNotNull(ticketNotes.handoffFrom)),
-  ]);
+      .where(and(isNotNull(ticketNotes.handoffFrom), isNotNull(ticketNotes.handoffTo)));
 
-  const ticketMap = new Map(allTickets.map((t) => [t.id, t]));
-
-  // Filter notes to project tickets only, sort by createdAt
-  const projectNotes = allNotes
-    .filter((n) => ticketMap.has(n.ticketId))
-    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-  if (projectNotes.length === 0) return empty;
-
-  // Group notes by ticketId
-  const notesByTicket = new Map<string, typeof projectNotes>();
-  for (const n of projectNotes) {
-    if (!notesByTicket.has(n.ticketId)) notesByTicket.set(n.ticketId, []);
-    notesByTicket.get(n.ticketId)!.push(n);
+    handoffs = allNotes.filter(n => n.handoffFrom && n.handoffTo);
   }
 
-  // Detect escalations: consecutive handoffs on same ticket where gap <= 2h
-  // and prev.handoffTo === curr.handoffFrom (re-escalation proxy)
-  type EscalationEvent = {
-    fromAgent: string;
-    toAgent: string;
-    ticketId: string;
-    escalatedAt: Date;
-  };
-  const escalationEvents: EscalationEvent[] = [];
-
-  for (const [ticketId, notes] of notesByTicket) {
-    for (let i = 1; i < notes.length; i++) {
-      const prev = notes[i - 1];
-      const curr = notes[i];
-      if (
-        prev.handoffTo != null &&
-        curr.handoffFrom != null &&
-        prev.handoffTo === curr.handoffFrom &&
-        curr.handoffFrom != null &&
-        curr.handoffTo != null &&
-        curr.createdAt.getTime() - prev.createdAt.getTime() <= TWO_HOURS_MS
-      ) {
-        escalationEvents.push({
-          fromAgent: curr.handoffFrom,
-          toAgent: curr.handoffTo,
-          ticketId,
-          escalatedAt: curr.createdAt,
-        });
-      }
-    }
+  if (handoffs.length === 0) {
+    return {
+      projectId,
+      analyzedAt: now.toISOString(),
+      chains: [],
+      hotspots: [],
+      circularPatterns: [],
+      totalEscalations: 0,
+      avgChainLength: 0,
+      aiSummary: FALLBACK_SUMMARY,
+      aiRecommendations: FALLBACK_RECOMMENDATIONS,
+    };
   }
 
-  if (escalationEvents.length === 0) return empty;
+  // Count chains
+  const chainMap = new Map<string, number>();
+  const agentEscalationCount = new Map<string, number>();
 
-  const totalEscalations = escalationEvents.length;
-
-  // Build chains: edge (fromAgent, toAgent) → { count, ticketIds, resolutionTimes }
-  type EdgeAcc = {
-    count: number;
-    ticketIds: Set<string>;
-    resolutionTimes: (number | null)[];
-  };
-  const edgeMap = new Map<string, EdgeAcc>();
-
-  for (const ev of escalationEvents) {
-    const key = `${ev.fromAgent}|||${ev.toAgent}`;
-    if (!edgeMap.has(key)) edgeMap.set(key, { count: 0, ticketIds: new Set(), resolutionTimes: [] });
-    const acc = edgeMap.get(key)!;
-    if (!acc.ticketIds.has(ev.ticketId)) {
-      acc.ticketIds.add(ev.ticketId);
-      acc.count++;
-      const ticket = ticketMap.get(ev.ticketId);
-      if (ticket?.status === 'done') {
-        const resolutionMs = ticket.updatedAt.getTime() - ev.escalatedAt.getTime();
-        acc.resolutionTimes.push(Math.max(0, resolutionMs) / (60 * 60 * 1000));
-      } else {
-        acc.resolutionTimes.push(null);
-      }
-    }
+  for (const h of handoffs) {
+    const key = `${h.handoffFrom}→${h.handoffTo}`;
+    chainMap.set(key, (chainMap.get(key) || 0) + 1);
+    agentEscalationCount.set(h.handoffFrom!, (agentEscalationCount.get(h.handoffFrom!) || 0) + 1);
+    agentEscalationCount.set(h.handoffTo!, (agentEscalationCount.get(h.handoffTo!) || 0) + 1);
   }
 
-  const chains: EscalationChain[] = [];
-  for (const [key, acc] of edgeMap) {
-    const [fromAgent, toAgent] = key.split('|||');
-    const resolvedTimes = acc.resolutionTimes.filter((t): t is number => t !== null);
-    const avgResolutionTime =
-      resolvedTimes.length > 0
-        ? Math.round((resolvedTimes.reduce((s, t) => s + t, 0) / resolvedTimes.length) * 10) / 10
-        : null;
-    const topTriggers = [...acc.ticketIds]
-      .slice(0, 3)
-      .map((tid) => ticketMap.get(tid)?.title ?? tid);
-    chains.push({ fromAgent, toAgent, count: acc.count, avgResolutionTime, topTriggers });
-  }
-  chains.sort((a, b) => b.count - a.count);
+  const totalEscalations = handoffs.length;
 
-  // Build hotspots
-  // Per agent: total handoffs (all notes where handoffFrom = agent or handoffTo = agent per ticket)
-  const agentHandoffCounts = new Map<string, number>();
-  for (const n of projectNotes) {
-    if (n.handoffFrom) {
-      agentHandoffCounts.set(n.handoffFrom, (agentHandoffCounts.get(n.handoffFrom) ?? 0) + 1);
-    }
-  }
+  const chains: EscalationChain[] = [...chainMap.entries()]
+    .map(([key, count]) => {
+      const [fromAgent, toAgent] = key.split('→');
+      return { fromAgent, toAgent, count };
+    })
+    .sort((a, b) => b.count - a.count);
 
-  const agentEscalSent = new Map<string, number>();
-  const agentEscalReceived = new Map<string, number>();
-  for (const ev of escalationEvents) {
-    agentEscalSent.set(ev.fromAgent, (agentEscalSent.get(ev.fromAgent) ?? 0) + 1);
-    agentEscalReceived.set(ev.toAgent, (agentEscalReceived.get(ev.toAgent) ?? 0) + 1);
-  }
+  const hotspots: EscalationHotspot[] = [...agentEscalationCount.entries()]
+    .map(([agentPersona, escalationCount]) => {
+      const pct = escalationCount / totalEscalations;
+      let severity: 'critical' | 'high' | 'moderate' | 'low';
+      if (pct >= 0.6) severity = 'critical';
+      else if (pct >= 0.4) severity = 'high';
+      else if (pct >= 0.2) severity = 'moderate';
+      else severity = 'low';
+      return { agentPersona, escalationCount, severity };
+    })
+    .sort((a, b) => b.escalationCount - a.escalationCount);
 
-  const allHotspotAgents = new Set([...agentEscalSent.keys(), ...agentEscalReceived.keys()]);
-  const hotspots: EscalationHotspot[] = [];
+  const circularPatterns = detectCycles(chains);
+  const avgChainLength = chains.length > 0
+    ? Math.round((chains.reduce((s, c) => s + c.count, 0) / chains.length) * 10) / 10
+    : 0;
 
-  for (const agentId of allHotspotAgents) {
-    const escalationsSent = agentEscalSent.get(agentId) ?? 0;
-    const escalationsReceived = agentEscalReceived.get(agentId) ?? 0;
-    if (escalationsSent === 0) continue; // only agents that sent escalations
-    const totalHandoffs = agentHandoffCounts.get(agentId) ?? 1;
-    const escalationRate =
-      Math.round((escalationsSent / Math.max(1, totalHandoffs)) * 100 * 10) / 10;
-    const severity = computeSeverity(escalationRate);
-    hotspots.push({ agentId, escalationsReceived, escalationsSent, escalationRate, severity });
-  }
-  hotspots.sort((a, b) => b.escalationRate - a.escalationRate);
+  const client = new Anthropic({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
+  });
 
-  // Circular pattern detection
-  const edges = chains.map((c) => ({ from: c.fromAgent, to: c.toAgent }));
-  const circularPatterns = detectCycles(edges);
-
-  // avgChainLength: per ticket, count escalation hops; average across tickets with >= 1 escalation
-  const ticketHops = new Map<string, number>();
-  for (const ev of escalationEvents) {
-    ticketHops.set(ev.ticketId, (ticketHops.get(ev.ticketId) ?? 0) + 1);
-  }
-  const hopValues = [...ticketHops.values()];
-  const avgChainLength =
-    hopValues.length > 0
-      ? Math.round((hopValues.reduce((s, h) => s + h, 0) / hopValues.length) * 10) / 10
-      : 0;
-
-  // AI summary + recommendations
   let aiSummary = FALLBACK_SUMMARY;
   let aiRecommendations = FALLBACK_RECOMMENDATIONS;
 
   try {
-    const client = new Anthropic({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
-    });
-    const topChains = chains
-      .slice(0, 3)
-      .map((c) => `${c.fromAgent}→${c.toAgent}(${c.count}x)`)
-      .join(', ');
-    const prompt = `Analyze escalation patterns for AI agents. Data: ${totalEscalations} total escalations, ${hotspots.length} hotspot agents, ${circularPatterns.length} circular loops.\nTop chains: ${topChains}.\nProvide: 1) 2-sentence summary of systemic issues, 2) up to 5 concrete recommendations.\nReturn JSON: {"summary": "...", "recommendations": ["...", ...]}.`;
+    const statsData = JSON.stringify({ totalEscalations, topChains: chains.slice(0, 3), hotspots: hotspots.slice(0, 3) });
     const response = await client.messages.create({
       model: process.env.AI_MODEL || 'qwen/qwen3-6b',
-      max_tokens: 500,
-      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `Analyze agent escalation patterns. Give 2-sentence summary and 2-3 recommendations. Output JSON: {aiSummary: string, aiRecommendations: string[]}.\n\n${statsData}`,
+      }],
     });
     const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    const parsed = JSON.parse(extractJSONFromText(text)) as { summary?: string; recommendations?: string[] };
-    if (parsed.summary) aiSummary = parsed.summary;
-    if (Array.isArray(parsed.recommendations)) {
-      aiRecommendations = parsed.recommendations.slice(0, 5);
-    }
-  } catch {
-    // fallback values already set
+    const parsed = JSON.parse(extractJSONFromText(text)) as { aiSummary: string; aiRecommendations: string[] };
+    if (parsed.aiSummary) aiSummary = parsed.aiSummary;
+    if (Array.isArray(parsed.aiRecommendations) && parsed.aiRecommendations.length > 0) aiRecommendations = parsed.aiRecommendations;
+  } catch (e) {
+    console.warn('Agent escalation pattern AI failed, using fallback:', e);
   }
 
   return {
+    projectId,
+    analyzedAt: now.toISOString(),
     chains,
     hotspots,
     circularPatterns,
