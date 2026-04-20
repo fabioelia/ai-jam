@@ -5321,3 +5321,52 @@ export function useAgentBlockedTime(projectId: string) {
 
   return { analyze, loading, isPending: loading, data, setData };
 }
+
+// FEAT-136: Agent Quality-Speed Tradeoff Analyzer
+export interface AgentQualitySpeedData {
+  agentId: string;
+  agentName: string;
+  tasksCompleted: number;
+  avgCompletionTimeHours: number;
+  avgQualityScore: number;
+  reviewPassRate: number;
+  firstPassRate: number;
+  revisionCount: number;
+  tradeoffScore: number;
+  tradeoffTier: 'optimized' | 'balanced' | 'quality-focused' | 'speed-focused' | 'struggling';
+}
+
+export interface AgentQualitySpeedReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgTradeoffScore: number;
+    mostOptimizedAgent: string;
+    mostStrugglingAgent: string;
+    optimizedAgentCount: number;
+  };
+  agents: AgentQualitySpeedData[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentQualitySpeed(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentQualitySpeedReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentQualitySpeedReport>(
+        `/projects/${projectId}/agent-quality-speed`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, isPending: loading, data, setData };
+}
