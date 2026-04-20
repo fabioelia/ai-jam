@@ -2613,3 +2613,100 @@ export interface AgentOutputQualityScore {
 
 export const getAgentOutputQuality = (projectId: string) =>
   fetch(`/api/agent-output-quality/${projectId}`).then((r) => r.json());
+
+export interface AgentCommunicationProfile {
+  agentPersona: string;
+  handoffsSent: number;
+  avgMessageLength: number;
+  contextRichness: number;
+  clarificationRate: number;
+  downstreamSuccessRate: number;
+  qualityScore: number;
+  tier: 'excellent' | 'good' | 'fair' | 'poor';
+}
+
+export interface CommunicationPattern {
+  pattern: string;
+  frequency: number;
+  impact: 'positive' | 'negative';
+}
+
+export interface CommunicationQualityReport {
+  agents: AgentCommunicationProfile[];
+  patterns: CommunicationPattern[];
+  summary: {
+    totalAgents: number;
+    avgQualityScore: number;
+    excellentCount: number;
+    poorCount: number;
+    bestCommunicator: string | null;
+    worstCommunicator: string | null;
+  };
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentCommunicationQuality() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CommunicationQualityReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<CommunicationQualityReport>(
+        `/projects/${projectId}/agent-communication-quality`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentAbandonmentMetrics {
+  agentPersona: string;
+  totalTasks: number;
+  abandonedTasks: number;
+  completedTasks: number;
+  abandonmentRate: number;
+  completionRate: number;
+  avgStuckDuration: number;
+  riskLevel: 'critical' | 'high' | 'moderate' | 'low';
+  recommendation: string;
+}
+
+export interface AgentAbandonmentReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentAbandonmentMetrics[];
+  summary: {
+    totalAgents: number;
+    avgAbandonmentRate: number;
+    highRiskAgents: number;
+    mostReliableAgent: string | null;
+  };
+  aiSummary: string;
+}
+
+export function useAgentTaskAbandonment() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAbandonmentReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentAbandonmentReport>(
+        `/projects/${projectId}/agent-task-abandonment`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

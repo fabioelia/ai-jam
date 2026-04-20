@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -67,6 +67,7 @@ import AgentTaskVelocityModal from '../components/board/AgentTaskVelocityModal.j
 import AgentContextSwitchModal from '../components/board/AgentContextSwitchModal.js';
 import AgentParallelCapacityModal from '../components/board/AgentParallelCapacityModal.js';
 import AgentEstimationAccuracyModal from '../components/board/AgentEstimationAccuracyModal.js';
+import AgentTaskAbandonmentModal from '../components/board/AgentTaskAbandonmentModal.js';
 import AgentOutputQualityModal from '../components/board/AgentOutputQualityModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
@@ -282,6 +283,8 @@ export default function BoardPage() {
   const [showAgentParallelCapacity, setShowAgentParallelCapacity] = useState(false);
   const agentEstimationAccuracy = useAgentEstimationAccuracy();
   const [showAgentEstimationAccuracy, setShowAgentEstimationAccuracy] = useState(false);
+  const agentTaskAbandonment = useAgentTaskAbandonment();
+  const [showAgentTaskAbandonment, setShowAgentTaskAbandonment] = useState(false);
   const [agentOutputQualityScores, setAgentOutputQualityScores] = useState<AgentOutputQualityScore[] | null>(null);
   const [agentOutputQualityLoading, setAgentOutputQualityLoading] = useState(false);
   const [showAgentOutputQuality, setShowAgentOutputQuality] = useState(false);
@@ -1570,6 +1573,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Abandonment Button */}
+        <button
+          onClick={async () => {
+            setShowAgentTaskAbandonment(true);
+            try {
+              await agentTaskAbandonment.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Abandonment analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentTaskAbandonment.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+        >
+          {agentTaskAbandonment.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' /></svg> Abandonment</>
+          )}
+        </button>
+
         {/* Agent Output Quality Button */}
         <button
           onClick={async () => {
@@ -2156,6 +2179,10 @@ export default function BoardPage() {
 
       {showAgentEstimationAccuracy && (
         <AgentEstimationAccuracyModal result={agentEstimationAccuracy.result} isOpen={showAgentEstimationAccuracy} loading={agentEstimationAccuracy.loading} onClose={() => { agentEstimationAccuracy.setResult(null); setShowAgentEstimationAccuracy(false); }} />
+      )}
+
+      {showAgentTaskAbandonment && (
+        <AgentTaskAbandonmentModal result={agentTaskAbandonment.result} isOpen={showAgentTaskAbandonment} loading={agentTaskAbandonment.loading} onClose={() => { agentTaskAbandonment.setResult(null); setShowAgentTaskAbandonment(false); }} />
       )}
 
       {showAgentOutputQuality && (

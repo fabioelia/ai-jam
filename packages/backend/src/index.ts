@@ -75,6 +75,10 @@ import { agentParallelCapacityRoutes } from './routes/agent-parallel-capacity.js
 import { agentEstimationAccuracyRoutes } from './routes/agent-estimation-accuracy.js';
 import { agentGoalAlignmentRoutes } from './routes/agent-goal-alignment.js';
 import { agentOutputQualityRoutes } from './routes/agent-output-quality.js';
+import { agentCommunicationQualityRoutes } from './routes/agent-communication-quality.js';
+import { agentTaskAbandonmentRoutes } from './routes/agent-task-abandonment.js';
+import { agentWorkloadDistributionRoutes } from './routes/agent-workload-distribution.js';
+import { agentTaskComplexityRoutes } from './routes/agent-task-complexity.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -184,6 +188,10 @@ async function main() {
   await fastify.register(agentEstimationAccuracyRoutes);
   await fastify.register(agentGoalAlignmentRoutes);
   await fastify.register(agentOutputQualityRoutes);
+  await fastify.register(agentCommunicationQualityRoutes);
+  await fastify.register(agentTaskAbandonmentRoutes);
+  await fastify.register(agentWorkloadDistributionRoutes);
+  await fastify.register(agentTaskComplexityRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
