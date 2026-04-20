@@ -2795,3 +2795,44 @@ export function useAgentTaskComplexity() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentSessionDepthProfile {
+  personaId: string;
+  avgTicketsPerSession: number;
+  avgHandoffsSentPerSession: number;
+  avgHandoffsReceivedPerSession: number;
+  avgSessionDurationHours: number;
+  totalSessions: number;
+  depthScore: number;
+  depthCategory: 'deep' | 'moderate' | 'shallow' | 'pass-through';
+}
+
+export interface AgentSessionDepthReport {
+  agents: AgentSessionDepthProfile[];
+  avgDepthScore: number;
+  deepestAgent: string | null;
+  shallowestAgent: string | null;
+  passThroughCount: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentSessionDepth() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSessionDepthReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentSessionDepthReport>(
+        `/projects/${projectId}/agent-session-depth`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -72,6 +72,7 @@ import AgentOutputQualityModal from '../components/board/AgentOutputQualityModal
 import AgentTaskComplexityModal from '../components/board/AgentTaskComplexityModal.js';
 import AgentCommunicationQualityModal from '../components/board/AgentCommunicationQualityModal.js';
 import AgentWorkloadDistributionModal from '../components/board/AgentWorkloadDistributionModal.js';
+import AgentSessionDepthModal from '../components/board/AgentSessionDepthModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -297,6 +298,8 @@ export default function BoardPage() {
   const [showAgentOutputQuality, setShowAgentOutputQuality] = useState(false);
   const agentTaskComplexity = useAgentTaskComplexity();
   const [showAgentTaskComplexity, setShowAgentTaskComplexity] = useState(false);
+  const agentSessionDepth = useAgentSessionDepth();
+  const [showAgentSessionDepth, setShowAgentSessionDepth] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1666,6 +1669,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Agent Session Depth Button */}
+        <button
+          onClick={async () => {
+            setShowAgentSessionDepth(true);
+            try {
+              await agentSessionDepth.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Session depth analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentSessionDepth.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {agentSessionDepth.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18' /></svg> Session Depth</>
+          )}
+        </button>
+
         {/* Task Complexity Button */}
         <button
           onClick={async () => {
@@ -2268,6 +2291,10 @@ export default function BoardPage() {
 
       {showAgentTaskComplexity && (
         <AgentTaskComplexityModal result={agentTaskComplexity.result} isOpen={showAgentTaskComplexity} loading={agentTaskComplexity.loading} onClose={() => { agentTaskComplexity.setResult(null); setShowAgentTaskComplexity(false); }} />
+      )}
+
+      {showAgentSessionDepth && (
+        <AgentSessionDepthModal result={agentSessionDepth.result} isOpen={showAgentSessionDepth} loading={agentSessionDepth.loading} onClose={() => { agentSessionDepth.setResult(null); setShowAgentSessionDepth(false); }} />
       )}
     </div>
   );
