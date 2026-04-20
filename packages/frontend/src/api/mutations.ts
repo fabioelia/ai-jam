@@ -3591,3 +3591,47 @@ export function useAnalyzeAgentConfidenceCalibration() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentFeedbackIncorporationData {
+  personaId: string;
+  totalFeedbackReceived: number;
+  feedbackIncorporated: number;
+  incorporationRate: number;
+  repeatFeedbackCount: number;
+  avgIterationsToApproval: number;
+  fastIncorporationCount: number;
+  incorporationScore: number;
+  incorporationTier: 'excellent' | 'good' | 'improving' | 'struggling';
+}
+
+export interface AgentFeedbackIncorporationReport {
+  projectId: string;
+  agents: AgentFeedbackIncorporationData[];
+  bestIncorporator: string | null;
+  mostStrugglingAgent: string | null;
+  avgProjectIncorporationRate: number;
+  agentsWithRepeatFeedback: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentFeedbackIncorporation(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentFeedbackIncorporationReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentFeedbackIncorporationReport>(
+        `/projects/${projectId}/agent-feedback-incorporation`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
