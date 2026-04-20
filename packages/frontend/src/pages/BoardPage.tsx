@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -46,6 +46,7 @@ import AgentResponseTimeModal from '../components/board/AgentResponseTimeModal.j
 import AgentPriorityAlignmentModal from '../components/board/AgentPriorityAlignmentModal.js';
 import AgentStallDetectorModal from '../components/board/AgentStallDetectorModal.js';
 import AgentSpecializationMapperModal from '../components/board/AgentSpecializationMapperModal.js';
+import AgentBottleneckAnalyzerModal from '../components/board/AgentBottleneckAnalyzerModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -218,6 +219,8 @@ export default function BoardPage() {
   const [showStallDetector, setShowStallDetector] = useState(false);
   const agentSpecializationMapper = useAgentSpecializationMapper();
   const [showSpecializationMapper, setShowSpecializationMapper] = useState(false);
+  const agentBottleneckAnalyzer = useAgentBottleneckAnalyzer();
+  const [showBottleneckAnalyzer, setShowBottleneckAnalyzer] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1083,6 +1086,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Bottlenecks Button */}
+        <button
+          onClick={async () => {
+            setShowBottleneckAnalyzer(true);
+            try {
+              await agentBottleneckAnalyzer.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Bottleneck analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentBottleneckAnalyzer.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+        >
+          {agentBottleneckAnalyzer.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' /></svg> Bottlenecks</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1561,6 +1584,10 @@ export default function BoardPage() {
 
       {showSpecializationMapper && (
         <AgentSpecializationMapperModal result={agentSpecializationMapper.result} isOpen={showSpecializationMapper} loading={agentSpecializationMapper.loading} onClose={() => { agentSpecializationMapper.setResult(null); setShowSpecializationMapper(false); }} />
+      )}
+
+      {showBottleneckAnalyzer && (
+        <AgentBottleneckAnalyzerModal result={agentBottleneckAnalyzer.result} isOpen={showBottleneckAnalyzer} loading={agentBottleneckAnalyzer.loading} onClose={() => { agentBottleneckAnalyzer.setResult(null); setShowBottleneckAnalyzer(false); }} />
       )}
     </div>
   );

@@ -1695,3 +1695,52 @@ export function useAgentSpecializationMapper() {
 
   return { map, loading, result, setResult };
 }
+
+
+export interface StageBottleneck {
+  stage: 'in_progress' | 'review' | 'qa' | 'acceptance';
+  avgDwellMs: number;
+  maxDwellMs: number;
+  ticketCount: number;
+  bottleneckSeverity: 'critical' | 'moderate' | 'low';
+}
+
+export interface AgentBottleneck {
+  agentPersona: string;
+  avgDwellMs: number;
+  stalledTickets: number;
+  totalAssigned: number;
+  bottleneckScore: number;
+  recommendation: string;
+}
+
+export interface BottleneckReport {
+  projectId: string;
+  analyzedAt: string;
+  totalTickets: number;
+  stalledTickets: number;
+  criticalBottlenecks: number;
+  stageBottlenecks: StageBottleneck[];
+  agentBottlenecks: AgentBottleneck[];
+  aiSummary: string;
+}
+
+export function useAgentBottleneckAnalyzer() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<BottleneckReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<BottleneckReport>(
+        `/projects/${projectId}/agent-bottleneck-analyzer`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

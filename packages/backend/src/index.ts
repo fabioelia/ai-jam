@@ -53,6 +53,7 @@ import { agentResponseTimeRoutes } from './routes/agent-response-time.js';
 import { agentPriorityAlignmentRoutes } from './routes/agent-priority-alignment.js';
 import { agentStallDetectorRoutes } from './routes/agent-stall-detector.js';
 import { agentSpecializationMapperRoutes } from './routes/agent-specialization-mapper.js';
+import { agentBottleneckAnalyzerRoutes } from './routes/agent-bottleneck-analyzer.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -140,6 +141,7 @@ async function main() {
   await fastify.register(agentPriorityAlignmentRoutes);
   await fastify.register(agentStallDetectorRoutes);
   await fastify.register(agentSpecializationMapperRoutes);
+  await fastify.register(agentBottleneckAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
