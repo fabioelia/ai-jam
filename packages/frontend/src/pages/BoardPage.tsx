@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentResponseLatency, useAgentErrorRecovery, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -86,6 +86,8 @@ import AgentBlockerFrequencyModal from '../components/board/AgentBlockerFrequenc
 import AgentTokenBudgetModal from '../components/board/AgentTokenBudgetModal.js';
 import AgentKnowledgeFreshnessModal from '../components/board/AgentKnowledgeFreshnessModal.js';
 import AgentPersonaAlignmentModal from '../components/board/AgentPersonaAlignmentModal.js';
+import AgentCollaborationGraphModal from '../components/board/AgentCollaborationGraphModal.js';
+import AgentMultitaskingEfficiencyModal from '../components/board/AgentMultitaskingEfficiencyModal.js';
 import AgentResponseLatencyModal from '../components/board/AgentResponseLatencyModal.js';
 import AgentErrorRecoveryModal from '../components/board/AgentErrorRecoveryModal.js';
 import AgentSpecializationDriftModal from '../components/board/AgentSpecializationDriftModal.js';
@@ -338,8 +340,15 @@ export default function BoardPage() {
   const [showAgentTokenBudget, setShowAgentTokenBudget] = useState(false);
   const agentKnowledgeFreshness = useAgentKnowledgeFreshness(projectId!);
   const [showAgentKnowledgeFreshness, setShowAgentKnowledgeFreshness] = useState(false);
-  const agentPersonaAlignment = useAgentPersonaAlignment(projectId!);
+  const agentPersonaAlignmentMutation = useAgentPersonaAlignment(projectId!);
   const [showAgentPersonaAlignment, setShowAgentPersonaAlignment] = useState(false);
+  const [agentPersonaAlignmentResult, setAgentPersonaAlignmentResult] = useState<PersonaAlignmentReport | null>(null);
+  const agentCollaborationGraphMutation = useAgentCollaborationGraph(projectId!);
+  const [showAgentCollaborationGraph, setShowAgentCollaborationGraph] = useState(false);
+  const [agentCollaborationGraphResult, setAgentCollaborationGraphResult] = useState<AgentCollaborationGraphReport | null>(null);
+  const agentMultitaskingEfficiencyMutation = useAgentMultitaskingEfficiency(projectId!);
+  const [showAgentMultitaskingEfficiency, setShowAgentMultitaskingEfficiency] = useState(false);
+  const [agentMultitaskingEfficiencyResult, setAgentMultitaskingEfficiencyResult] = useState<MultitaskingEfficiencyReport | null>(null);
   const agentResponseLatency = useAgentResponseLatency(projectId!);
   const [showAgentResponseLatency, setShowAgentResponseLatency] = useState(false);
   const agentErrorRecovery = useAgentErrorRecovery(projectId!);
@@ -1278,18 +1287,61 @@ export default function BoardPage() {
           onClick={async () => {
             setShowAgentPersonaAlignment(true);
             try {
-              await agentPersonaAlignment.analyze();
+              const data = await agentPersonaAlignmentMutation.mutateAsync();
+              setAgentPersonaAlignmentResult(data);
             } catch (error) {
               toast.error(`Persona alignment analysis failed: ${getClientErrorMessage(error)}`);
             }
           }}
-          disabled={agentPersonaAlignment.loading}
+          disabled={agentPersonaAlignmentMutation.isPending}
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
         >
-          {agentPersonaAlignment.loading ? (
+          {agentPersonaAlignmentMutation.isPending ? (
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           ) : (
             <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' /></svg> Persona Alignment</>
+          )}
+        </button>
+
+        {/* Collab Graph Button */}
+        <button
+          onClick={async () => {
+            setShowAgentCollaborationGraph(true);
+            try {
+              const data = await agentCollaborationGraphMutation.mutateAsync();
+              setAgentCollaborationGraphResult(data);
+            } catch (error) {
+              toast.error(`Collaboration graph analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentCollaborationGraphMutation.isPending}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {agentCollaborationGraphMutation.isPending ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1' /></svg> Collab Graph</>
+          )}
+        </button>
+
+        {/* Multi-Task Button */}
+        <button
+          onClick={async () => {
+            setShowAgentMultitaskingEfficiency(true);
+            try {
+              const data = await agentMultitaskingEfficiencyMutation.mutateAsync();
+              setAgentMultitaskingEfficiencyResult(data);
+            } catch (error) {
+              toast.error(`Multi-tasking efficiency analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentMultitaskingEfficiencyMutation.isPending}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+        >
+          {agentMultitaskingEfficiencyMutation.isPending ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 6h16M4 10h16M4 14h16M4 18h16' /></svg> Multi-Task</>
           )}
         </button>
 
@@ -2696,7 +2748,13 @@ export default function BoardPage() {
         <AgentKnowledgeFreshnessModal result={agentKnowledgeFreshness.result} isOpen={showAgentKnowledgeFreshness} loading={agentKnowledgeFreshness.loading} onClose={() => { agentKnowledgeFreshness.setResult(null); setShowAgentKnowledgeFreshness(false); }} />
       )}
       {showAgentPersonaAlignment && (
-        <AgentPersonaAlignmentModal result={agentPersonaAlignment.result} isOpen={showAgentPersonaAlignment} loading={agentPersonaAlignment.loading} onClose={() => { agentPersonaAlignment.setResult(null); setShowAgentPersonaAlignment(false); }} />
+        <AgentPersonaAlignmentModal result={agentPersonaAlignmentResult} isOpen={showAgentPersonaAlignment} loading={agentPersonaAlignmentMutation.isPending} onClose={() => { setAgentPersonaAlignmentResult(null); setShowAgentPersonaAlignment(false); }} />
+      )}
+      {showAgentCollaborationGraph && (
+        <AgentCollaborationGraphModal result={agentCollaborationGraphResult} isOpen={showAgentCollaborationGraph} loading={agentCollaborationGraphMutation.isPending} onClose={() => { setAgentCollaborationGraphResult(null); setShowAgentCollaborationGraph(false); }} />
+      )}
+      {showAgentMultitaskingEfficiency && (
+        <AgentMultitaskingEfficiencyModal result={agentMultitaskingEfficiencyResult} isOpen={showAgentMultitaskingEfficiency} loading={agentMultitaskingEfficiencyMutation.isPending} onClose={() => { setAgentMultitaskingEfficiencyResult(null); setShowAgentMultitaskingEfficiency(false); }} />
       )}
       {showAgentResponseLatency && (
         <AgentResponseLatencyModal result={agentResponseLatency.result} isOpen={showAgentResponseLatency} loading={agentResponseLatency.loading} onClose={() => { agentResponseLatency.setResult(null); setShowAgentResponseLatency(false); }} />
