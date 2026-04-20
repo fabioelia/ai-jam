@@ -998,6 +998,46 @@ export function useAgentRouting() {
   return { route, loading, result, setResult };
 }
 
+export interface StaleTicket {
+  ticketId: string;
+  title: string;
+  priority: string;
+  status: string;
+  staleDays: number;
+  assignedPersona: string | null;
+  riskLevel: 'critical' | 'high' | 'medium';
+  recommendation: string;
+}
+
+export interface EscalationReport {
+  projectId: string;
+  staleTickets: StaleTicket[];
+  totalStale: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  analyzedAt: string;
+}
+
+export function useEscalationDetect() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<EscalationReport | null>(null);
+
+  const detect = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<EscalationReport>(`/projects/${projectId}/escalation-detect`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { detect, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);

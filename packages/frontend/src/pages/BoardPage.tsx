@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -29,6 +29,7 @@ import ReleaseReadinessModal from '../components/board/ReleaseReadinessModal.js'
 import WorkloadBalancerModal from '../components/board/WorkloadBalancerModal.js';
 import AgentPerformanceModal from '../components/board/AgentPerformanceModal.js';
 import AgentRoutingModal from '../components/board/AgentRoutingModal.js';
+import EscalationDetectorModal from '../components/board/EscalationDetectorModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -167,6 +168,8 @@ export default function BoardPage() {
   const [showAgentPerformance, setShowAgentPerformance] = useState(false);
   const agentRouting = useAgentRouting();
   const [showAgentRouting, setShowAgentRouting] = useState(false);
+  const escalationDetect = useEscalationDetect();
+  const [showEscalationDetector, setShowEscalationDetector] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -692,6 +695,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Escalation Risk Button */}
+        <button
+          onClick={async () => {
+            setShowEscalationDetector(true);
+            try {
+              await escalationDetect.detect(projectId!);
+            } catch (error) {
+              toast.error(`Escalation analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={escalationDetect.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+        >
+          {escalationDetect.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z' /></svg> Escalation Risk</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1069,6 +1092,16 @@ export default function BoardPage() {
           isOpen={showAgentRouting}
           loading={agentRouting.loading}
           onClose={() => { agentRouting.setResult(null); setShowAgentRouting(false); }}
+        />
+      )}
+
+      {/* Escalation Detector Modal */}
+      {showEscalationDetector && (
+        <EscalationDetectorModal
+          result={escalationDetect.result}
+          isOpen={showEscalationDetector}
+          loading={escalationDetect.loading}
+          onClose={() => { escalationDetect.setResult(null); setShowEscalationDetector(false); }}
         />
       )}
     </div>
