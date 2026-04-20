@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -51,6 +51,7 @@ import AgentQueueDepthModal from '../components/board/AgentQueueDepthModal.js';
 import AgentSkillGapModal from '../components/board/AgentSkillGapModal.js';
 import AgentConflictDetectorModal from '../components/board/AgentConflictDetectorModal.js';
 import AgentDecisionQualityModal from '../components/board/AgentDecisionQualityModal.js';
+import AgentPerformanceTrendModal from '../components/board/AgentPerformanceTrendModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -233,6 +234,8 @@ export default function BoardPage() {
   const [showAgentConflictDetector, setShowAgentConflictDetector] = useState(false);
   const agentDecisionQuality = useAgentDecisionQuality();
   const [showAgentDecisionQuality, setShowAgentDecisionQuality] = useState(false);
+  const agentPerformanceTrend = useAgentPerformanceTrend();
+  const [showAgentPerformanceTrend, setShowAgentPerformanceTrend] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1198,6 +1201,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Perf Trends Button */}
+        <button
+          onClick={async () => {
+            setShowAgentPerformanceTrend(true);
+            try {
+              await agentPerformanceTrend.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Performance trend analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentPerformanceTrend.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+        >
+          {agentPerformanceTrend.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' /></svg> Perf Trends</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1696,6 +1719,10 @@ export default function BoardPage() {
 
       {showAgentDecisionQuality && (
         <AgentDecisionQualityModal result={agentDecisionQuality.result} isOpen={showAgentDecisionQuality} loading={agentDecisionQuality.loading} onClose={() => { agentDecisionQuality.setResult(null); setShowAgentDecisionQuality(false); }} />
+      )}
+
+      {showAgentPerformanceTrend && (
+        <AgentPerformanceTrendModal result={agentPerformanceTrend.result} isOpen={showAgentPerformanceTrend} loading={agentPerformanceTrend.loading} onClose={() => { agentPerformanceTrend.setResult(null); setShowAgentPerformanceTrend(false); }} />
       )}
     </div>
   );

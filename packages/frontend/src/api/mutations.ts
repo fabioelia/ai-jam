@@ -1915,3 +1915,52 @@ export function useAgentDecisionQuality() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentTrendMetrics {
+  completionRate: number;
+  stallRate: number;
+  avgResolutionDays: number;
+  ticketVolume: number;
+}
+
+export interface AgentPerformanceTrend {
+  agentName: string;
+  recent: AgentTrendMetrics;
+  baseline: AgentTrendMetrics;
+  trendDirection: 'improving' | 'declining' | 'stable' | 'insufficient_data';
+  completionRateDelta: number;
+  stallRateDelta: number;
+  recommendation: string;
+}
+
+export interface PerformanceTrendReport {
+  projectId: string;
+  analyzedAt: string;
+  windowDays: number;
+  totalAgents: number;
+  improvingAgents: number;
+  decliningAgents: number;
+  stableAgents: number;
+  agentTrends: AgentPerformanceTrend[];
+  aiSummary: string;
+}
+
+export function useAgentPerformanceTrend() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<PerformanceTrendReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<PerformanceTrendReport>(
+        `/projects/${projectId}/agent-performance-trend`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
