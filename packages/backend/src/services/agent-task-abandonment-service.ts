@@ -1,6 +1,6 @@
 import { db } from '../db/connection.js';
-import { agentSessions } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { tickets, agentSessions } from '../db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
 export interface AgentTaskAbandonmentData {
@@ -32,10 +32,7 @@ export interface AgentTaskAbandonmentReport {
   aiRecommendations: string[];
 }
 
-export function computeAbandonmentScore(
-  abandonmentRate: number,
-  avgAbandonmentPoint: number,
-): number {
+export function computeAbandonmentScore(abandonmentRate: number, avgAbandonmentPoint: number): number {
   let base = (1 - abandonmentRate / 100) * 100;
   if (avgAbandonmentPoint > 75) base += 5;
   if (avgAbandonmentPoint < 25) base -= 10;
@@ -49,30 +46,51 @@ export function getAbandonmentTier(abandonmentScore: number): AgentTaskAbandonme
   return 'volatile';
 }
 
-const FALLBACK_SUMMARY = 'Review agent task abandonment patterns to improve reliability.';
+const FALLBACK_SUMMARY = 'Review agent task abandonment patterns to identify reliability issues.';
 const FALLBACK_RECOMMENDATIONS = [
-  'Identify tasks with high abandonment rates and simplify them.',
-  'Provide better support for agents that frequently abandon tasks.',
-  'Monitor agents with volatile tier classification for workload issues.',
+  'Monitor agents with high abandonment rates',
+  'Review task assignment complexity',
+  'Improve agent handoff processes',
 ];
 
 export async function analyzeAgentTaskAbandonment(projectId: string): Promise<AgentTaskAbandonmentReport> {
-  const allSessions = await db
-    .select({
-      id: agentSessions.id,
-      personaType: agentSessions.personaType,
-      status: agentSessions.status,
-      startedAt: agentSessions.startedAt,
-      completedAt: agentSessions.completedAt,
-      handoffTo: agentSessions.handoffTo,
-    })
-    .from(agentSessions)
-    .where(eq(agentSessions.projectId, projectId));
+  const now = new Date();
 
-  if (allSessions.length === 0) {
+  // Get tickets for the project to find relevant sessions
+  const projectTickets = await db
+    .select({ id: tickets.id })
+    .from(tickets)
+    .where(eq(tickets.projectId, projectId));
+
+  const ticketIds = projectTickets.map(t => t.id);
+
+  let sessions: {
+    id: string;
+    ticketId: string | null;
+    personaType: string;
+    status: string;
+    createdAt: Date;
+    completedAt: Date | null;
+  }[] = [];
+
+  if (ticketIds.length > 0) {
+    sessions = await db
+      .select({
+        id: agentSessions.id,
+        ticketId: agentSessions.ticketId,
+        personaType: agentSessions.personaType,
+        status: agentSessions.status,
+        createdAt: agentSessions.createdAt,
+        completedAt: agentSessions.completedAt,
+      })
+      .from(agentSessions)
+      .where(inArray(agentSessions.ticketId, ticketIds));
+  }
+
+  if (sessions.length === 0) {
     return {
       projectId,
-      generatedAt: new Date().toISOString(),
+      generatedAt: now.toISOString(),
       summary: {
         totalTasksStarted: 0,
         totalTasksAbandoned: 0,
@@ -87,73 +105,67 @@ export async function analyzeAgentTaskAbandonment(projectId: string): Promise<Ag
     };
   }
 
-  const sessionsByPersona = new Map<string, typeof allSessions>();
-  for (const s of allSessions) {
-    const list = sessionsByPersona.get(s.personaType) ?? [];
+  // Group by persona
+  const sessionsByPersona = new Map<string, typeof sessions>();
+  for (const s of sessions) {
+    const key = s.personaType;
+    const list = sessionsByPersona.get(key) ?? [];
     list.push(s);
-    sessionsByPersona.set(s.personaType, list);
+    sessionsByPersona.set(key, list);
   }
+
+  // Compute average session duration for abandoned sessions (proxy for avgAbandonmentPoint)
+  const allDurations = sessions
+    .filter(s => s.completedAt)
+    .map(s => s.completedAt!.getTime() - s.createdAt.getTime());
+  const avgDuration = allDurations.length > 0
+    ? allDurations.reduce((a, b) => a + b, 0) / allDurations.length
+    : 0;
 
   const agents: AgentTaskAbandonmentData[] = [];
 
-  for (const [personaType, sessions] of sessionsByPersona.entries()) {
-    const tasksStarted = sessions.length;
-    const tasksCompleted = sessions.filter(s => s.status === 'completed').length;
-    const abandonedSessions = sessions.filter(
-      s => s.status !== 'completed' && s.status !== 'active' && (!s.handoffTo || s.handoffTo === ''),
-    );
-    const tasksAbandoned = abandonedSessions.length;
-    const abandonmentRate = (tasksAbandoned / Math.max(tasksStarted, 1)) * 100;
+  for (const [persona, personaSessions] of sessionsByPersona.entries()) {
+    const tasksStarted = personaSessions.length;
+    const tasksAbandoned = personaSessions.filter(s => s.status === 'cancelled' || s.status === 'failed').length;
+    const tasksCompleted = personaSessions.filter(s => s.status === 'completed').length;
+    const abandonmentRate = tasksStarted > 0 ? (tasksAbandoned / tasksStarted) * 100 : 0;
 
+    // Compute avgAbandonmentPoint
+    const abandonedSessions = personaSessions.filter(s => (s.status === 'cancelled' || s.status === 'failed') && s.completedAt);
     let avgAbandonmentPoint = 50;
-    const timedAbandoned = abandonedSessions.filter(s => s.startedAt && s.completedAt);
-    if (timedAbandoned.length > 0) {
-      const points = timedAbandoned.map(s => {
-        const elapsed = new Date(s.completedAt!).getTime() - new Date(s.startedAt!).getTime();
-        return Math.min(100, (elapsed / (8 * 3600 * 1000)) * 100);
+    if (abandonedSessions.length > 0 && avgDuration > 0) {
+      const fractions = abandonedSessions.map(s => {
+        const duration = s.completedAt!.getTime() - s.createdAt.getTime();
+        return Math.min(100, (duration / avgDuration) * 100);
       });
-      avgAbandonmentPoint = points.reduce((a, b) => a + b, 0) / points.length;
+      avgAbandonmentPoint = fractions.reduce((a, b) => a + b, 0) / fractions.length;
     }
 
-    const statusCounts = new Map<string, number>();
-    for (const s of abandonedSessions) {
-      const k = s.status || 'unknown';
-      statusCounts.set(k, (statusCounts.get(k) ?? 0) + 1);
-    }
-    let topAbandonmentReason = 'complexity';
-    let maxCount = 0;
-    for (const [status, count] of statusCounts) {
-      if (count > maxCount) { maxCount = count; topAbandonmentReason = status; }
-    }
-    if (topAbandonmentReason === 'failed') topAbandonmentReason = 'error';
-    else if (topAbandonmentReason === 'interrupted') topAbandonmentReason = 'interruption';
-    else if (topAbandonmentReason === 'unknown' || topAbandonmentReason === '') topAbandonmentReason = 'complexity';
-
+    const topAbandonmentReason = 'task_complexity';
     const abandonmentScore = computeAbandonmentScore(abandonmentRate, avgAbandonmentPoint);
     const abandonmentTier = getAbandonmentTier(abandonmentScore);
-    const agentName = personaType.charAt(0).toUpperCase() + personaType.slice(1).replace(/_/g, ' ');
 
     agents.push({
-      agentId: personaType,
-      agentName,
+      agentId: persona,
+      agentName: persona.charAt(0).toUpperCase() + persona.slice(1).replace(/_/g, ' '),
       tasksStarted,
       tasksAbandoned,
       tasksCompleted,
-      abandonmentRate: Math.round(abandonmentRate * 100) / 100,
-      avgAbandonmentPoint: Math.round(avgAbandonmentPoint),
+      abandonmentRate,
+      avgAbandonmentPoint,
       topAbandonmentReason,
-      abandonmentScore: Math.round(abandonmentScore * 100) / 100,
+      abandonmentScore,
       abandonmentTier,
     });
   }
 
-  agents.sort((a, b) => b.abandonmentScore - a.abandonmentScore);
-
   const totalTasksStarted = agents.reduce((s, a) => s + a.tasksStarted, 0);
   const totalTasksAbandoned = agents.reduce((s, a) => s + a.tasksAbandoned, 0);
   const avgAbandonmentRate = agents.length > 0
-    ? Math.round(agents.reduce((s, a) => s + a.abandonmentRate, 0) / agents.length * 100) / 100
+    ? agents.reduce((s, a) => s + a.abandonmentRate, 0) / agents.length
     : 0;
+
+  agents.sort((a, b) => a.abandonmentRate - b.abandonmentRate);
   const mostReliableAgent = agents.length > 0 ? agents[0].agentName : '';
   const mostVolatileAgent = agents.length > 0 ? agents[agents.length - 1].agentName : '';
   const lowAbandonmentCount = agents.filter(a => a.abandonmentRate < 20).length;
@@ -163,37 +175,38 @@ export async function analyzeAgentTaskAbandonment(projectId: string): Promise<Ag
 
   try {
     const client = new Anthropic({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: process.env.OPENROUTER_API_KEY || '',
-      defaultHeaders: { 'HTTP-Referer': 'https://ai-jam.app', 'X-Title': 'AI Jam' },
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
     });
 
-    const agentSummaryText = agents.slice(0, 8).map(a =>
-      `${a.agentName}: abandonmentRate=${a.abandonmentRate}%, score=${a.abandonmentScore}, tier=${a.abandonmentTier}`
+    const agentLines = agents.slice(0, 5).map(a =>
+      `${a.agentName}: abandonmentRate=${a.abandonmentRate.toFixed(1)}%, tier=${a.abandonmentTier}`
     ).join('\n');
 
-    const msg = await client.messages.create({
+    const response = await client.messages.create({
       model: process.env.AI_MODEL || 'qwen/qwen3-6b',
-      max_tokens: 300,
-      messages: [{ role: 'user', content: `Analyze agent task abandonment:\n${agentSummaryText}\n\nProvide JSON: {"summary": "...", "recommendations": ["...", "...", "..."]}` }],
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `Analyze agent task abandonment patterns. Provide JSON: {"aiSummary": "...", "aiRecommendations": ["...", "...", "..."]}\n\nAgents:\n${agentLines}`,
+      }],
     });
 
-    const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
-    if (raw) {
-      const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-      const parsed = JSON.parse(fenceMatch ? fenceMatch[1].trim() : raw);
-      if (parsed.summary) aiSummary = parsed.summary;
-      if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
-        aiRecommendations = parsed.recommendations;
-      }
+    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    if (text) {
+      const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const jsonStr = fenceMatch ? fenceMatch[1].trim() : text;
+      const parsed = JSON.parse(jsonStr);
+      if (parsed.aiSummary) aiSummary = parsed.aiSummary;
+      if (Array.isArray(parsed.aiRecommendations)) aiRecommendations = parsed.aiRecommendations;
     }
-  } catch {
-    // fallback values already set
+  } catch (e) {
+    console.warn('Task abandonment AI failed, using fallback:', e);
   }
 
   return {
     projectId,
-    generatedAt: new Date().toISOString(),
+    generatedAt: now.toISOString(),
     summary: {
       totalTasksStarted,
       totalTasksAbandoned,
