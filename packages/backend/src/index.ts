@@ -131,6 +131,9 @@ import { agentResourceConsumptionRoutes } from './routes/agent-resource-consumpt
 import { agentSessionQualityRoutes } from './routes/agent-session-quality-route.js';
 import { agentWorkflowTransitionsRoutes } from './routes/agent-workflow-transitions-route.js';
 import { agentKnowledgeTransferRoutes } from './routes/agent-knowledge-transfer-route.js';
+import { agentDelegationDepthRoutes } from './routes/agent-delegation-depth-route.js';
+import { agentAutonomyIndexRoutes } from './routes/agent-autonomy-index-route.js';
+import { agentBlockedTimeRoutes } from './routes/agent-blocked-time-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -296,6 +299,9 @@ async function main() {
   await fastify.register(agentSessionQualityRoutes);
   await fastify.register(agentWorkflowTransitionsRoutes);
   await fastify.register(agentKnowledgeTransferRoutes);
+  await fastify.register(agentDelegationDepthRoutes);
+  await fastify.register(agentAutonomyIndexRoutes);
+  await fastify.register(agentBlockedTimeRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

@@ -5135,3 +5135,149 @@ export function useAgentKnowledgeTransfer(projectId: string) {
 
   return { analyze, loading, isPending: loading, data, setData };
 }
+
+// FEAT-131: Agent Delegation Depth Analyzer
+export interface AgentDelegationMetrics {
+  agentId: string;
+  agentName: string;
+  totalSessions: number;
+  delegatedSessions: number;
+  directResolutions: number;
+  delegationRate: number;
+  avgHandoffDepth: number;
+  maxHandoffDepth: number;
+  delegationScore: number;
+  delegationTier: 'balanced' | 'over-delegator' | 'under-delegator' | 'isolated';
+}
+
+export interface AgentDelegationDepthReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgDelegationRate: number;
+    maxChainDepth: number;
+    balancedAgents: number;
+    overDelegators: string[];
+  };
+  agents: AgentDelegationMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentDelegationDepth(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentDelegationDepthReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentDelegationDepthReport>(
+        `/projects/${projectId}/agent-delegation-depth`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, isPending: loading, data, setData };
+}
+
+// FEAT-132: Agent Autonomy Index
+export interface AgentAutonomyMetrics {
+  agentId: string;
+  agentName: string;
+  totalSessions: number;
+  directCompletions: number;
+  escalatedSessions: number;
+  autonomyRate: number;
+  avgHandoffsPerSession: number;
+  autonomyScore: number;
+  autonomyTier: 'highly_autonomous' | 'autonomous' | 'semi_autonomous' | 'dependent';
+}
+
+export interface AgentAutonomyReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgAutonomyScore: number;
+    highlyAutonomousAgents: number;
+    dependentAgents: number;
+    mostAutonomousAgent: string | null;
+  };
+  agents: AgentAutonomyMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentAutonomyIndex(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentAutonomyReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentAutonomyReport>(
+        `/projects/${projectId}/agent-autonomy-index`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, isPending: loading, data, setData };
+}
+
+// FEAT-133: Agent Blocked Time Analyzer
+export interface AgentBlockedTimeMetrics {
+  agentId: string;
+  agentName: string;
+  totalActiveTasks: number;
+  totalBlockedTasks: number;
+  blockedTimeRate: number;
+  avgBlockDurationHours: number;
+  longestBlockHours: number;
+  topBlockerType: string;
+  unblockedScore: number;
+  unblockedTier: 'unblocked' | 'occasionally-blocked' | 'frequently-blocked' | 'perpetually-blocked';
+}
+
+export interface AgentBlockedTimeReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgBlockedTimeRate: number;
+    mostBlockedAgent: string;
+    leastBlockedAgent: string;
+    criticalBlockCount: number;
+  };
+  agents: AgentBlockedTimeMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentBlockedTime(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentBlockedTimeReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentBlockedTimeReport>(
+        `/projects/${projectId}/agent-blocked-time`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, isPending: loading, data, setData };
+}

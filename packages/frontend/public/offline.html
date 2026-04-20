@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You're Offline - AI Jam</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+      color: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 2rem;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .icon svg {
+      width: 60px;
+      height: 60px;
+      color: white;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 20px rgba(79, 70, 229, 0);
+      }
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #f9fafb;
+    }
+
+    p {
+      font-size: 1.125rem;
+      color: #9ca3af;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 9999px;
+      color: #fca5a5;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 2rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+    }
+
+    .primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .info {
+      margin-top: 3rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.5rem;
+      text-align: left;
+    }
+
+    .info h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #d1d5db;
+      margin-bottom: 0.5rem;
+    }
+
+    .info ul {
+      list-style: none;
+      font-size: 0.875rem;
+      color: #9ca3af;
+    }
+
+    .info li {
+      padding: 0.25rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+
+    .info li::before {
+      content: '•';
+      position: absolute;
+      left: 0.5rem;
+      color: #6b7280;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+      </svg>
+    </div>
+
+    <h1>You're Offline</h1>
+    <p>
+      It looks like you've lost your internet connection. Don't worry,
+      some features are still available, and we'll sync your data when you're back online.
+    </p>
+
+    <div class="status">
+      <div class="status-dot"></div>
+      <span>Offline Mode</span>
+    </div>
+
+    <div class="actions">
+      <button class="primary" onclick="window.location.reload()">
+        Try Again
+      </button>
+      <button class="secondary" onclick="window.history.back()">
+        Go Back
+      </button>
+    </div>
+
+    <div class="info">
+      <h3>What's Available Offline</h3>
+      <ul>
+        <li>Previously loaded pages and data</li>
+        <li>Cached project information</li>
+        <li>Navigation between cached pages</li>
+        <li>Your recent actions (will sync when online)</li>
+      </ul>
+    </div>
+
+    <div id="connection-status" class="hidden">
+      <p style="color: #10b981; margin-top: 1rem;">
+        ✓ Connection restored! Reloading...
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Listen for connection changes
+    window.addEventListener('online', () => {
+      const status = document.getElementById('connection-status');
+      status.classList.remove('hidden');
+
+      // Reload after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    });
+
+    // Periodically check connection
+    setInterval(() => {
+      if (navigator.onLine) {
+        window.location.reload();
+      }
+    }, 5000);
+
+    // Check connection on load
+    if (navigator.onLine) {
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

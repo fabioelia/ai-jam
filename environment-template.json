@@ -1,0 +1,111 @@
+{
+  "id": "6ad0d501-7c40-485f-a6a9-bd254d05d5c6",
+  "name": "ai-jam",
+  "description": "AI Jam — pnpm monorepo with Fastify backend, Vite+React frontend, shared types, and agent runtime",
+  "projectType": "typescript-monorepo",
+  "createdAt": "2026-04-10T18:00:00.000Z",
+  "updatedAt": "2026-04-10T18:00:00.000Z",
+  "repos": [
+    {
+      "owner": "fabioelia",
+      "name": "ai-jam",
+      "localPath": "/Users/fabio/projects/ai-jam",
+      "remoteUrl": "git@github.com:fabioelia/ai-jam.git",
+      "as": "app"
+    }
+  ],
+  "services": {
+    "backend": {
+      "command": "pnpm --filter @ai-jam/backend dev",
+      "cwd": "${paths.app}",
+      "port": "${ports.backend}",
+      "healthCheck": {
+        "url": "http://localhost:${ports.backend}/api/health",
+        "intervalMs": 2000,
+        "timeoutMs": 10000,
+        "expectedStatus": 200
+      },
+      "dependsOn": []
+    },
+    "pty-daemon": {
+      "command": "pnpm --filter @ai-jam/agent-runtime dev:pty",
+      "cwd": "${paths.app}",
+      "dependsOn": []
+    },
+    "agent-runtime": {
+      "command": "pnpm --filter @ai-jam/agent-runtime dev",
+      "cwd": "${paths.app}",
+      "dependsOn": []
+    },
+    "frontend": {
+      "command": "pnpm --filter @ai-jam/frontend dev",
+      "cwd": "${paths.app}",
+      "port": "${ports.frontend}",
+      "healthCheck": {
+        "url": "http://localhost:${ports.frontend}/",
+        "intervalMs": 2000,
+        "timeoutMs": 15000
+      },
+      "dependsOn": ["backend"]
+    }
+  },
+  "resources": {
+    "postgres": {
+      "type": "shared",
+      "database": "aijam",
+      "host": "localhost",
+      "port": 5433,
+      "user": "aijam",
+      "password": "aijam"
+    }
+  },
+  "ports": ["backend", "frontend"],
+  "branches": {
+    "default": "main",
+    "alternatives": []
+  },
+  "hooks": {
+    "postClone": [
+      {
+        "name": "install-deps",
+        "command": "pnpm install",
+        "cwd": "${paths.app}",
+        "parallel": true
+      },
+      {
+        "name": "clean-tsbuildinfo",
+        "command": "rm -f packages/shared/tsconfig.tsbuildinfo",
+        "cwd": "${paths.app}",
+        "parallel": true
+      },
+      {
+        "name": "build-shared",
+        "command": "pnpm --filter @ai-jam/shared build",
+        "cwd": "${paths.app}"
+      },
+      {
+        "name": "generate-env",
+        "command": "cat > .env << 'ENVEOF'\n# Database\nDATABASE_URL=postgresql://${resources.postgres.user}:${resources.postgres.password}@${resources.postgres.host}:${resources.postgres.port}/${resources.postgres.database}\n\n# Auth\nJWT_SECRET=change-me-to-a-random-secret\nJWT_REFRESH_SECRET=change-me-to-another-random-secret\n\n# Server\nPORT=${ports.backend}\nFRONTEND_URL=http://localhost:${ports.frontend}\n\n# Agent Runtime\nAGENT_RUNTIME_SOCKET=/tmp/ai-jam-runtime.sock\nMAX_CONCURRENT_AGENTS=12\n\n# PTY Daemon (interactive sessions)\nPTY_DAEMON_SOCKET=/tmp/ai-jam-pty-daemon.sock\nPTY_DAEMON_MAX_CONCURRENT=8\n\n# Orchestrator — disabled by default in colony instances\nAIJAM_ORCHESTRATOR_DISABLED=1\nENVEOF",
+        "cwd": "${paths.app}",
+        "parallel": true
+      },
+      {
+        "name": "patch-vite-config",
+        "command": "sed -i '' -e 's/port: [0-9]*/port: ${ports.frontend}/' -e \"s|'http://localhost:[0-9]*'|'http://localhost:${ports.backend}'|g\" -e \"s|target: 'http://localhost:[0-9]*'|target: 'http://localhost:${ports.backend}'|\" packages/frontend/vite.config.ts",
+        "cwd": "${paths.app}",
+        "parallel": true
+      },
+      {
+        "name": "run-migrations",
+        "command": "pnpm db:migrate",
+        "cwd": "${paths.app}"
+      }
+    ],
+    "postCreate": [],
+    "preTeardown": []
+  },
+  "logs": {
+    "maxSizeKb": 500,
+    "retention": 5
+  }
+}
