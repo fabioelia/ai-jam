@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -38,6 +38,7 @@ import AgentHandoffQualityModal from '../components/board/AgentHandoffQualityMod
 import AgentTaskSequenceModal from '../components/board/AgentTaskSequenceModal.js';
 import AgentLoadPredictorModal from '../components/board/AgentLoadPredictorModal.js';
 import AgentVelocityForecastModal from '../components/board/AgentVelocityForecastModal.js';
+import AgentSprintCommitmentModal from '../components/board/AgentSprintCommitmentModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -194,6 +195,8 @@ export default function BoardPage() {
   const [showAgentLoadPredictor, setShowAgentLoadPredictor] = useState(false);
   const agentVelocityForecast = useAgentVelocityForecast();
   const [showAgentVelocityForecast, setShowAgentVelocityForecast] = useState(false);
+  const agentSprintCommitment = useAgentSprintCommitment();
+  const [showAgentSprintCommitment, setShowAgentSprintCommitment] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -899,6 +902,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Sprint Commitments Button */}
+        <button
+          onClick={async () => {
+            setShowAgentSprintCommitment(true);
+            try {
+              await agentSprintCommitment.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Sprint commitment analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentSprintCommitment.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+        >
+          {agentSprintCommitment.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' /></svg> Sprint Commitments</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1345,6 +1368,10 @@ export default function BoardPage() {
 
       {showAgentVelocityForecast && (
         <AgentVelocityForecastModal result={agentVelocityForecast.result} isOpen={showAgentVelocityForecast} loading={agentVelocityForecast.loading} onClose={() => { agentVelocityForecast.setResult(null); setShowAgentVelocityForecast(false); }} />
+      )}
+
+      {showAgentSprintCommitment && (
+        <AgentSprintCommitmentModal result={agentSprintCommitment.result} isOpen={showAgentSprintCommitment} loading={agentSprintCommitment.loading} onClose={() => { agentSprintCommitment.setResult(null); setShowAgentSprintCommitment(false); }} />
       )}
     </div>
   );

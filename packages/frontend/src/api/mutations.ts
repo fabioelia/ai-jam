@@ -1343,6 +1343,48 @@ export interface LoadPredictionReport {
   analyzedAt: string;
 }
 
+export interface AgentCommitmentRecord {
+  agentType: string;
+  plannedTickets: number;
+  completedTickets: number;
+  commitmentRatio: number;
+  status: 'overcommitted' | 'on-track' | 'underutilized';
+  statusExplanation: string;
+}
+
+export interface SprintCommitmentReport {
+  projectId: string;
+  sprintWindowDays: 14;
+  totalPlanned: number;
+  totalCompleted: number;
+  overallCommitmentRatio: number;
+  overcommittedAgents: number;
+  onTrackAgents: number;
+  underutilizedAgents: number;
+  agentRecords: AgentCommitmentRecord[];
+  aiRecommendation: string;
+  analyzedAt: string;
+}
+
+export function useAgentSprintCommitment() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SprintCommitmentReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<SprintCommitmentReport>(`/projects/${projectId}/agent-sprint-commitment`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useAgentLoadPredictor() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<LoadPredictionReport | null>(null);
