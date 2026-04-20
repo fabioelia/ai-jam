@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -36,6 +36,7 @@ import AgentBurnoutModal from '../components/board/AgentBurnoutModal.js';
 import AgentKnowledgeGapModal from '../components/board/AgentKnowledgeGapModal.js';
 import AgentHandoffQualityModal from '../components/board/AgentHandoffQualityModal.js';
 import AgentTaskSequenceModal from '../components/board/AgentTaskSequenceModal.js';
+import AgentLoadPredictorModal from '../components/board/AgentLoadPredictorModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -188,6 +189,8 @@ export default function BoardPage() {
   const [showHandoffQuality, setShowHandoffQuality] = useState(false);
   const agentTaskSequence = useAgentTaskSequence();
   const [showAgentTaskSequence, setShowAgentTaskSequence] = useState(false);
+  const agentLoadPredictor = useAgentLoadPredictor();
+  const [showAgentLoadPredictor, setShowAgentLoadPredictor] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -853,6 +856,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Load Forecast Button */}
+        <button
+          onClick={async () => {
+            setShowAgentLoadPredictor(true);
+            try {
+              await agentLoadPredictor.predict(projectId!);
+            } catch (error) {
+              toast.error(`Load forecast failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentLoadPredictor.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+        >
+          {agentLoadPredictor.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' /></svg> Load Forecast</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1291,6 +1314,10 @@ export default function BoardPage() {
 
       {showAgentTaskSequence && (
         <AgentTaskSequenceModal result={agentTaskSequence.result} isOpen={showAgentTaskSequence} loading={agentTaskSequence.loading} onClose={() => { agentTaskSequence.setResult(null); setShowAgentTaskSequence(false); }} />
+      )}
+
+      {showAgentLoadPredictor && (
+        <AgentLoadPredictorModal result={agentLoadPredictor.result} isOpen={showAgentLoadPredictor} loading={agentLoadPredictor.loading} onClose={() => { agentLoadPredictor.setResult(null); setShowAgentLoadPredictor(false); }} />
       )}
     </div>
   );

@@ -1282,3 +1282,40 @@ export function useAgentTaskSequence() {
   };
   return { sequence, loading, result, setResult };
 }
+
+export interface AgentLoadForecast {
+  agentType: string;
+  currentLoad: number;
+  predictedLoad: number;
+  capacityUtilization: number;
+  riskLevel: 'critical' | 'high' | 'moderate' | 'low';
+  recommendation: string;
+}
+
+export interface LoadPredictionReport {
+  projectId: string;
+  forecastWindow: string;
+  totalTicketsPipeline: number;
+  overloadedAgents: number;
+  agentForecasts: AgentLoadForecast[];
+  bottleneckWarnings: string[];
+  aiInsight: string;
+  analyzedAt: string;
+}
+
+export function useAgentLoadPredictor() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<LoadPredictionReport | null>(null);
+
+  const predict = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<LoadPredictionReport>(`/projects/${projectId}/agent-load-predictor`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { predict, loading, result, setResult };
+}
