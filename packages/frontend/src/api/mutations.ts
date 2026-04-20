@@ -3719,3 +3719,45 @@ export function useAgentSuccessRate(projectId: string) {
   return { analyze, loading, result, setResult };
 }
 
+
+// FEAT-094: Agent Cost Efficiency
+export interface AgentCostEfficiencyMetrics {
+  personaId: string;
+  tokenBudgetUsed: number;
+  totalSessions: number;
+  completedSessions: number;
+  avgTokensPerSession: number;
+  costEfficiencyScore: number;
+  efficiencyTier: 'optimal' | 'efficient' | 'moderate' | 'wasteful';
+}
+
+export interface AgentCostEfficiencyReport {
+  projectId: string;
+  agentMetrics: AgentCostEfficiencyMetrics[];
+  totalTokensUsed: number;
+  avgCostEfficiencyScore: number;
+  mostEfficientAgent: string | null;
+  leastEfficientAgent: string | null;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentCostEfficiency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCostEfficiencyReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentCostEfficiencyReport>(
+        `/projects/${projectId}/agent-cost-efficiency`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
