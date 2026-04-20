@@ -10,10 +10,10 @@ export interface AgentTaskComplexity {
   reworkRate: number;
   epicLinkRate: number;
   complexityScore: number;
-  complexityTier: 'very-high' | 'high' | 'medium' | 'low';
+  complexityTier: 'specialist' | 'capable' | 'generalist' | 'underutilized';
 }
 
-export interface TaskComplexityReport {
+export interface AgentTaskComplexityReport {
   projectId: string;
   analyzedAt: string;
   agents: AgentTaskComplexity[];
@@ -25,26 +25,40 @@ export interface TaskComplexityReport {
   };
 }
 
-function normTransitions(avg: number): number {
-  return Math.min(100, Math.max(0, ((avg - 1) / 7) * 100));
+export function computeTicketComplexity(
+  title: string,
+  description: string | null | undefined,
+  priority: string,
+): number {
+  let score = 20; // base
+  if (priority === 'critical') score += 30;
+  else if (priority === 'high') score += 20;
+  else if (priority === 'medium') score += 10;
+  if (description && description.length > 500) score += 15;
+  else if (description && description.length > 200) score += 8;
+  if (title && title.length > 50) score += 5;
+  return Math.max(0, Math.min(100, score));
 }
 
-function normHandoff(avg: number): number {
-  return Math.min(100, Math.max(0, ((avg - 1) / 4) * 100));
+export function getTier(score: number): AgentTaskComplexity['complexityTier'] {
+  if (score >= 70) return 'specialist';
+  if (score >= 50) return 'capable';
+  if (score >= 30) return 'generalist';
+  return 'underutilized';
 }
 
-function getTier(score: number): AgentTaskComplexity['complexityTier'] {
-  if (score >= 75) return 'very-high';
-  if (score >= 50) return 'high';
-  if (score >= 25) return 'medium';
-  return 'low';
-}
-
-export async function analyzeTaskComplexity(projectId: string): Promise<TaskComplexityReport> {
+export async function analyzeAgentTaskComplexity(projectId: string): Promise<AgentTaskComplexityReport> {
   const now = new Date();
 
   const allTickets = await db
-    .select({ id: tickets.id, assignedPersona: tickets.assignedPersona, epicId: tickets.epicId })
+    .select({
+      id: tickets.id,
+      assignedPersona: tickets.assignedPersona,
+      epicId: tickets.epicId,
+      title: tickets.title,
+      description: tickets.description,
+      priority: tickets.priority,
+    })
     .from(tickets)
     .where(eq(tickets.projectId, projectId));
 
@@ -94,11 +108,11 @@ export async function analyzeTaskComplexity(projectId: string): Promise<TaskComp
     const reworkRate = noteCounts.filter((c) => c > 2).length / totalTickets;
     const epicLinkRate = personaTickets.filter((t) => t.epicId != null).length / totalTickets;
 
+    const ticketScores = personaTickets.map((t) =>
+      computeTicketComplexity(t.title, t.description, t.priority),
+    );
     const complexityScore = Math.round(
-      0.35 * normTransitions(avgTransitionsPerTicket) +
-      0.30 * (reworkRate * 100) +
-      0.25 * normHandoff(avgHandoffChainDepth) +
-      0.10 * (epicLinkRate * 100),
+      ticketScores.reduce((s, v) => s + v, 0) / totalTickets,
     );
 
     agents.push({

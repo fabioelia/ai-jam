@@ -2772,10 +2772,10 @@ export interface AgentTaskComplexity {
   reworkRate: number;
   epicLinkRate: number;
   complexityScore: number;
-  complexityTier: 'very-high' | 'high' | 'medium' | 'low';
+  complexityTier: 'specialist' | 'capable' | 'generalist' | 'underutilized';
 }
 
-export interface TaskComplexityReport {
+export interface AgentTaskComplexityReport {
   projectId: string;
   analyzedAt: string;
   agents: AgentTaskComplexity[];
@@ -2787,9 +2787,12 @@ export interface TaskComplexityReport {
   };
 }
 
+/** @deprecated use AgentTaskComplexityReport */
+export type TaskComplexityReport = AgentTaskComplexityReport;
+
 export function useAgentTaskComplexity() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<TaskComplexityReport | null>(null);
+  const [result, setResult] = useState<AgentTaskComplexityReport | null>(null);
 
   const analyze = async (projectId: string): Promise<void> => {
     setLoading(true);

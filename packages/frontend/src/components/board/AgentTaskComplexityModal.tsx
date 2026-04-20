@@ -1,21 +1,21 @@
 import React from 'react';
-import { TaskComplexityReport, AgentTaskComplexity } from '../../api/mutations.js';
+import { AgentTaskComplexityReport, AgentTaskComplexity } from '../../api/mutations.js';
 
 interface Props {
-  result: TaskComplexityReport | null;
+  result: AgentTaskComplexityReport | null;
   isOpen: boolean;
   loading: boolean;
   onClose: () => void;
 }
 
 const TIER_STYLES: Record<AgentTaskComplexity['complexityTier'], string> = {
-  'very-high': 'bg-red-900/50 text-red-300 border border-red-700/50',
-  'high': 'bg-orange-900/50 text-orange-300 border border-orange-700/50',
-  'medium': 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50',
-  'low': 'bg-green-900/50 text-green-300 border border-green-700/50',
+  'specialist': 'bg-indigo-900/50 text-indigo-300 border border-indigo-700/50',
+  'capable': 'bg-blue-900/50 text-blue-300 border border-blue-700/50',
+  'generalist': 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50',
+  'underutilized': 'bg-gray-900/50 text-gray-400 border border-gray-700/50',
 };
 
-function StatsBar({ result }: { result: TaskComplexityReport }) {
+function StatsBar({ result }: { result: AgentTaskComplexityReport }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {[
@@ -42,7 +42,14 @@ function AgentRow({ agent }: { agent: AgentTaskComplexity }) {
           {agent.complexityTier}
         </span>
       </td>
-      <td className="py-2 px-3 text-sm text-white text-right font-mono">{agent.complexityScore}</td>
+      <td className="py-2 px-3">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-gray-700 rounded h-2 min-w-16">
+            <div className='h-2 bg-indigo-500 rounded' style={{ width: `${agent.complexityScore}%` }} />
+          </div>
+          <span className="text-xs text-white font-mono w-6 text-right">{agent.complexityScore}</span>
+        </div>
+      </td>
       <td className="py-2 px-3 text-sm text-gray-300 text-right">{agent.avgTransitionsPerTicket.toFixed(1)}</td>
       <td className="py-2 px-3 text-sm text-gray-300 text-right">{Math.round(agent.reworkRate * 100)}%</td>
       <td className="py-2 px-3 text-sm text-gray-300 text-right">{agent.avgHandoffChainDepth.toFixed(1)}</td>

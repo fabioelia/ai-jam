@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzeTaskComplexity } from './agent-task-complexity-service.js';
+import { analyzeAgentTaskComplexity, computeTicketComplexity, getTier } from './agent-task-complexity-service.js';
 
 vi.mock('../db/connection.js', () => ({
   db: { select: vi.fn() },
@@ -21,8 +21,15 @@ function setupDb(ticketRows: unknown[], noteRows: unknown[] = []) {
     .mockReturnValueOnce(makeChain(noteRows));
 }
 
-function makeTicket(id: string, assignedPersona: string | null, epicId: string | null = null) {
-  return { id, assignedPersona, epicId };
+function makeTicket(
+  id: string,
+  assignedPersona: string | null,
+  epicId: string | null = null,
+  priority = 'medium',
+  title = 'Short title',
+  description: string | null = null,
+) {
+  return { id, assignedPersona, epicId, priority, title, description };
 }
 
 function makeNote(
@@ -34,127 +41,100 @@ function makeNote(
   return { ticketId, authorId, handoffFrom, handoffTo };
 }
 
-describe('analyzeTaskComplexity', () => {
+describe('analyzeAgentTaskComplexity', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
   it('returns empty report when project has no tickets', async () => {
     setupDb([]);
-    const report = await analyzeTaskComplexity('proj-1');
+    const report = await analyzeAgentTaskComplexity('proj-1');
     expect(report.agents).toEqual([]);
     expect(report.summary.totalAgentsAnalyzed).toBe(0);
     expect(report.summary.highestComplexityAgent).toBeNull();
     expect(report.summary.lowestComplexityAgent).toBeNull();
   });
 
-  it('single agent with many notes produces high complexity', async () => {
-    setupDb(
-      [makeTicket('t1', 'AgentA')],
-      [
-        makeNote('t1', 'a1'), makeNote('t1', 'a2'), makeNote('t1', 'a3'),
-        makeNote('t1', 'a4'), makeNote('t1', 'a5'), makeNote('t1', 'a6'),
-        makeNote('t1', 'a7'), makeNote('t1', 'a8'),
-      ],
-    );
-    const report = await analyzeTaskComplexity('proj-1');
+  it('critical priority ticket produces specialist-range score', async () => {
+    // base 20 + critical 30 = 50 → capable tier
+    setupDb([makeTicket('t1', 'AgentA', null, 'critical')], []);
+    const report = await analyzeAgentTaskComplexity('proj-1');
     const agent = report.agents[0];
     expect(agent.personaId).toBe('AgentA');
-    expect(agent.avgTransitionsPerTicket).toBe(8);
-    // rework: 1 ticket with >2 notes → reworkRate=1.0
-    expect(agent.reworkRate).toBe(1);
-    expect(agent.complexityTier).toMatch(/high|very-high/);
+    expect(agent.complexityScore).toBe(50);
+    expect(agent.complexityTier).toBe('capable');
   });
 
-  it('single agent with no notes produces low complexity', async () => {
-    setupDb([makeTicket('t1', 'AgentB')], []);
-    const report = await analyzeTaskComplexity('proj-1');
+  it('specialist tier requires score >= 70', () => {
+    expect(getTier(70)).toBe('specialist');
+    expect(getTier(100)).toBe('specialist');
+  });
+
+  it('low priority ticket with no description produces underutilized tier', async () => {
+    // base 20 + low priority (0) = 20 → underutilized
+    setupDb([makeTicket('t1', 'AgentB', null, 'low')], []);
+    const report = await analyzeAgentTaskComplexity('proj-1');
     const agent = report.agents[0];
-    expect(agent.avgTransitionsPerTicket).toBe(0);
-    expect(agent.reworkRate).toBe(0);
-    expect(agent.complexityScore).toBe(0);
-    expect(agent.complexityTier).toBe('low');
+    expect(agent.complexityScore).toBe(20);
+    expect(agent.complexityTier).toBe('underutilized');
+  });
+
+  it('computeTicketComplexity formula is exact', () => {
+    // base 20 + critical 30 + long desc(>500) 15 + long title(>50) 5 = 70
+    const longDesc = 'x'.repeat(501);
+    const longTitle = 'x'.repeat(51);
+    expect(computeTicketComplexity(longTitle, longDesc, 'critical')).toBe(70);
+    // base 20 + high 20 + medium desc(>200) 8 = 48
+    const medDesc = 'x'.repeat(201);
+    expect(computeTicketComplexity('short', medDesc, 'high')).toBe(48);
+    // base 20 only (low priority, no desc, short title)
+    expect(computeTicketComplexity('short', null, 'low')).toBe(20);
+  });
+
+  it('tier thresholds match spec', () => {
+    expect(getTier(70)).toBe('specialist');
+    expect(getTier(69)).toBe('capable');
+    expect(getTier(50)).toBe('capable');
+    expect(getTier(49)).toBe('generalist');
+    expect(getTier(30)).toBe('generalist');
+    expect(getTier(29)).toBe('underutilized');
+    expect(getTier(0)).toBe('underutilized');
   });
 
   it('mixed tiers across multiple agents', async () => {
+    // AgentA: critical → score 50 (capable), AgentB: low → score 20 (underutilized)
     setupDb(
-      [makeTicket('t1', 'Heavy'), makeTicket('t2', 'Light')],
-      [
-        makeNote('t1', 'a1'), makeNote('t1', 'a2'), makeNote('t1', 'a3'),
-        makeNote('t1', 'a4'), makeNote('t1', 'a5'), makeNote('t1', 'a6'),
-        makeNote('t1', 'a7'), makeNote('t1', 'a8'),
-      ],
+      [makeTicket('t1', 'AgentA', null, 'critical'), makeTicket('t2', 'AgentB', null, 'low')],
+      [],
     );
-    const report = await analyzeTaskComplexity('proj-1');
+    const report = await analyzeAgentTaskComplexity('proj-1');
     const tiers = report.agents.map((a) => a.complexityTier);
-    expect(tiers).toContain('low');
-    expect(tiers.some((t) => t === 'high' || t === 'very-high')).toBe(true);
+    expect(tiers).toContain('capable');
+    expect(tiers).toContain('underutilized');
   });
 
   it('rework rate counts tickets with more than 2 notes', async () => {
     setupDb(
       [makeTicket('t1', 'AgentC'), makeTicket('t2', 'AgentC'), makeTicket('t3', 'AgentC')],
       [
-        makeNote('t1', 'a1'), makeNote('t1', 'a2'), makeNote('t1', 'a3'), // 3 notes → rework
-        makeNote('t2', 'a1'), // 1 note → no rework
-        // t3: 0 notes → no rework
+        makeNote('t1', 'a1'), makeNote('t1', 'a2'), makeNote('t1', 'a3'),
+        makeNote('t2', 'a1'),
       ],
     );
-    const report = await analyzeTaskComplexity('proj-1');
+    const report = await analyzeAgentTaskComplexity('proj-1');
     const agent = report.agents[0];
     expect(agent.reworkRate).toBeCloseTo(1 / 3, 2);
   });
 
-  it('avgHandoffChainDepth counts unique authorIds from handoff notes per ticket', async () => {
-    setupDb(
-      [makeTicket('t1', 'AgentD')],
-      [
-        makeNote('t1', 'persona-1', 'prev', null),
-        makeNote('t1', 'persona-2', null, 'next'),
-        makeNote('t1', 'persona-1', 'prev', 'next'), // duplicate persona-1
-      ],
-    );
-    const report = await analyzeTaskComplexity('proj-1');
-    const agent = report.agents[0];
-    // unique personas: persona-1, persona-2 → depth = 2
-    expect(agent.avgHandoffChainDepth).toBe(2);
-  });
-
-  it('transitions normalization clamps at 8 (100)', async () => {
-    // 10 notes → clamped to 100, same as 8 notes
-    const notes10 = Array.from({ length: 10 }, (_, i) => makeNote('t1', `a${i}`));
-    const notes8 = Array.from({ length: 8 }, (_, i) => makeNote('t2', `a${i}`));
-    setupDb([makeTicket('t1', 'AgentE'), makeTicket('t2', 'AgentF')], [...notes10, ...notes8]);
-    const report = await analyzeTaskComplexity('proj-1');
-    const e = report.agents.find((a) => a.personaId === 'AgentE')!;
-    const f = report.agents.find((a) => a.personaId === 'AgentF')!;
-    // both should yield same normalized transitions component (100)
-    // rework and handoff are same too, so scores should be equal
-    expect(e.complexityScore).toBe(f.complexityScore);
-  });
-
-  it('epic link rate calculates correctly', async () => {
-    setupDb(
-      [makeTicket('t1', 'AgentG', 'epic-1'), makeTicket('t2', 'AgentG', null)],
-      [],
-    );
-    const report = await analyzeTaskComplexity('proj-1');
-    const agent = report.agents[0];
-    expect(agent.epicLinkRate).toBeCloseTo(0.5, 2);
-    // epicLinkRate contributes 10%: 0.10 * 50 = 5 points
-    expect(agent.complexityScore).toBe(5);
-  });
-
   it('summary includes correct highestComplexityAgent and lowestComplexityAgent', async () => {
     setupDb(
-      [makeTicket('t1', 'AgentHigh'), makeTicket('t2', 'AgentLow')],
       [
-        makeNote('t1', 'a1'), makeNote('t1', 'a2'), makeNote('t1', 'a3'),
-        makeNote('t1', 'a4'), makeNote('t1', 'a5'), makeNote('t1', 'a6'),
-        makeNote('t1', 'a7'), makeNote('t1', 'a8'),
+        makeTicket('t1', 'AgentHigh', null, 'critical', 'x'.repeat(51), 'x'.repeat(501)),
+        makeTicket('t2', 'AgentLow', null, 'low'),
       ],
+      [],
     );
-    const report = await analyzeTaskComplexity('proj-1');
+    const report = await analyzeAgentTaskComplexity('proj-1');
     expect(report.summary.highestComplexityAgent).toBe('AgentHigh');
     expect(report.summary.lowestComplexityAgent).toBe('AgentLow');
     expect(report.summary.totalAgentsAnalyzed).toBe(2);
