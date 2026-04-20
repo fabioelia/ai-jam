@@ -85,6 +85,8 @@ import AgentScopeAdherenceModal from '../components/board/AgentScopeAdherenceMod
 import AgentBlockerFrequencyModal from '../components/board/AgentBlockerFrequencyModal.js';
 import AgentTokenBudgetModal from '../components/board/AgentTokenBudgetModal.js';
 import AgentKnowledgeFreshnessModal from '../components/board/AgentKnowledgeFreshnessModal.js';
+import AgentResponseLatencyModal from '../components/board/AgentResponseLatencyModal.js';
+import AgentErrorRecoveryModal from '../components/board/AgentErrorRecoveryModal.js';
 import AgentPersonaAlignmentModal from '../components/board/AgentPersonaAlignmentModal.js';
 import AgentCollaborationGraphModal from '../components/board/AgentCollaborationGraphModal.js';
 import AgentMultitaskingEfficiencyModal from '../components/board/AgentMultitaskingEfficiencyModal.js';
@@ -340,6 +342,10 @@ export default function BoardPage() {
   const [showAgentTokenBudget, setShowAgentTokenBudget] = useState(false);
   const agentKnowledgeFreshness = useAgentKnowledgeFreshness(projectId!);
   const [showAgentKnowledgeFreshness, setShowAgentKnowledgeFreshness] = useState(false);
+  const agentResponseLatency = useAgentResponseLatency(projectId!);
+  const [showAgentResponseLatency, setShowAgentResponseLatency] = useState(false);
+  const agentErrorRecovery = useAgentErrorRecovery(projectId!);
+  const [showAgentErrorRecovery, setShowAgentErrorRecovery] = useState(false);
   const agentPersonaAlignmentMutation = useAgentPersonaAlignment(projectId!);
   const [showAgentPersonaAlignment, setShowAgentPersonaAlignment] = useState(false);
   const [agentPersonaAlignmentResult, setAgentPersonaAlignmentResult] = useState<PersonaAlignmentReport | null>(null);
@@ -1279,6 +1285,46 @@ export default function BoardPage() {
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           ) : (
             <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Knowledge</>
+          )}
+        </button>
+
+        {/* Response Latency Button */}
+        <button
+          onClick={async () => {
+            setShowAgentResponseLatency(true);
+            try {
+              await agentResponseLatency.analyze();
+            } catch (error) {
+              toast.error(`Response latency analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentResponseLatency.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+        >
+          {agentResponseLatency.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Latency</>
+          )}
+        </button>
+
+        {/* Error Recovery Button */}
+        <button
+          onClick={async () => {
+            setShowAgentErrorRecovery(true);
+            try {
+              await agentErrorRecovery.analyze();
+            } catch (error) {
+              toast.error(`Error recovery analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentErrorRecovery.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
+        >
+          {agentErrorRecovery.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' /></svg> Error Recovery</>
           )}
         </button>
 
@@ -2770,6 +2816,12 @@ export default function BoardPage() {
       )}
       {showAgentDecisionSpeed && (
         <AgentDecisionSpeedModal result={agentDecisionSpeed.result} isOpen={showAgentDecisionSpeed} loading={agentDecisionSpeed.loading} onClose={() => { agentDecisionSpeed.setResult(null); setShowAgentDecisionSpeed(false); }} />
+      )}
+      {showAgentResponseLatency && (
+        <AgentResponseLatencyModal result={agentResponseLatency.result} isOpen={showAgentResponseLatency} loading={agentResponseLatency.loading} onClose={() => { agentResponseLatency.setResult(null); setShowAgentResponseLatency(false); }} />
+      )}
+      {showAgentErrorRecovery && (
+        <AgentErrorRecoveryModal result={agentErrorRecovery.result} isOpen={showAgentErrorRecovery} loading={agentErrorRecovery.loading} onClose={() => { agentErrorRecovery.setResult(null); setShowAgentErrorRecovery(false); }} />
       )}
     </div>
   );
