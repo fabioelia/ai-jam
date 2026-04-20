@@ -40,9 +40,9 @@ export function scoreHandoffContext(handoff: any): number {
 }
 
 export function classifyRole(sent: number, received: number): AgentHandoffRole['role'] {
-  if (sent > received * 2 && sent >= 3) return 'initiator';
-  if (received > sent * 2 && received >= 3) return 'receiver';
-  if (sent >= 2 && received >= 2) return 'collaborator';
+  if (sent > received * 2) return 'initiator';
+  if (received > sent * 2) return 'receiver';
+  if (sent > 0 && received > 0) return 'collaborator';
   return 'isolated';
 }
 

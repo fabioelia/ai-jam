@@ -39,23 +39,22 @@ describe('scoreHandoffContext', () => {
 });
 
 describe('classifyRole', () => {
-  it('returns initiator when sent > received*2 and sent >= 3', () => {
+  it('returns initiator when sent > received*2', () => {
     expect(classifyRole(6, 1)).toBe('initiator');
     expect(classifyRole(3, 0)).toBe('initiator');
   });
 
-  it('returns receiver when received > sent*2 and received >= 3', () => {
+  it('returns receiver when received > sent*2', () => {
     expect(classifyRole(1, 6)).toBe('receiver');
     expect(classifyRole(0, 3)).toBe('receiver');
   });
 
-  it('returns collaborator when sent >= 2 and received >= 2', () => {
+  it('returns collaborator when both > 0 and neither dominant', () => {
     expect(classifyRole(2, 2)).toBe('collaborator');
-    expect(classifyRole(3, 2)).toBe('collaborator');
+    expect(classifyRole(1, 1)).toBe('collaborator');
   });
 
-  it('returns isolated otherwise', () => {
+  it('returns isolated when both are 0', () => {
     expect(classifyRole(0, 0)).toBe('isolated');
-    expect(classifyRole(1, 1)).toBe('isolated');
   });
 });

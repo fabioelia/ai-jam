@@ -8,7 +8,7 @@ interface Props {
 }
 
 const TIER_STYLES: Record<AgentOutputConsistencyMetrics['consistencyTier'], string> = {
-  stable: 'bg-teal-900/50 text-teal-300 border border-teal-700/50',
+  stable: 'bg-blue-900/50 text-blue-300 border border-blue-700/50',
   'mostly-stable': 'bg-green-900/50 text-green-300 border border-green-700/50',
   variable: 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50',
   erratic: 'bg-red-900/50 text-red-400 border border-red-700/50',
