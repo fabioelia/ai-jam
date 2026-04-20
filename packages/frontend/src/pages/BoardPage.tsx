@@ -108,6 +108,7 @@ import AgentGoalCompletionModal from '../components/board/AgentGoalCompletionMod
 import AgentDecisionQualityV2Modal from '../components/board/AgentDecisionQualityV2Modal.js';
 import AgentCommunicationPatternModal from '../components/board/AgentCommunicationPatternModal.js';
 import AgentSelfCorrectionRateModal from '../components/board/AgentSelfCorrectionRateModal.js';
+import AgentDependencyResolutionModal from '../components/board/AgentDependencyResolutionModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -2541,6 +2542,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Dependency Resolution Button */}
+        <button
+          onClick={async () => {
+            setShowAgentDependencyResolution(true);
+            try {
+              await agentDependencyResolution.analyze();
+            } catch (error) {
+              toast.error(`Dependency resolution analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentDependencyResolution.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+        >
+          {agentDependencyResolution.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Dependencies</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -3228,6 +3249,9 @@ export default function BoardPage() {
       )}
       {showAgentSelfCorrectionRate && (
         <AgentSelfCorrectionRateModal result={agentSelfCorrectionRate.result} isOpen={showAgentSelfCorrectionRate} loading={agentSelfCorrectionRate.loading} onClose={() => { agentSelfCorrectionRate.setResult(null); setShowAgentSelfCorrectionRate(false); }} />
+      )}
+      {showAgentDependencyResolution && (
+        <AgentDependencyResolutionModal result={agentDependencyResolution.result} isOpen={showAgentDependencyResolution} loading={agentDependencyResolution.loading} onClose={() => { agentDependencyResolution.setResult(null); setShowAgentDependencyResolution(false); }} />
       )}
     </div>
   );

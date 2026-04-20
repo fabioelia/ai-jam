@@ -4298,28 +4298,24 @@ export function useAgentSelfCorrectionRate(projectId: string) {
 }
 
 // FEAT-109: Agent Dependency Resolution Analyzer
-export interface BlockedTicketInfo {
-  ticketId: string;
-  ticketTitle: string;
-  blockedBy: string[];
-  waitTimeHours: number;
-  riskLevel: 'critical' | 'high' | 'medium' | 'low';
-}
-
-export interface CircularDependencyChain {
-  chain: string[];
-  detectedAt: string;
+export interface AgentDependencyResolutionMetrics {
+  agentId: string;
+  agentName: string;
+  totalDependencies: number;
+  resolvedDependencies: number;
+  avgResolutionTime: number;
+  dependencyResolutionRate: number;
+  resolutionScore: number;
+  resolutionTier: 'expert' | 'proficient' | 'developing' | 'struggling';
 }
 
 export interface AgentDependencyResolutionReport {
   projectId: string;
+  agents: AgentDependencyResolutionMetrics[];
   totalDependencies: number;
   resolvedDependencies: number;
-  blockedTickets: BlockedTicketInfo[];
-  circularDependencies: CircularDependencyChain[];
-  avgResolutionTimeHours: number;
-  longestBlockChain: number;
   dependencyResolutionRate: number;
+  avgResolutionTimeHours: number;
   aiSummary: string;
   aiRecommendations: string[];
 }
