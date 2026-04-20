@@ -1283,6 +1283,46 @@ export function useAgentTaskSequence() {
   return { sequence, loading, result, setResult };
 }
 
+export interface AgentVelocity {
+  agentName: string;
+  recentPoints: number;
+  priorPoints: number;
+  recentCount: number;
+  priorCount: number;
+  forecastPoints: number;
+  trend: 'up' | 'down' | 'stable' | 'new';
+  recommendation: string;
+}
+
+export interface VelocityForecastReport {
+  projectId: string;
+  agentVelocities: AgentVelocity[];
+  totalAgents: number;
+  totalForecastPoints: number;
+  topAgent: string | null;
+  atRiskAgents: string[];
+  generatedAt: string;
+}
+
+export function useAgentVelocityForecast() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<VelocityForecastReport | null>(null);
+
+  const forecast = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<VelocityForecastReport>(`/projects/${projectId}/agent-velocity-forecast`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { forecast, loading, result, setResult };
+}
+
 export interface AgentLoadForecast {
   agentType: string;
   currentLoad: number;
