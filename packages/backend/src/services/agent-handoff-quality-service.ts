@@ -106,11 +106,14 @@ export async function analyzeAgentHandoffQuality(projectId: string, sessions?: a
 
   const topSender = agents.sort((a, b) => b.handoffsSent - a.handoffsSent)[0]?.agentName ?? '';
   const topReceiver = [...agents].sort((a, b) => b.handoffsReceived - a.handoffsReceived)[0]?.agentName ?? '';
+  const avgResolutionRate = agents.length > 0
+    ? Math.round(agents.reduce((sum, a) => sum + a.avgResolutionRate, 0) / agents.length)
+    : 0;
 
   const summary = {
     totalHandoffs,
     avgContextScore,
-    avgResolutionRate: avgContextScore,
+    avgResolutionRate,
     topSender,
     topReceiver,
     lowQualityHandoffCount,

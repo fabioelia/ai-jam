@@ -63,8 +63,8 @@ export default function AgentOutputConsistencyModal({ result, isOpen, loading, o
                   <p className="text-teal-200 text-sm font-semibold">{result.summary.avgConsistencyScore}</p>
                 </div>
                 <div className="bg-teal-900/20 border border-teal-500/30 rounded-lg px-4 py-3">
-                  <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-1">Most Consistent</p>
-                  <p className="text-teal-200 text-sm font-semibold truncate">{result.summary.mostConsistentAgent || '—'}</p>
+                  <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-1">Task Groups Analyzed</p>
+                  <p className="text-teal-200 text-sm font-semibold">{result.summary.totalTaskGroups}</p>
                 </div>
                 <div className="bg-teal-900/20 border border-teal-500/30 rounded-lg px-4 py-3">
                   <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-1">High Variance Agents</p>
