@@ -81,6 +81,20 @@ export default function AgentDependencyResolutionModal({ result, isOpen, loading
                   <p className="text-violet-200 text-sm font-semibold">{result.dependencyResolutionRate}%</p>
                 </div>
               </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-violet-900/20 border border-violet-500/30 rounded-lg px-4 py-3">
+                  <p className="text-violet-400 text-xs font-medium uppercase tracking-wide mb-1">Blocked Tickets</p>
+                  <p className="text-violet-200 text-sm font-semibold">{result.blockedTickets}</p>
+                </div>
+                <div className="bg-violet-900/20 border border-violet-500/30 rounded-lg px-4 py-3">
+                  <p className="text-violet-400 text-xs font-medium uppercase tracking-wide mb-1">Circular Dependencies</p>
+                  <p className="text-violet-200 text-sm font-semibold">{result.circularDependencies}</p>
+                </div>
+                <div className="bg-violet-900/20 border border-violet-500/30 rounded-lg px-4 py-3">
+                  <p className="text-violet-400 text-xs font-medium uppercase tracking-wide mb-1">Longest Block Chain</p>
+                  <p className="text-violet-200 text-sm font-semibold">{result.longestBlockChain}</p>
+                </div>
+              </div>
 
               {/* Agent table */}
               <div className="overflow-x-auto rounded-lg border border-gray-700">

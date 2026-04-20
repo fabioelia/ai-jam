@@ -10,7 +10,7 @@ export interface AgentContextWindowMetrics {
   peakUsage: number;
   windowOverflows: number;
   contextEfficiencyScore: number; // 0-100
-  utilizationTier: 'optimal' | 'efficient' | 'wasteful' | 'overloaded';
+  utilizationTier: 'optimal' | 'efficient' | 'cramped' | 'overloaded';
 }
 
 export interface AgentContextWindowReport {
@@ -60,7 +60,7 @@ export function computeUtilizationTier(
 ): AgentContextWindowMetrics['utilizationTier'] {
   if (score >= 80) return 'optimal';
   if (score >= 60) return 'efficient';
-  if (score >= 40) return 'wasteful';
+  if (score >= 40) return 'cramped';
   return 'overloaded';
 }
 
@@ -136,7 +136,7 @@ export function buildContextWindowMetrics(
   return metrics;
 }
 
-export async function analyzeAgentContextWindow(
+export async function analyzeAgentContextWindowUtilization(
   projectId: string,
 ): Promise<AgentContextWindowReport> {
   const projectTickets = await db

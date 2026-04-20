@@ -21,6 +21,9 @@ export interface AgentDependencyResolutionReport {
   resolvedDependencies: number;
   dependencyResolutionRate: number;
   avgResolutionTimeHours: number;
+  blockedTickets: number;
+  circularDependencies: number;
+  longestBlockChain: number;
   aiSummary: string;
   aiRecommendations: string[];
 }
@@ -269,6 +272,20 @@ export async function analyzeAgentDependencyResolution(
       ? Math.round((resolvedDependencies / totalDependencies) * 100)
       : 0;
 
+  const blockedTickets = totalDependencies;
+
+  const depsMap = new Map<string, string[]>();
+  for (const t of projectTickets) {
+    if (t.blockedBy && t.blockedBy !== '') {
+      const list = depsMap.get(t.id) ?? [];
+      list.push(t.blockedBy);
+      depsMap.set(t.id, list);
+    }
+  }
+  const cycles = detectCircularDependencies(depsMap);
+  const circularDependencies = cycles.length;
+  const longestBlockChain = findLongestBlockChain(depsMap);
+
   const avgResolutionTimeHours =
     agents.length > 0
       ? Math.round(
@@ -327,6 +344,9 @@ export async function analyzeAgentDependencyResolution(
     resolvedDependencies,
     dependencyResolutionRate,
     avgResolutionTimeHours,
+    blockedTickets,
+    circularDependencies,
+    longestBlockChain,
     aiSummary,
     aiRecommendations,
   };

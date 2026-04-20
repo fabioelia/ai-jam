@@ -58,14 +58,14 @@ describe('scoreHandoff', () => {
 
 describe('gradeFromScore', () => {
   it('maps score ranges to grades correctly', () => {
-    expect(gradeFromScore(100)).toBe('excellent');
-    expect(gradeFromScore(80)).toBe('excellent');
-    expect(gradeFromScore(79)).toBe('good');
-    expect(gradeFromScore(60)).toBe('good');
-    expect(gradeFromScore(59)).toBe('needs-improvement');
-    expect(gradeFromScore(40)).toBe('needs-improvement');
-    expect(gradeFromScore(39)).toBe('poor');
-    expect(gradeFromScore(0)).toBe('poor');
+    expect(gradeFromScore(100)).toBe('exemplary');
+    expect(gradeFromScore(80)).toBe('exemplary');
+    expect(gradeFromScore(79)).toBe('proficient');
+    expect(gradeFromScore(60)).toBe('proficient');
+    expect(gradeFromScore(59)).toBe('adequate');
+    expect(gradeFromScore(40)).toBe('adequate');
+    expect(gradeFromScore(39)).toBe('deficient');
+    expect(gradeFromScore(0)).toBe('deficient');
   });
 });
 

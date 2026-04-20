@@ -41,19 +41,19 @@ describe('computeConsistencyTier', () => {
     expect(computeConsistencyTier(100)).toBe('consistent');
   });
 
-  it('returns reliable for score >= 60', () => {
-    expect(computeConsistencyTier(60)).toBe('reliable');
-    expect(computeConsistencyTier(79)).toBe('reliable');
+  it('returns variable for score >= 60', () => {
+    expect(computeConsistencyTier(60)).toBe('variable');
+    expect(computeConsistencyTier(79)).toBe('variable');
   });
 
-  it('returns variable for score >= 40', () => {
-    expect(computeConsistencyTier(40)).toBe('variable');
-    expect(computeConsistencyTier(59)).toBe('variable');
+  it('returns erratic for score >= 40', () => {
+    expect(computeConsistencyTier(40)).toBe('erratic');
+    expect(computeConsistencyTier(59)).toBe('erratic');
   });
 
-  it('returns erratic for score < 40', () => {
-    expect(computeConsistencyTier(39)).toBe('erratic');
-    expect(computeConsistencyTier(0)).toBe('erratic');
+  it('returns unreliable for score < 40', () => {
+    expect(computeConsistencyTier(39)).toBe('unreliable');
+    expect(computeConsistencyTier(0)).toBe('unreliable');
   });
 });
 

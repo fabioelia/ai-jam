@@ -9,9 +9,9 @@ interface Props {
 
 const TIER_STYLES: Record<AgentOutputConsistencyMetrics['consistencyTier'], string> = {
   consistent: 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50',
-  reliable: 'bg-green-900/50 text-green-300 border border-green-700/50',
   variable: 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50',
-  erratic: 'bg-red-900/50 text-red-400 border border-red-700/50',
+  erratic: 'bg-orange-900/50 text-orange-300 border border-orange-700/50',
+  unreliable: 'bg-red-900/50 text-red-400 border border-red-700/50',
 };
 
 export default function AgentOutputConsistencyModal({ result, isOpen, loading, onClose }: Props) {

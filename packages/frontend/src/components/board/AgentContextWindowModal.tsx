@@ -10,7 +10,7 @@ interface Props {
 const TIER_STYLES: Record<AgentContextWindowMetrics['utilizationTier'], string> = {
   optimal: 'bg-teal-900/50 text-teal-300 border border-teal-700/50',
   efficient: 'bg-green-900/50 text-green-300 border border-green-700/50',
-  wasteful: 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50',
+  cramped: 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50',
   overloaded: 'bg-red-900/50 text-red-400 border border-red-700/50',
 };
 

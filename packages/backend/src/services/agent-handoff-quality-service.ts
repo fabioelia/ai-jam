@@ -16,7 +16,9 @@ export interface HandoffQualityScore {
   fromAgent: string;
   toAgent: string;
   score: number;
-  grade: 'excellent' | 'good' | 'needs-improvement' | 'poor';
+  grade: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
+  qualityTier: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
+  perHandoffDetails: { quality: number; completeness: number };
   issues: HandoffIssue[];
   suggestions: string[];
   analyzedAt: string;
@@ -75,10 +77,35 @@ export function scoreHandoff(content: string): { score: number; issues: HandoffI
 }
 
 export function gradeFromScore(score: number): HandoffQualityScore['grade'] {
-  if (score >= 80) return 'excellent';
-  if (score >= 60) return 'good';
-  if (score >= 40) return 'needs-improvement';
-  return 'poor';
+  if (score >= 80) return 'exemplary';
+  if (score >= 60) return 'proficient';
+  if (score >= 40) return 'adequate';
+  return 'deficient';
+}
+
+export function computePerHandoffDetails(content: string): { quality: number; completeness: number } {
+  const lower = content ? content.toLowerCase() : '';
+  let quality = 100;
+  let completeness = 100;
+
+  if (!content || content.trim().length === 0) {
+    return { quality: 0, completeness: 0 };
+  }
+
+  // quality: based on instructions clarity
+  if (!/next step|todo|should|must|need to|implement|fix|update/.test(lower)) quality -= 30;
+  if (!/accept|criteria|ac\d|done when|definition of done/.test(lower)) quality -= 20;
+  if (/^please do this|^please help|^can you|^just do/.test(lower.trim())) quality -= 15;
+
+  // completeness: based on context presence
+  if (content.trim().length < 50) completeness -= 40;
+  if (!/\/|\.ts|\.tsx|\.js|\.py|src\/|packages\/|file|path|commit/.test(lower)) completeness -= 20;
+  if (content.trim().length < 200) completeness -= 10;
+
+  return {
+    quality: Math.max(0, quality),
+    completeness: Math.max(0, completeness),
+  };
 }
 
 function suggestionsFromIssues(issues: HandoffIssue[]): string[] {
@@ -147,9 +174,10 @@ export async function analyzeHandoffQuality(projectId: string): Promise<HandoffQ
     const { score, issues } = scoreHandoff(row.content);
     const grade = gradeFromScore(score);
     const baseSuggestions = suggestionsFromIssues(issues);
+    const perHandoffDetails = computePerHandoffDetails(row.content);
 
     let suggestions = baseSuggestions;
-    if (grade === 'needs-improvement' || grade === 'poor') {
+    if (grade === 'adequate' || grade === 'deficient') {
       const aiSuggestion = await generateAiSuggestion(
         row.handoffFrom!,
         row.handoffTo ?? 'next agent',
@@ -168,13 +196,15 @@ export async function analyzeHandoffQuality(projectId: string): Promise<HandoffQ
       toAgent: row.handoffTo ?? 'unknown',
       score,
       grade,
+      qualityTier: grade,
+      perHandoffDetails,
       issues,
       suggestions,
       analyzedAt: now,
     });
   }
 
-  const gradeOrder: Record<string, number> = { poor: 0, 'needs-improvement': 1, good: 2, excellent: 3 };
+  const gradeOrder: Record<string, number> = { deficient: 0, adequate: 1, proficient: 2, exemplary: 3 };
   handoffs.sort((a, b) => gradeOrder[a.grade] - gradeOrder[b.grade]);
 
   const totalHandoffs = handoffs.length;
@@ -182,10 +212,10 @@ export async function analyzeHandoffQuality(projectId: string): Promise<HandoffQ
     ? Math.round(handoffs.reduce((sum, h) => sum + h.score, 0) / totalHandoffs)
     : 0;
 
-  const excellentCount = handoffs.filter((h) => h.grade === 'excellent').length;
-  const goodCount = handoffs.filter((h) => h.grade === 'good').length;
-  const needsImprovementCount = handoffs.filter((h) => h.grade === 'needs-improvement').length;
-  const poorCount = handoffs.filter((h) => h.grade === 'poor').length;
+  const excellentCount = handoffs.filter((h) => h.grade === 'exemplary').length;
+  const goodCount = handoffs.filter((h) => h.grade === 'proficient').length;
+  const needsImprovementCount = handoffs.filter((h) => h.grade === 'adequate').length;
+  const poorCount = handoffs.filter((h) => h.grade === 'deficient').length;
 
   const issueCounts: Record<string, number> = {};
   for (const h of handoffs) {

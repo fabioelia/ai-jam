@@ -38,23 +38,23 @@ describe('scoreHandoff', () => {
 });
 
 describe('gradeFromScore', () => {
-  it('maps 80-100 to excellent (AC3)', () => {
-    expect(gradeFromScore(100)).toBe('excellent');
-    expect(gradeFromScore(80)).toBe('excellent');
+  it('maps 80-100 to exemplary (AC3)', () => {
+    expect(gradeFromScore(100)).toBe('exemplary');
+    expect(gradeFromScore(80)).toBe('exemplary');
   });
 
-  it('maps 60-79 to good (AC3)', () => {
-    expect(gradeFromScore(79)).toBe('good');
-    expect(gradeFromScore(60)).toBe('good');
+  it('maps 60-79 to proficient (AC3)', () => {
+    expect(gradeFromScore(79)).toBe('proficient');
+    expect(gradeFromScore(60)).toBe('proficient');
   });
 
-  it('maps 40-59 to needs-improvement (AC3)', () => {
-    expect(gradeFromScore(59)).toBe('needs-improvement');
-    expect(gradeFromScore(40)).toBe('needs-improvement');
+  it('maps 40-59 to adequate (AC3)', () => {
+    expect(gradeFromScore(59)).toBe('adequate');
+    expect(gradeFromScore(40)).toBe('adequate');
   });
 
-  it('maps 0-39 to poor (AC3)', () => {
-    expect(gradeFromScore(39)).toBe('poor');
-    expect(gradeFromScore(0)).toBe('poor');
+  it('maps 0-39 to deficient (AC3)', () => {
+    expect(gradeFromScore(39)).toBe('deficient');
+    expect(gradeFromScore(0)).toBe('deficient');
   });
 });

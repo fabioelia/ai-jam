@@ -25,19 +25,19 @@ describe('computeConsistencyTier', () => {
     expect(['consistent', 'stable']).toContain(tier);
   });
 
-  it('returns reliable or mostly-stable tier at score >= 60', () => {
+  it('returns variable tier at score >= 60', () => {
     const tier = computeConsistencyTier(60);
-    expect(['reliable', 'mostly-stable']).toContain(tier);
+    expect(tier).toBe('variable');
   });
 
-  it('returns variable tier at score >= 40', () => {
+  it('returns erratic tier at score >= 40', () => {
     const tier = computeConsistencyTier(40);
-    expect(['variable']).toContain(tier);
+    expect(tier).toBe('erratic');
   });
 
-  it('returns erratic tier at score < 40', () => {
-    expect(computeConsistencyTier(0)).toBe('erratic');
-    expect(computeConsistencyTier(39)).toBe('erratic');
+  it('returns unreliable tier at score < 40', () => {
+    expect(computeConsistencyTier(0)).toBe('unreliable');
+    expect(computeConsistencyTier(39)).toBe('unreliable');
   });
 });
 

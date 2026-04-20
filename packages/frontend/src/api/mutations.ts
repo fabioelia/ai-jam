@@ -1207,7 +1207,9 @@ export interface HandoffQualityScore {
   fromAgent: string;
   toAgent: string;
   score: number;
-  grade: 'excellent' | 'good' | 'needs-improvement' | 'poor';
+  grade: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
+  qualityTier: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
+  perHandoffDetails: { quality: number; completeness: number };
   issues: HandoffIssue[];
   suggestions: string[];
   analyzedAt: string;
@@ -4316,6 +4318,9 @@ export interface AgentDependencyResolutionReport {
   resolvedDependencies: number;
   dependencyResolutionRate: number;
   avgResolutionTimeHours: number;
+  blockedTickets: number;
+  circularDependencies: number;
+  longestBlockChain: number;
   aiSummary: string;
   aiRecommendations: string[];
 }
@@ -4392,7 +4397,7 @@ export interface AgentContextWindowMetrics {
   peakUsage: number;
   windowOverflows: number;
   contextEfficiencyScore: number;
-  utilizationTier: 'optimal' | 'efficient' | 'wasteful' | 'overloaded';
+  utilizationTier: 'optimal' | 'efficient' | 'cramped' | 'overloaded';
 }
 
 export interface AgentContextWindowReport {
@@ -4414,7 +4419,7 @@ export function useAgentContextWindow(projectId: string) {
     setLoading(true);
     try {
       const r = await apiFetch<AgentContextWindowReport>(
-        `/projects/${projectId}/agent-context-window`,
+        `/projects/${projectId}/agent-context-window-utilization`,
         { method: 'POST' },
       );
       setResult(r);
@@ -4435,7 +4440,7 @@ export interface AgentOutputConsistencyMetrics {
   consistencyRate: number;
   formatAdherenceRate: number;
   outputConsistencyScore: number;
-  consistencyTier: 'consistent' | 'reliable' | 'variable' | 'erratic';
+  consistencyTier: 'consistent' | 'variable' | 'erratic' | 'unreliable';
 }
 
 export interface AgentOutputConsistencyReport {
@@ -4444,6 +4449,7 @@ export interface AgentOutputConsistencyReport {
   avgConsistencyScore: number;
   mostConsistentAgent: string | null;
   leastConsistentAgent: string | null;
+  outputCategories: { consistent: number; variable: number; erratic: number; unreliable: number };
   aiSummary: string;
   aiRecommendations: string[];
 }

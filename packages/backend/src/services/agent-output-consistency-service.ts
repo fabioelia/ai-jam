@@ -11,7 +11,7 @@ export interface AgentOutputConsistencyMetrics {
   consistencyRate: number;
   formatAdherenceRate: number;
   outputConsistencyScore: number; // 0-100
-  consistencyTier: 'consistent' | 'reliable' | 'variable' | 'erratic';
+  consistencyTier: 'consistent' | 'variable' | 'erratic' | 'unreliable';
 }
 
 export interface AgentOutputConsistencyReport {
@@ -20,6 +20,7 @@ export interface AgentOutputConsistencyReport {
   avgConsistencyScore: number;
   mostConsistentAgent: string | null;
   leastConsistentAgent: string | null;
+  outputCategories: { consistent: number; variable: number; erratic: number; unreliable: number };
   aiSummary: string;
   aiRecommendations: string[];
 }
@@ -45,9 +46,9 @@ export function computeConsistencyTier(
   score: number,
 ): AgentOutputConsistencyMetrics['consistencyTier'] {
   if (score >= 80) return 'consistent';
-  if (score >= 60) return 'reliable';
-  if (score >= 40) return 'variable';
-  return 'erratic';
+  if (score >= 60) return 'variable';
+  if (score >= 40) return 'erratic';
+  return 'unreliable';
 }
 
 type SessionRow = {
@@ -149,6 +150,7 @@ export async function analyzeAgentOutputConsistency(
       avgConsistencyScore: 0,
       mostConsistentAgent: null,
       leastConsistentAgent: null,
+      outputCategories: { consistent: 0, variable: 0, erratic: 0, unreliable: 0 },
       aiSummary: FALLBACK_SUMMARY,
       aiRecommendations: FALLBACK_RECOMMENDATIONS,
     };
@@ -166,6 +168,13 @@ export async function analyzeAgentOutputConsistency(
   const mostConsistentAgent = agents.length > 0 ? agents[0].agentName : null;
   const leastConsistentAgent =
     agents.length > 0 ? agents[agents.length - 1].agentName : null;
+
+  const outputCategories = {
+    consistent: agents.filter((a) => a.consistencyTier === 'consistent').length,
+    variable: agents.filter((a) => a.consistencyTier === 'variable').length,
+    erratic: agents.filter((a) => a.consistencyTier === 'erratic').length,
+    unreliable: agents.filter((a) => a.consistencyTier === 'unreliable').length,
+  };
 
   let aiSummary = FALLBACK_SUMMARY;
   let aiRecommendations = FALLBACK_RECOMMENDATIONS;
@@ -217,6 +226,7 @@ export async function analyzeAgentOutputConsistency(
     avgConsistencyScore,
     mostConsistentAgent,
     leastConsistentAgent,
+    outputCategories,
     aiSummary,
     aiRecommendations,
   };

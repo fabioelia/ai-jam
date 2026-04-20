@@ -16,10 +16,10 @@ function avgScoreBadgeClass(score: number): string {
 
 function gradeBadgeClass(grade: HandoffQualityScore['grade']): string {
   switch (grade) {
-    case 'excellent': return 'bg-green-500/20 text-green-300 border-green-500/40';
-    case 'good': return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
-    case 'needs-improvement': return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
-    case 'poor': return 'bg-red-500/20 text-red-300 border-red-500/40';
+    case 'exemplary': return 'bg-green-500/20 text-green-300 border-green-500/40';
+    case 'proficient': return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+    case 'adequate': return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
+    case 'deficient': return 'bg-red-500/20 text-red-300 border-red-500/40';
   }
 }
 
@@ -84,10 +84,10 @@ export default function AgentHandoffQualityModal({ result, isOpen, loading, onCl
               {/* Summary row */}
               <div className="grid grid-cols-4 gap-3">
                 {[
-                  { label: 'Excellent', count: result.excellentCount, cls: 'bg-green-500/20 text-green-300 border-green-500/40' },
-                  { label: 'Good', count: result.goodCount, cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
-                  { label: 'Needs Improvement', count: result.needsImprovementCount, cls: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
-                  { label: 'Poor', count: result.poorCount, cls: 'bg-red-500/20 text-red-300 border-red-500/40' },
+                  { label: 'Exemplary', count: result.excellentCount, cls: 'bg-green-500/20 text-green-300 border-green-500/40' },
+                  { label: 'Proficient', count: result.goodCount, cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+                  { label: 'Adequate', count: result.needsImprovementCount, cls: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
+                  { label: 'Deficient', count: result.poorCount, cls: 'bg-red-500/20 text-red-300 border-red-500/40' },
                 ].map(({ label, count, cls }) => (
                   <div key={label} className={`rounded-lg border p-3 text-center ${cls}`}>
                     <p className="text-xl font-bold">{count}</p>
@@ -149,7 +149,7 @@ export default function AgentHandoffQualityModal({ result, isOpen, loading, onCl
                     )}
 
                     {/* AI suggestion */}
-                    {handoff.grade !== 'excellent' && handoff.suggestions.length > 0 && (
+                    {handoff.grade !== 'exemplary' && handoff.suggestions.length > 0 && (
                       <div className="bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 border border-indigo-500/30 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-1.5">
                           <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -51,9 +51,9 @@ describe('computeUtilizationTier', () => {
     expect(computeUtilizationTier(79)).toBe('efficient');
   });
 
-  it('returns wasteful for score >= 40', () => {
-    expect(computeUtilizationTier(40)).toBe('wasteful');
-    expect(computeUtilizationTier(59)).toBe('wasteful');
+  it('returns cramped for score >= 40', () => {
+    expect(computeUtilizationTier(40)).toBe('cramped');
+    expect(computeUtilizationTier(59)).toBe('cramped');
   });
 
   it('returns overloaded for score < 40', () => {
