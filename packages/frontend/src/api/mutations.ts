@@ -1517,3 +1517,43 @@ export function useAgentFocusAdvisor() {
 
   return { advise, loading, result, setResult };
 }
+
+export interface AgentResponseProfile {
+  agentName: string;
+  avgResponseTimeMs: number;
+  minResponseTimeMs: number;
+  maxResponseTimeMs: number;
+  ticketsActedOn: number;
+  unstartedTickets: number;
+  responseCategory: 'fast' | 'normal' | 'slow';
+  recommendation: string;
+}
+
+export interface ResponseTimeReport {
+  projectId: string;
+  agentProfiles: AgentResponseProfile[];
+  totalAgents: number;
+  slowAgents: number;
+  fastAgents: number;
+  avgProjectResponseMs: number;
+  generatedAt: string;
+}
+
+export function useAgentResponseTime() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ResponseTimeReport | null>(null);
+
+  const profile = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<ResponseTimeReport>(`/projects/${projectId}/agent-response-time`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { profile, loading, result, setResult };
+}
