@@ -1192,6 +1192,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Decision Speed Button */}
+        <button
+          onClick={async () => {
+            setShowAgentDecisionSpeed(true);
+            try {
+              await agentDecisionSpeed.analyze();
+            } catch (error) {
+              toast.error(`Decision speed analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentDecisionSpeed.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+        >
+          {agentDecisionSpeed.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M13 10V3L4 14h7v7l9-11h-7z' /></svg> Decision Speed</>
+          )}
+        </button>
+
         {/* Focus Advisor Button */}
         <button
           onClick={async () => {
@@ -2507,6 +2527,9 @@ export default function BoardPage() {
       )}
       {showAgentScopeAdherence && (
         <AgentScopeAdherenceModal result={agentScopeAdherence.result} isOpen={showAgentScopeAdherence} loading={agentScopeAdherence.loading} onClose={() => { agentScopeAdherence.setResult(null); setShowAgentScopeAdherence(false); }} />
+      )}
+      {showAgentDecisionSpeed && (
+        <AgentDecisionSpeedModal result={agentDecisionSpeed.result} isOpen={showAgentDecisionSpeed} loading={agentDecisionSpeed.loading} onClose={() => { agentDecisionSpeed.setResult(null); setShowAgentDecisionSpeed(false); }} />
       )}
     </div>
   );
