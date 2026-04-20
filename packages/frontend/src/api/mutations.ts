@@ -1785,3 +1785,46 @@ export function useAgentQueueDepth() {
 
   return { monitor, loading, result, setResult };
 }
+
+export type GapSeverity = 'critical' | 'high' | 'moderate' | 'low';
+
+export interface SkillGapEntry {
+  label: string;
+  totalTickets: number;
+  completedTickets: number;
+  stalledTickets: number;
+  completionRate: number;
+  coveredByAgents: string[];
+  gapSeverity: GapSeverity;
+  recommendation: string;
+}
+
+export interface SkillGapReport {
+  projectId: string;
+  analyzedAt: string;
+  totalLabels: number;
+  criticalGaps: number;
+  coveredLabels: number;
+  skillGaps: SkillGapEntry[];
+  aiSummary: string;
+}
+
+export function useAgentSkillGap() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SkillGapReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<SkillGapReport>(
+        `/projects/${projectId}/agent-skill-gap`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

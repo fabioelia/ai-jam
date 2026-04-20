@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -48,6 +48,7 @@ import AgentStallDetectorModal from '../components/board/AgentStallDetectorModal
 import AgentSpecializationMapperModal from '../components/board/AgentSpecializationMapperModal.js';
 import AgentBottleneckAnalyzerModal from '../components/board/AgentBottleneckAnalyzerModal.js';
 import AgentQueueDepthModal from '../components/board/AgentQueueDepthModal.js';
+import AgentSkillGapModal from '../components/board/AgentSkillGapModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -224,6 +225,8 @@ export default function BoardPage() {
   const [showBottleneckAnalyzer, setShowBottleneckAnalyzer] = useState(false);
   const agentQueueDepth = useAgentQueueDepth();
   const [showAgentQueueDepth, setShowAgentQueueDepth] = useState(false);
+  const agentSkillGap = useAgentSkillGap();
+  const [showAgentSkillGap, setShowAgentSkillGap] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1129,6 +1132,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Skill Gaps Button */}
+        <button
+          onClick={async () => {
+            setShowAgentSkillGap(true);
+            try {
+              await agentSkillGap.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Skill gap analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentSkillGap.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
+        >
+          {agentSkillGap.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' /></svg> Skill Gaps</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1615,6 +1638,10 @@ export default function BoardPage() {
 
       {showAgentQueueDepth && (
         <AgentQueueDepthModal result={agentQueueDepth.result} isOpen={showAgentQueueDepth} loading={agentQueueDepth.loading} onClose={() => { agentQueueDepth.setResult(null); setShowAgentQueueDepth(false); }} />
+      )}
+
+      {showAgentSkillGap && (
+        <AgentSkillGapModal result={agentSkillGap.result} isOpen={showAgentSkillGap} loading={agentSkillGap.loading} onClose={() => { agentSkillGap.setResult(null); setShowAgentSkillGap(false); }} />
       )}
     </div>
   );
