@@ -5063,3 +5063,53 @@ export function useAgentWorkflowTransitions(projectId: string) {
 
   return { analyze, loading, data, setData };
 }
+
+// FEAT-129: Agent Knowledge Transfer Efficiency Analyzer
+export interface AgentKnowledgeTransferMetrics {
+  agentId: string;
+  agentName: string;
+  totalSessions: number;
+  sessionsWithHandoffNotes: number;
+  knowledgeTransferRate: number;
+  avgHandoffNoteLength: number;
+  receivedKnowledgeCount: number;
+  knowledgeRetentionScore: number;
+  transferEfficiencyTier: 'excellent' | 'good' | 'adequate' | 'poor';
+}
+
+export interface AgentKnowledgeTransferReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgKnowledgeTransferRate: number;
+    topTransferAgent: string;
+    lowestTransferAgent: string;
+    knowledgeLossRiskCount: number;
+  };
+  agents: AgentKnowledgeTransferMetrics[];
+  insights: string[];
+  recommendations: string[];
+  aiSummary?: string;
+  aiRecommendations?: string[];
+}
+
+export function useAgentKnowledgeTransfer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentKnowledgeTransferReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentKnowledgeTransferReport>(
+        `/projects/${projectId}/agent-knowledge-transfer`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, isPending: loading, data, setData };
+}

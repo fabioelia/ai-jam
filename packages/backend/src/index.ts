@@ -130,6 +130,7 @@ import { agentDecisionLatencyRoutes } from './routes/agent-decision-latency-rout
 import { agentResourceConsumptionRoutes } from './routes/agent-resource-consumption-route.js';
 import { agentSessionQualityRoutes } from './routes/agent-session-quality-route.js';
 import { agentWorkflowTransitionsRoutes } from './routes/agent-workflow-transitions-route.js';
+import { agentKnowledgeTransferRoutes } from './routes/agent-knowledge-transfer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -294,6 +295,7 @@ async function main() {
   await fastify.register(agentResourceConsumptionRoutes);
   await fastify.register(agentSessionQualityRoutes);
   await fastify.register(agentWorkflowTransitionsRoutes);
+  await fastify.register(agentKnowledgeTransferRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
