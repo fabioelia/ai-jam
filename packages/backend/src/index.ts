@@ -121,6 +121,7 @@ import { agentOutputConsistencyRoutes } from './routes/agent-output-consistency-
 import { agentCollaborationEfficiencyRoutes } from './routes/agent-collaboration-efficiency.js';
 import { agentAdaptationSpeedRoutes } from './routes/agent-adaptation-speed-route.js';
 import { agentScopeDriftRoutes } from './routes/agent-scope-drift-route.js';
+import { agentInstructionComplianceRoutes } from './routes/agent-instruction-compliance-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -276,6 +277,7 @@ async function main() {
   await fastify.register(agentCollaborationEfficiencyRoutes);
   await fastify.register(agentAdaptationSpeedRoutes);
   await fastify.register(agentScopeDriftRoutes);
+  await fastify.register(agentInstructionComplianceRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

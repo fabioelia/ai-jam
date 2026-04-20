@@ -4606,3 +4606,51 @@ export function useAgentScopeDrift(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+// FEAT-119: Agent Instruction Compliance Analyzer
+export interface AgentInstructionComplianceMetrics {
+  agentId: string;
+  agentName: string;
+  totalInstructions: number;
+  followedInstructions: number;
+  complianceRate: number;
+  violationCount: number;
+  avgViolationSeverity: 'minor' | 'moderate' | 'major' | 'critical';
+  complianceScore: number;
+  complianceTier: 'exemplary' | 'compliant' | 'partial' | 'defiant';
+}
+
+export interface AgentInstructionComplianceReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgComplianceScore: number;
+    mostCompliant: string;
+    leastCompliant: string;
+    exemplaryAgents: number;
+  };
+  agents: AgentInstructionComplianceMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentInstructionCompliance(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionComplianceReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentInstructionComplianceReport>(
+        `/projects/${projectId}/agent-instruction-compliance`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}

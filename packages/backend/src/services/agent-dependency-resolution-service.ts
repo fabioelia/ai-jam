@@ -25,6 +25,77 @@ export interface AgentDependencyResolutionReport {
   aiRecommendations: string[];
 }
 
+// Pure functions for testing (FEAT-109)
+export function computeDependencyResolutionRate(resolved: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((resolved / total) * 100 * 100) / 100;
+}
+
+export function computeRiskLevel(waitTimeHours: number): 'critical' | 'high' | 'medium' | 'low' {
+  if (waitTimeHours >= 72) return 'critical';
+  if (waitTimeHours >= 48) return 'high';
+  if (waitTimeHours >= 24) return 'medium';
+  return 'low';
+}
+
+export function detectCircularDependencies(deps: Map<string, string[]>): string[][] {
+  const cycles: string[][] = [];
+  const visited = new Set<string>();
+  const inStack = new Set<string>();
+
+  function dfs(node: string, path: string[]): void {
+    visited.add(node);
+    inStack.add(node);
+    const neighbors = deps.get(node) ?? [];
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        dfs(neighbor, [...path, neighbor]);
+      } else if (inStack.has(neighbor)) {
+        const cycleStart = path.indexOf(neighbor);
+        if (cycleStart !== -1) {
+          cycles.push(path.slice(cycleStart));
+        }
+      }
+    }
+    inStack.delete(node);
+  }
+
+  for (const node of deps.keys()) {
+    if (!visited.has(node)) {
+      dfs(node, [node]);
+    }
+  }
+  return cycles;
+}
+
+export function findLongestBlockChain(deps: Map<string, string[]>): number {
+  if (deps.size === 0) return 0;
+
+  const memo = new Map<string, number>();
+
+  function dfs(node: string, visiting: Set<string>): number {
+    if (memo.has(node)) return memo.get(node)!;
+    if (visiting.has(node)) return 1; // cycle break
+    visiting.add(node);
+    const neighbors = deps.get(node) ?? [];
+    let max = 1;
+    for (const neighbor of neighbors) {
+      const len = 1 + dfs(neighbor, visiting);
+      if (len > max) max = len;
+    }
+    visiting.delete(node);
+    memo.set(node, max);
+    return max;
+  }
+
+  let longest = 0;
+  for (const node of deps.keys()) {
+    const len = dfs(node, new Set());
+    if (len > longest) longest = len;
+  }
+  return longest;
+}
+
 export const FALLBACK_SUMMARY = 'Dependency resolution analysis complete.';
 export const FALLBACK_RECOMMENDATIONS = [
   'Focus on agents with low resolution rates to identify bottlenecks.',
