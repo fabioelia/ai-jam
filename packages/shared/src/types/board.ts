@@ -40,8 +40,12 @@ export interface Ticket {
   assignedUserId: string | null;
   createdBy: string;
   source: 'human' | 'mcp' | 'api';
+<<<<<<< Updated upstream
   parentTicketId: string | null;
   subtasks: SubtaskProposal[];
+=======
+  dependencies: string[];
+>>>>>>> Stashed changes
   createdAt: string;
   updatedAt: string;
 }

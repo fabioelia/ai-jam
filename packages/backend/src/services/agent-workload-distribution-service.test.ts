@@ -1,159 +1,145 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzeWorkloadDistribution } from './agent-workload-distribution-service.js';
+import {
+  analyzeAgentWorkloadDistribution,
+  buildWorkloadProfiles,
+  computeOverloadRisk,
+  computeGiniCoefficient,
+  FALLBACK_SUMMARY,
+  FALLBACK_RECOMMENDATIONS,
+  type TicketRow,
+  type SessionRow,
+} from './agent-workload-distribution-service.js';
 
 vi.mock('../db/connection.js', () => ({ db: { select: vi.fn() } }));
-vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    messages: {
-      create: vi.fn().mockResolvedValue({
-        content: [{ type: 'text', text: 'AI summary' }],
+
+const mockCreate = vi.fn().mockResolvedValue({
+  content: [
+    {
+      type: 'text',
+      text: JSON.stringify({
+        summary: 'AI workload summary.',
+        recommendations: ['Balance workload.'],
       }),
     },
-  })),
+  ],
+});
+
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: class MockAnthropic {
+    messages = { create: mockCreate };
+  },
 }));
 
 import { db } from '../db/connection.js';
-import Anthropic from '@anthropic-ai/sdk';
 
-function makeTicket(assignedPersona: string | null, updatedAtHour: number) {
-  const d = new Date('2025-01-01T00:00:00Z');
-  d.setUTCHours(updatedAtHour);
-  return { assignedPersona, updatedAt: d };
+function makeTicket(id: string, assignedPersona: string | null): TicketRow {
+  return { id, assignedPersona };
 }
 
-function makeNote(authorId: string, authorType: string, handoffFrom: string | null, createdAtHour: number) {
-  const d = new Date('2025-01-01T00:00:00Z');
-  d.setUTCHours(createdAtHour);
-  return { authorId, authorType, handoffFrom, createdAt: d, ticketId: 'ticket-1' };
+function makeSession(ticketId: string, personaType: string): SessionRow {
+  return { ticketId, personaType };
 }
 
-// Drizzle chain mock: select().from().where() or select().from().innerJoin().where()
-function mockDbChain(ticketRows: object[], noteRows: object[]) {
+function mockDb(ticketRows: TicketRow[], sessionRows: SessionRow[]) {
   let callCount = 0;
-  (db.select as ReturnType<typeof vi.fn>).mockImplementation(() => {
-    const rows = callCount === 0 ? ticketRows : noteRows;
-    callCount++;
-    return {
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(rows),
-        innerJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(rows),
-        }),
-      }),
-    };
-  });
+  const chain = {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) return Promise.resolve(ticketRows);
+      return Promise.resolve(sessionRows);
+    }),
+  };
+  (db.select as ReturnType<typeof vi.fn>).mockReturnValue(chain);
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
+beforeEach(() => vi.clearAllMocks());
+
+// Test 1: empty project
+it('empty project returns empty agents array', async () => {
+  mockDb([], []);
+  const report = await analyzeAgentWorkloadDistribution('proj-empty');
+  expect(report.agents).toHaveLength(0);
+  expect(report.totalProjectTickets).toBe(0);
+  expect(report.mostLoadedAgent).toBeNull();
+  expect(report.leastLoadedAgent).toBeNull();
+  expect(report.workloadGiniCoefficient).toBe(0);
 });
 
-describe('analyzeWorkloadDistribution', () => {
-  it('empty state: no tickets returns empty report', async () => {
-    mockDbChain([], []);
-    const result = await analyzeWorkloadDistribution('proj-1');
-    expect(result.agents).toHaveLength(0);
-    expect(result.summary.totalAgents).toBe(0);
-    expect(result.summary.burstiestAgent).toBeNull();
-    expect(result.summary.steadiestAgent).toBeNull();
-    expect(result.aiSummary).toBe('No significant workload distribution patterns detected.');
-  });
+// Test 2: single agent gets 100% share
+it('single agent gets 100% workload share', () => {
+  const tickets: TicketRow[] = [
+    makeTicket('t1', 'AgentA'),
+    makeTicket('t2', 'AgentA'),
+    makeTicket('t3', 'AgentA'),
+  ];
+  const sessions: SessionRow[] = [makeSession('t1', 'AgentA')];
+  const profiles = buildWorkloadProfiles(tickets, sessions);
+  const agentA = profiles.find((p) => p.personaId === 'AgentA')!;
+  expect(agentA.workloadShare).toBe(100);
+});
 
-  it('single agent, single hour → burstScore = 1.0, workPattern = steady', async () => {
-    mockDbChain([makeTicket('AgentA', 10), makeTicket('AgentA', 10), makeTicket('AgentA', 10)], []);
-    const result = await analyzeWorkloadDistribution('proj-1');
-    expect(result.agents).toHaveLength(1);
-    const agent = result.agents[0];
-    expect(agent.agentPersona).toBe('AgentA');
-    expect(agent.burstScore).toBe(1.0);
-    expect(agent.workPattern).toBe('steady');
-    expect(agent.peakHour).toBe(10);
-    expect(agent.quietHour).toBe(10);
-    expect(agent.hourlyBuckets[10]).toBe(3);
-  });
+// Test 3: overloadRisk 'critical' at >=60% share
+it('overloadRisk is critical at >= 60% share', () => {
+  expect(computeOverloadRisk(60)).toBe('critical');
+  expect(computeOverloadRisk(75)).toBe('critical');
+  expect(computeOverloadRisk(100)).toBe('critical');
+});
 
-  it('burst detection: most activity in 1 hour → burstScore > 3.0 → workPattern = burst', async () => {
-    // 10 in hour 5, 1 each in hours 0,1,2 → avg active = (10+1+1+1)/4 = 3.25, max = 10, burst = 3.07
-    const tix = [
-      ...Array(10).fill(null).map(() => makeTicket('Bursty', 5)),
-      makeTicket('Bursty', 0),
-      makeTicket('Bursty', 1),
-      makeTicket('Bursty', 2),
-    ];
-    mockDbChain(tix, []);
-    const result = await analyzeWorkloadDistribution('proj-1');
-    const agent = result.agents[0];
-    expect(agent.burstScore).toBeGreaterThan(3.0);
-    expect(agent.workPattern).toBe('burst');
-  });
+// Test 4: overloadRisk 'low' at <25% share
+it('overloadRisk is low at < 25% share', () => {
+  expect(computeOverloadRisk(0)).toBe('low');
+  expect(computeOverloadRisk(24)).toBe('low');
+});
 
-  it('steady pattern: even spread across hours → workPattern = steady', async () => {
-    // 1 ticket per each of 12 hours → all active hours have same count → burstScore = 1.0
-    const tix = Array.from({ length: 12 }, (_, i) => makeTicket('Steady', i));
-    mockDbChain(tix, []);
-    const result = await analyzeWorkloadDistribution('proj-1');
-    const agent = result.agents[0];
-    expect(agent.workPattern).toBe('steady');
-    expect(agent.burstScore).toBe(1.0);
-  });
+// Test 5: Gini coefficient (equal distribution = 0, unequal > 0)
+it('Gini coefficient is 0 for equal distribution and > 0 for unequal', () => {
+  // Equal distribution
+  const equalGini = computeGiniCoefficient([25, 25, 25, 25]);
+  expect(equalGini).toBeCloseTo(0, 1);
 
-  it('peak hour calculation is correct', async () => {
-    const tix = [
-      makeTicket('AgentB', 3),
-      makeTicket('AgentB', 3),
-      makeTicket('AgentB', 3),
-      makeTicket('AgentB', 7),
-      makeTicket('AgentB', 7),
-      makeTicket('AgentB', 14),
-    ];
-    mockDbChain(tix, []);
-    const result = await analyzeWorkloadDistribution('proj-1');
-    expect(result.agents[0].peakHour).toBe(3);
-  });
+  // Unequal distribution
+  const unequalGini = computeGiniCoefficient([80, 10, 5, 5]);
+  expect(unequalGini).toBeGreaterThan(0.3);
 
-  it('sort order: most active agent first', async () => {
-    const tix = [
-      makeTicket('LowAgent', 10),
-      makeTicket('LowAgent', 10),
-      makeTicket('HighAgent', 10),
-      makeTicket('HighAgent', 10),
-      makeTicket('HighAgent', 10),
-      makeTicket('HighAgent', 11),
-      makeTicket('HighAgent', 12),
-    ];
-    mockDbChain(tix, []);
-    const result = await analyzeWorkloadDistribution('proj-1');
-    expect(result.agents[0].agentPersona).toBe('HighAgent');
-    expect(result.agents[1].agentPersona).toBe('LowAgent');
-  });
+  // Single agent
+  expect(computeGiniCoefficient([100])).toBe(0);
 
-  it('summary fields: burstiestAgent and steadiestAgent are correct', async () => {
-    // BurstAgent: 10 in hour5, 1 in hour0 → burstScore > 1
-    // SteadyAgent: 1 in each of hours 0-5 → burstScore = 1.0
-    const tix = [
-      ...Array(10).fill(null).map(() => makeTicket('BurstAgent', 5)),
-      makeTicket('BurstAgent', 0),
-      makeTicket('SteadyAgent', 0),
-      makeTicket('SteadyAgent', 1),
-      makeTicket('SteadyAgent', 2),
-      makeTicket('SteadyAgent', 3),
-      makeTicket('SteadyAgent', 4),
-      makeTicket('SteadyAgent', 5),
-    ];
-    mockDbChain(tix, []);
-    const result = await analyzeWorkloadDistribution('proj-1');
-    expect(result.summary.burstiestAgent).toBe('BurstAgent');
-    expect(result.summary.steadiestAgent).toBe('SteadyAgent');
-  });
+  // Empty
+  expect(computeGiniCoefficient([])).toBe(0);
+});
 
-  it('AI summary fallback when OpenRouter unavailable', async () => {
-    (Anthropic as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-      messages: {
-        create: vi.fn().mockRejectedValue(new Error('Connection refused')),
-      },
-    }));
-    mockDbChain([makeTicket('AgentX', 9)], []);
-    const result = await analyzeWorkloadDistribution('proj-1');
-    expect(result.aiSummary).toBe('No significant workload distribution patterns detected.');
-  });
+// Test 6: mostLoadedAgent selection
+it('mostLoadedAgent is agent with highest workload share', async () => {
+  const tickets: TicketRow[] = [
+    makeTicket('t1', 'AgentA'),
+    makeTicket('t2', 'AgentB'),
+    makeTicket('t3', 'AgentB'),
+    makeTicket('t4', 'AgentB'),
+  ];
+  mockDb(tickets, []);
+  const report = await analyzeAgentWorkloadDistribution('proj-1');
+  expect(report.mostLoadedAgent).toBe('AgentB');
+});
+
+// Test 7: leastLoadedAgent selection
+it('leastLoadedAgent is agent with lowest workload share', async () => {
+  const tickets: TicketRow[] = [
+    makeTicket('t1', 'AgentA'),
+    makeTicket('t2', 'AgentB'),
+    makeTicket('t3', 'AgentB'),
+    makeTicket('t4', 'AgentB'),
+  ];
+  mockDb(tickets, []);
+  const report = await analyzeAgentWorkloadDistribution('proj-2');
+  expect(report.leastLoadedAgent).toBe('AgentA');
+});
+
+// Test 8: AI summary fallback
+it('uses fallback aiSummary when AI call fails', async () => {
+  mockCreate.mockRejectedValueOnce(new Error('AI error'));
+  mockDb([], []);
+  const report = await analyzeAgentWorkloadDistribution('proj-fail');
+  expect(report.aiSummary).toBe(FALLBACK_SUMMARY);
+  expect(report.aiRecommendations).toEqual(FALLBACK_RECOMMENDATIONS);
 });

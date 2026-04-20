@@ -1,159 +1,179 @@
 import { db } from '../db/connection.js';
-import { tickets, ticketNotes } from '../db/schema.js';
-import { and, eq, isNotNull, or } from 'drizzle-orm';
+import { tickets, agentSessions } from '../db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
-export interface AgentWorkloadDistribution {
-  agentPersona: string;
-  totalActivity: number;
-  peakHour: number;
-  quietHour: number | null;
-  burstScore: number;
-  workPattern: 'burst' | 'steady' | 'mixed';
-  hourlyBuckets: number[];
+export interface AgentWorkloadMetrics {
+  personaId: string;
+  totalSessions: number;
+  totalTickets: number;
+  workloadShare: number;
+  overloadRisk: 'critical' | 'high' | 'moderate' | 'low';
 }
 
-export interface WorkloadDistributionReport {
+export interface AgentWorkloadDistributionReport {
   projectId: string;
-  analyzedAt: string;
-  agents: AgentWorkloadDistribution[];
-  summary: {
-    totalAgents: number;
-    peakSystemHour: number;
-    burstiestAgent: string | null;
-    steadiestAgent: string | null;
-  };
+  agents: AgentWorkloadMetrics[];
+  totalProjectTickets: number;
+  mostLoadedAgent: string | null;
+  leastLoadedAgent: string | null;
+  workloadGiniCoefficient: number;
   aiSummary: string;
+  aiRecommendations: string[];
 }
 
-const FALLBACK_SUMMARY = 'No significant workload distribution patterns detected.';
+export const FALLBACK_SUMMARY = 'Workload distribution analysis complete.';
+export const FALLBACK_RECOMMENDATIONS = ['Balance workload more evenly across agents.'];
 
-function buildAgentDistribution(agentPersona: string, hourlyBuckets: number[]): AgentWorkloadDistribution {
-  const totalActivity = hourlyBuckets.reduce((s, v) => s + v, 0);
-  const activeHours = hourlyBuckets.filter((v) => v > 0);
-  const peakHour = hourlyBuckets.indexOf(Math.max(...hourlyBuckets));
+export type TicketRow = {
+  id: string;
+  assignedPersona: string | null;
+};
 
-  let quietHour: number | null = null;
-  if (activeHours.length > 0) {
-    const minActive = Math.min(...activeHours);
-    quietHour = hourlyBuckets.indexOf(minActive);
+export type SessionRow = {
+  ticketId: string | null;
+  personaType: string;
+};
+
+export function computeOverloadRisk(workloadShare: number): AgentWorkloadMetrics['overloadRisk'] {
+  if (workloadShare >= 60) return 'critical';
+  if (workloadShare >= 40) return 'high';
+  if (workloadShare >= 25) return 'moderate';
+  return 'low';
+}
+
+export function computeGiniCoefficient(shares: number[]): number {
+  const n = shares.length;
+  if (n <= 1) return 0;
+
+  const sorted = [...shares].sort((a, b) => a - b);
+  const sum = sorted.reduce((s, x) => s + x, 0);
+  if (sum === 0) return 0;
+
+  let weightedSum = 0;
+  for (let i = 0; i < n; i++) {
+    weightedSum += (i + 1) * sorted[i];
   }
 
-  const avgActiveHour = activeHours.length > 0 ? activeHours.reduce((s, v) => s + v, 0) / activeHours.length : 0;
-  const maxHour = activeHours.length > 0 ? Math.max(...activeHours) : 0;
-  const burstScore = avgActiveHour > 0 ? Math.round((maxHour / avgActiveHour) * 100) / 100 : 1.0;
-
-  let workPattern: 'burst' | 'steady' | 'mixed';
-  if (burstScore > 3.0) workPattern = 'burst';
-  else if (burstScore <= 1.5) workPattern = 'steady';
-  else workPattern = 'mixed';
-
-  return { agentPersona, totalActivity, peakHour, quietHour, burstScore, workPattern, hourlyBuckets };
+  const gini = (2 * weightedSum) / (n * sum) - (n + 1) / n;
+  return Math.max(0, Math.min(1, Math.round(gini * 1000) / 1000));
 }
 
-export async function analyzeWorkloadDistribution(projectId: string): Promise<WorkloadDistributionReport> {
-  const now = new Date();
+export function buildWorkloadProfiles(
+  ticketRows: TicketRow[],
+  sessionRows: SessionRow[],
+): AgentWorkloadMetrics[] {
+  const agentSet = new Set<string>();
+  for (const t of ticketRows) {
+    if (t.assignedPersona) agentSet.add(t.assignedPersona);
+  }
+  for (const s of sessionRows) {
+    agentSet.add(s.personaType);
+  }
 
-  const projectTickets = await db
+  const totalProjectTickets = ticketRows.filter((t) => t.assignedPersona !== null).length;
+
+  const profiles: AgentWorkloadMetrics[] = [];
+
+  for (const personaId of agentSet) {
+    const totalTickets = ticketRows.filter((t) => t.assignedPersona === personaId).length;
+    const totalSessions = sessionRows.filter((s) => s.personaType === personaId).length;
+    const workloadShare =
+      totalProjectTickets > 0 ? Math.round((totalTickets / totalProjectTickets) * 10000) / 100 : 0;
+
+    profiles.push({
+      personaId,
+      totalSessions,
+      totalTickets,
+      workloadShare,
+      overloadRisk: computeOverloadRisk(workloadShare),
+    });
+  }
+
+  profiles.sort((a, b) => b.workloadShare - a.workloadShare);
+  return profiles;
+}
+
+export async function analyzeAgentWorkloadDistribution(
+  projectId: string,
+): Promise<AgentWorkloadDistributionReport> {
+  const projectTickets: TicketRow[] = await db
     .select({
+      id: tickets.id,
       assignedPersona: tickets.assignedPersona,
-      updatedAt: tickets.updatedAt,
     })
     .from(tickets)
-    .where(and(eq(tickets.projectId, projectId), isNotNull(tickets.assignedPersona)));
+    .where(eq(tickets.projectId, projectId));
 
-  const notes = await db
-    .select({
-      authorId: ticketNotes.authorId,
-      authorType: ticketNotes.authorType,
-      handoffFrom: ticketNotes.handoffFrom,
-      createdAt: ticketNotes.createdAt,
-      ticketId: ticketNotes.ticketId,
-    })
-    .from(ticketNotes)
-    .innerJoin(tickets, eq(ticketNotes.ticketId, tickets.id))
-    .where(
-      and(
-        eq(tickets.projectId, projectId),
-        or(eq(ticketNotes.authorType, 'agent'), isNotNull(ticketNotes.handoffFrom)),
-      ),
-    );
+  const ticketIds = projectTickets.map((t) => t.id);
+  let allSessions: SessionRow[] = [];
 
-  if (projectTickets.length === 0 && notes.length === 0) {
-    return {
-      projectId,
-      analyzedAt: now.toISOString(),
-      agents: [],
-      summary: { totalAgents: 0, peakSystemHour: 0, burstiestAgent: null, steadiestAgent: null },
-      aiSummary: FALLBACK_SUMMARY,
-    };
+  if (ticketIds.length > 0) {
+    allSessions = await db
+      .select({
+        ticketId: agentSessions.ticketId,
+        personaType: agentSessions.personaType,
+      })
+      .from(agentSessions)
+      .where(inArray(agentSessions.ticketId, ticketIds));
   }
 
-  const agentHours = new Map<string, number[]>();
+  const agents = buildWorkloadProfiles(projectTickets, allSessions);
+  const totalProjectTickets = projectTickets.filter((t) => t.assignedPersona !== null).length;
 
-  const getOrInit = (persona: string) => {
-    if (!agentHours.has(persona)) agentHours.set(persona, new Array(24).fill(0));
-    return agentHours.get(persona)!;
-  };
+  const mostLoadedAgent = agents.length > 0 ? agents[0].personaId : null;
+  const leastLoadedAgent = agents.length > 1 ? agents[agents.length - 1].personaId : null;
 
-  for (const t of projectTickets) {
-    const persona = t.assignedPersona!;
-    const hour = new Date(t.updatedAt).getUTCHours();
-    getOrInit(persona)[hour]++;
-  }
-
-  for (const n of notes) {
-    const persona = n.authorId;
-    const hour = new Date(n.createdAt).getUTCHours();
-    getOrInit(persona)[hour]++;
-  }
-
-  const agents = Array.from(agentHours.entries())
-    .map(([persona, buckets]) => buildAgentDistribution(persona, buckets))
-    .filter((a) => a.totalActivity > 0)
-    .sort((a, b) => b.totalActivity - a.totalActivity);
-
-  // System-wide peak hour
-  const systemHours = new Array(24).fill(0);
-  for (const [, buckets] of agentHours) {
-    for (let h = 0; h < 24; h++) systemHours[h] += buckets[h];
-  }
-  const peakSystemHour = systemHours.indexOf(Math.max(...systemHours));
-
-  const burstiestAgent = agents.length > 0
-    ? agents.reduce((a, b) => (b.burstScore > a.burstScore ? b : a)).agentPersona
-    : null;
-  const steadiestAgent = agents.length > 0
-    ? agents.reduce((a, b) => (b.burstScore < a.burstScore ? b : a)).agentPersona
-    : null;
+  const workloadGiniCoefficient = computeGiniCoefficient(agents.map((a) => a.workloadShare));
 
   let aiSummary = FALLBACK_SUMMARY;
+  let aiRecommendations = FALLBACK_RECOMMENDATIONS;
+
   try {
     const client = new Anthropic({
       apiKey: process.env.OPENROUTER_API_KEY,
       baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
     });
-    const agentLines = agents
-      .slice(0, 5)
-      .map((a) => `${a.agentPersona}: total=${a.totalActivity}, peakHour=${a.peakHour}, pattern=${a.workPattern}, burstScore=${a.burstScore}`)
+
+    const summary = agents
+      .map(
+        (a) =>
+          `${a.personaId}: share=${a.workloadShare}%, tickets=${a.totalTickets}, risk=${a.overloadRisk}`,
+      )
       .join('\n');
-    const prompt = `Analyze agent workload distribution patterns. Focus on: which agents show bursty vs steady activity, whether peak hours are aligned or spread across the team, potential scheduling inefficiencies, recommendations for more even workload distribution.\n\nAgents:\n${agentLines}\n\nSystem peak hour: ${peakSystemHour}`;
+
+    const prompt = `Analyze this AI agent workload distribution data:\n${summary}\n\nGini coefficient: ${workloadGiniCoefficient}\n\nReturn JSON with:\n- summary: one paragraph describing workload balance\n- recommendations: array of 2-3 actionable recommendations\n\nRespond ONLY with valid JSON.`;
+
     const response = await client.messages.create({
       model: process.env.AI_MODEL || 'qwen/qwen3-6b',
-      max_tokens: 400,
+      max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });
-    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    if (text) aiSummary = text;
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.summary) aiSummary = parsed.summary;
+        if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
+          aiRecommendations = parsed.recommendations;
+        }
+      } catch {
+        aiSummary = raw;
+      }
+    }
   } catch (e) {
-    console.warn('Workload distribution AI summary failed, using fallback:', e);
+    console.warn('Workload distribution AI analysis failed, using fallback:', e);
   }
 
   return {
     projectId,
-    analyzedAt: now.toISOString(),
     agents,
-    summary: { totalAgents: agents.length, peakSystemHour, burstiestAgent, steadiestAgent },
+    totalProjectTickets,
+    mostLoadedAgent,
+    leastLoadedAgent,
+    workloadGiniCoefficient,
     aiSummary,
+    aiRecommendations,
   };
 }

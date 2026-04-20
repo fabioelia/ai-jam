@@ -3635,3 +3635,87 @@ export function useAgentFeedbackIncorporation(projectId: string) {
   return { analyze, loading, result, setResult };
 }
 
+// FEAT-091: Agent Throughput Rate
+export interface AgentThroughputData {
+  personaId: string;
+  totalSessions: number;
+  ticketsClosed: number;
+  ticketsPerSession: number;
+  ticketsPerDay: number;
+  peakDay: string | null;
+  throughputTier: 'high' | 'moderate' | 'low' | 'idle';
+}
+
+export interface AgentThroughputRateReport {
+  projectId: string;
+  agents: AgentThroughputData[];
+  highestThroughputAgent: string | null;
+  idleAgents: number;
+  avgTicketsPerDay: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentThroughputRate(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentThroughputRateReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentThroughputRateReport>(
+        `/projects/${projectId}/agent-throughput-rate`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-092: Agent Success Rate
+export interface AgentSuccessRateData {
+  personaId: string;
+  reliabilityTier: 'reliable' | 'adequate' | 'concerning' | 'critical';
+  successRate: number;
+  totalSessions: number;
+  successfulSessions: number;
+  failedSessions: number;
+  abandonedSessions: number;
+  avgDurationMinutes: number;
+}
+
+export interface AgentSuccessRateReport {
+  projectId: string;
+  agents: AgentSuccessRateData[];
+  projectSuccessRate: number;
+  mostReliableAgent: string | null;
+  mostFragileAgent: string | null;
+  criticalAgentsCount: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentSuccessRate(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSuccessRateReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentSuccessRateReport>(
+        `/projects/${projectId}/agent-success-rate`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
