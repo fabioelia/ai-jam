@@ -40,10 +40,10 @@ describe('analyzeAgentErrorRates', () => {
     mockDb([makeTicket('t1', null, 'done')]);
     const result = await analyzeAgentErrorRates('proj-1');
     expect(result.agents).toHaveLength(0);
-    expect(result.summary.totalAgents).toBe(0);
-    expect(result.summary.avgErrorRate).toBe(0);
-    expect(result.summary.highRiskAgents).toBe(0);
-    expect(result.summary.mostReliableAgent).toBeNull();
+    expect(result.criticalCount).toBe(0);
+    expect(result.avgReliabilityScore).toBe(0);
+    expect(result.mostReliableAgent).toBeNull();
+    expect(result.leastReliableAgent).toBeNull();
   });
 
   it('errorRate=0 and reliabilityScore=100 when no failed tickets', async () => {
@@ -99,8 +99,7 @@ describe('analyzeAgentErrorRates', () => {
     ]);
     const result = await analyzeAgentErrorRates('proj-1');
     const charlie = result.agents.find(a => a.agentPersona === 'charlie');
-    expect(charlie!.severity).toBe('critical');
-    expect(charlie!.recommendedAction).toBe('Immediate investigation required — very high error rate');
+    expect(charlie!.classification).toBe('critical');
   });
 
   it('classifies low when errorRate < 0.05', async () => {
@@ -112,11 +111,10 @@ describe('analyzeAgentErrorRates', () => {
     ]);
     const result = await analyzeAgentErrorRates('proj-1');
     const dave = result.agents.find(a => a.agentPersona === 'dave');
-    expect(dave!.severity).toBe('low');
-    expect(dave!.recommendedAction).toBe('Performing within acceptable bounds');
+    expect(dave!.classification).toBe('low');
   });
 
-  it('boundary: errorRate exactly 0.15 → severity should be high', async () => {
+  it('boundary: errorRate exactly 0.15 → classification should be high', async () => {
     // 3 failed out of 20 = 0.15
     const tickets = [];
     for (let i = 0; i < 3; i++) tickets.push(makeTicket(`f${i}`, 'eve', 'review'));
@@ -126,8 +124,7 @@ describe('analyzeAgentErrorRates', () => {
     const eve = result.agents.find(a => a.agentPersona === 'eve');
     expect(eve).toBeDefined();
     expect(eve!.errorRate).toBe(0.15);
-    expect(eve!.severity).toBe('high');
-    expect(eve!.recommendedAction).toBe('Review recent failures and identify patterns');
+    expect(eve!.classification).toBe('high');
   });
 
   it('sorts by errorRate desc then totalTasks desc', async () => {
@@ -150,6 +147,6 @@ describe('analyzeAgentErrorRates', () => {
     mockDb([makeTicket('t1', 'alice', 'done')]);
     const result = await analyzeAgentErrorRates('proj-1');
     expect(result.aiSummary).toBe('Review agent error patterns to identify reliability issues and improve task completion rates.');
-    expect(result.summary.totalAgents).toBe(1);
+    expect(result.agents).toHaveLength(1);
   });
 });

@@ -11,21 +11,19 @@ export interface AgentErrorMetrics {
   errorRate: number;
   retryRate: number;
   reliabilityScore: number;
-  severity: 'critical' | 'high' | 'moderate' | 'low';
-  recommendedAction: string;
+  classification: 'critical' | 'high' | 'moderate' | 'low';
 }
 
 export interface AgentErrorRateReport {
   projectId: string;
   analyzedAt: string;
   agents: AgentErrorMetrics[];
-  summary: {
-    totalAgents: number;
-    avgErrorRate: number;
-    highRiskAgents: number;
-    mostReliableAgent: string | null;
-  };
+  criticalCount: number;
+  avgReliabilityScore: number;
+  mostReliableAgent: string | null;
+  leastReliableAgent: string | null;
   aiSummary: string;
+  recommendations: string[];
 }
 
 const FALLBACK_SUMMARY = 'Review agent error patterns to identify reliability issues and improve task completion rates.';
@@ -45,14 +43,6 @@ function classify(errorRate: number): 'critical' | 'high' | 'moderate' | 'low' {
   return 'low';
 }
 
-function getRecommendedAction(severity: 'critical' | 'high' | 'moderate' | 'low'): string {
-  switch (severity) {
-    case 'critical': return 'Immediate investigation required — very high error rate';
-    case 'high': return 'Review recent failures and identify patterns';
-    case 'moderate': return 'Monitor closely and investigate recurring errors';
-    case 'low': return 'Performing within acceptable bounds';
-  }
-}
 
 export async function analyzeAgentErrorRates(projectId: string): Promise<AgentErrorRateReport> {
   const now = new Date();
@@ -73,13 +63,12 @@ export async function analyzeAgentErrorRates(projectId: string): Promise<AgentEr
       projectId,
       analyzedAt: now.toISOString(),
       agents: [],
-      summary: {
-        totalAgents: 0,
-        avgErrorRate: 0,
-        highRiskAgents: 0,
-        mostReliableAgent: null,
-      },
+      criticalCount: 0,
+      avgReliabilityScore: 0,
+      mostReliableAgent: null,
+      leastReliableAgent: null,
       aiSummary: FALLBACK_SUMMARY,
+      recommendations: [],
     };
   }
 
@@ -107,7 +96,6 @@ export async function analyzeAgentErrorRates(projectId: string): Promise<AgentEr
     const errorRate = data.failed / Math.max(1, data.total);
     const retryRate = data.retried / Math.max(1, data.total);
     const reliabilityScore = Math.max(0, 100 - (errorRate * 60 + retryRate * 40));
-    const severity = classify(errorRate);
     rawAgents.push({
       agentPersona: persona,
       totalTasks: data.total,
@@ -116,8 +104,7 @@ export async function analyzeAgentErrorRates(projectId: string): Promise<AgentEr
       errorRate: Math.round(errorRate * 1000) / 1000,
       retryRate: Math.round(retryRate * 1000) / 1000,
       reliabilityScore: Math.round(reliabilityScore * 10) / 10,
-      severity,
-      recommendedAction: getRecommendedAction(severity),
+      classification: classify(errorRate),
     });
   }
 
@@ -127,11 +114,16 @@ export async function analyzeAgentErrorRates(projectId: string): Promise<AgentEr
     return b.totalTasks - a.totalTasks;
   });
 
-  const avgErrorRate = rawAgents.length > 0
-    ? Math.round(rawAgents.reduce((s, a) => s + a.errorRate, 0) / rawAgents.length * 1000) / 1000
+  const criticalCount = rawAgents.filter(a => a.classification === 'critical').length;
+  const avgReliabilityScore = rawAgents.length > 0
+    ? Math.round(rawAgents.reduce((s, a) => s + a.reliabilityScore, 0) / rawAgents.length * 10) / 10
     : 0;
-  const highRiskAgents = rawAgents.filter(a => a.errorRate >= 0.15).length;
-  const mostReliableAgent = rawAgents.length > 0 ? rawAgents[rawAgents.length - 1].agentPersona : null;
+  const sorted = [...rawAgents].sort((a, b) => b.reliabilityScore - a.reliabilityScore);
+  const mostReliableAgent = sorted.length > 0 ? sorted[0].agentPersona : null;
+  const leastReliableAgent = sorted.length > 1 ? sorted[sorted.length - 1].agentPersona : null;
+  const recommendations: string[] = rawAgents
+    .filter(a => a.classification === 'critical' || a.classification === 'high')
+    .map(a => `${a.agentPersona}: ${a.classification} error rate (${(a.errorRate * 100).toFixed(0)}%) — review recent failures`);
 
   const client = new Anthropic({
     apiKey: process.env.OPENROUTER_API_KEY,
@@ -145,7 +137,7 @@ export async function analyzeAgentErrorRates(projectId: string): Promise<AgentEr
       agent: a.agentPersona,
       errorRate: a.errorRate,
       reliabilityScore: a.reliabilityScore,
-      severity: a.severity,
+      classification: a.classification,
     })));
     const response = await client.messages.create({
       model: process.env.AI_MODEL || 'qwen/qwen3-6b',
@@ -166,12 +158,11 @@ export async function analyzeAgentErrorRates(projectId: string): Promise<AgentEr
     projectId,
     analyzedAt: now.toISOString(),
     agents: rawAgents,
-    summary: {
-      totalAgents: rawAgents.length,
-      avgErrorRate,
-      highRiskAgents,
-      mostReliableAgent,
-    },
+    criticalCount,
+    avgReliabilityScore,
+    mostReliableAgent,
+    leastReliableAgent,
     aiSummary,
+    recommendations,
   };
 }
