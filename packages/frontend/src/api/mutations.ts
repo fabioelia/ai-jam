@@ -4261,7 +4261,7 @@ export interface AgentSelfCorrectionMetrics {
   agentName: string;
   totalRevisions: number;
   selfDetectedErrors: number;
-  externalDetectedErrors: number;
+  externallyDetectedErrors: number;
   correctionRate: number;
   correctionScore: number;
   correctionTier: 'excellent' | 'good' | 'improving' | 'struggling';
@@ -4270,16 +4270,11 @@ export interface AgentSelfCorrectionMetrics {
 export interface AgentSelfCorrectionReport {
   projectId: string;
   generatedAt: string;
-  summary: {
-    totalAgents: number;
-    avgCorrectionRate: number;
-    topSelfCorrector: string | null;
-    mostErrorProne: string | null;
-    totalCorrections: number;
-  };
   agents: AgentSelfCorrectionMetrics[];
-  aiSummary: string;
-  recommendations: string[];
+  projectAvgCorrectionRate: number;
+  topSelfCorrector: string | null;
+  mostErrorProne: string | null;
+  totalCorrections: number;
 }
 
 export function useAgentSelfCorrectionRate(projectId: string) {

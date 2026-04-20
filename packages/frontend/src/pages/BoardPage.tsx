@@ -107,6 +107,7 @@ import AgentLearningVelocityModal from '../components/board/AgentLearningVelocit
 import AgentGoalCompletionModal from '../components/board/AgentGoalCompletionModal.js';
 import AgentDecisionQualityV2Modal from '../components/board/AgentDecisionQualityV2Modal.js';
 import AgentCommunicationPatternModal from '../components/board/AgentCommunicationPatternModal.js';
+import AgentSelfCorrectionRateModal from '../components/board/AgentSelfCorrectionRateModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -2520,6 +2521,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Self-Correction Rate Button */}
+        <button
+          onClick={async () => {
+            setShowAgentSelfCorrectionRate(true);
+            try {
+              await agentSelfCorrectionRate.analyze();
+            } catch (error) {
+              toast.error(`Self-correction analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentSelfCorrectionRate.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+        >
+          {agentSelfCorrectionRate.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Self-Correction</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -3204,6 +3225,9 @@ export default function BoardPage() {
       )}
       {showAgentCommunicationPatterns && (
         <AgentCommunicationPatternModal result={agentCommunicationPatterns.result} isOpen={showAgentCommunicationPatterns} loading={agentCommunicationPatterns.loading} onClose={() => { agentCommunicationPatterns.setResult(null); setShowAgentCommunicationPatterns(false); }} />
+      )}
+      {showAgentSelfCorrectionRate && (
+        <AgentSelfCorrectionRateModal result={agentSelfCorrectionRate.result} isOpen={showAgentSelfCorrectionRate} loading={agentSelfCorrectionRate.loading} onClose={() => { agentSelfCorrectionRate.setResult(null); setShowAgentSelfCorrectionRate(false); }} />
       )}
     </div>
   );
