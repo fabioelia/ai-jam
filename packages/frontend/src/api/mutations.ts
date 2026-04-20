@@ -1159,6 +1159,41 @@ export function useAgentBurnout() {
   return { detect, loading, result, setResult };
 }
 
+export interface PriorityGap {
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  openTickets: number;
+  unassignedCount: number;
+  assignedAgents: string[];
+  gapSeverity: 'critical' | 'moderate' | 'none';
+}
+
+export interface KnowledgeGapReport {
+  projectId: string;
+  gaps: PriorityGap[];
+  topGap: string | null;
+  insight: string;
+  analyzedAt: string;
+}
+
+export function useAgentKnowledgeGaps() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<KnowledgeGapReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<KnowledgeGapReport>(`/projects/${projectId}/agent-knowledge-gaps`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);

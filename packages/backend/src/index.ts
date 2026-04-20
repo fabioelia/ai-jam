@@ -39,6 +39,7 @@ import { agentRoutingRoutes } from './routes/agent-routing.js';
 import { escalationDetectorRoutes } from './routes/escalation-detector.js';
 import { agentBurnoutRoutes } from './routes/agent-burnout.js';
 import { agentSkillProfilerRoutes } from './routes/agent-skill-profiler.js';
+import { agentKnowledgeGapRoutes } from './routes/agent-knowledge-gap.js';
 import { agentCollaborationRoutes } from './routes/agent-collaboration.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
@@ -113,6 +114,7 @@ async function main() {
   await fastify.register(escalationDetectorRoutes);
   await fastify.register(agentBurnoutRoutes);
   await fastify.register(agentSkillProfilerRoutes);
+  await fastify.register(agentKnowledgeGapRoutes);
   await fastify.register(agentCollaborationRoutes);
 
   // Health check
