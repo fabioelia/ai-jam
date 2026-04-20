@@ -79,6 +79,7 @@ import { agentCommunicationQualityRoutes } from './routes/agent-communication-qu
 import { agentTaskAbandonmentRoutes } from './routes/agent-task-abandonment.js';
 import { agentWorkloadDistributionRoutes } from './routes/agent-workload-distribution.js';
 import { agentTaskComplexityRoutes } from './routes/agent-task-complexity.js';
+import { agentSessionDepthRoutes } from './routes/agent-session-depth.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -192,6 +193,7 @@ async function main() {
   await fastify.register(agentTaskAbandonmentRoutes);
   await fastify.register(agentWorkloadDistributionRoutes);
   await fastify.register(agentTaskComplexityRoutes);
+  await fastify.register(agentSessionDepthRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
