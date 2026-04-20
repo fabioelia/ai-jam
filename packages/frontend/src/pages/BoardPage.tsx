@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatternAnalyzer } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatternAnalyzer, useAgentGoalAlignment } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -61,6 +61,7 @@ import AgentThroughputEfficiencyModal from '../components/board/AgentThroughputE
 import AgentWorkloadFairnessModal from '../components/board/AgentWorkloadFairnessModal.js';
 import AgentErrorRateModal from '../components/board/AgentErrorRateModal.js';
 import AgentEscalationPatternModal from '../components/board/AgentEscalationPatternModal.js';
+import AgentGoalAlignmentModal from '../components/board/AgentGoalAlignmentModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -263,6 +264,8 @@ export default function BoardPage() {
   const [showAgentErrorRates, setShowAgentErrorRates] = useState(false);
   const agentEscalationPattern = useAgentEscalationPatternAnalyzer();
   const [showAgentEscalationPattern, setShowAgentEscalationPattern] = useState(false);
+  const agentGoalAlignment = useAgentGoalAlignment();
+  const [showAgentGoalAlignment, setShowAgentGoalAlignment] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1428,6 +1431,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Goal Alignment Button */}
+        <button
+          onClick={async () => {
+            setShowAgentGoalAlignment(true);
+            try {
+              await agentGoalAlignment.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Goal alignment analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentGoalAlignment.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-cyan-600 hover:bg-cyan-700 text-white disabled:opacity-50"
+        >
+          {agentGoalAlignment.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Goal Alignment</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1966,6 +1989,10 @@ export default function BoardPage() {
 
       {showAgentEscalationPattern && (
         <AgentEscalationPatternModal result={agentEscalationPattern.result} isOpen={showAgentEscalationPattern} loading={agentEscalationPattern.loading} onClose={() => { agentEscalationPattern.setResult(null); setShowAgentEscalationPattern(false); }} />
+      )}
+
+      {showAgentGoalAlignment && (
+        <AgentGoalAlignmentModal result={agentGoalAlignment.result} isOpen={showAgentGoalAlignment} loading={agentGoalAlignment.loading} onClose={() => { agentGoalAlignment.setResult(null); setShowAgentGoalAlignment(false); }} />
       )}
     </div>
   );

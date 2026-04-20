@@ -68,6 +68,7 @@ import { agentThroughputEfficiencyRoutes } from './routes/agent-throughput-effic
 import { agentWorkloadFairnessRoutes } from './routes/agent-workload-fairness.js';
 import { agentErrorRatesRoutes } from './routes/agent-error-rates.js';
 import { agentEscalationPatternRoutes } from './routes/agent-escalation-pattern.js';
+import { agentGoalAlignmentRoutes } from './routes/agent-goal-alignment.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -170,6 +171,7 @@ async function main() {
   await fastify.register(agentWorkloadFairnessRoutes);
   await fastify.register(agentErrorRatesRoutes);
   await fastify.register(agentEscalationPatternRoutes);
+  await fastify.register(agentGoalAlignmentRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

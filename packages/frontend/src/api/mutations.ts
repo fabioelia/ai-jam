@@ -2343,3 +2343,46 @@ export function useAgentEscalationPatternAnalyzer() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentGoalAlignment {
+  agentPersona: string;
+  tasksCompleted: number;
+  tasksInScope: number;
+  tasksOutOfScope: number;
+  alignmentScore: number;
+  driftRate: number;
+  classification: 'aligned' | 'partial' | 'drifted';
+}
+
+export interface GoalAlignmentReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentGoalAlignment[];
+  summary: {
+    totalAgents: number;
+    avgAlignmentScore: number;
+    driftedAgents: number;
+    mostAlignedAgent: string | null;
+  };
+  aiSummary: string;
+}
+
+export function useAgentGoalAlignment() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<GoalAlignmentReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<GoalAlignmentReport>(
+        `/projects/${projectId}/agent-goal-alignment`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
