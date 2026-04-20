@@ -2028,6 +2028,45 @@ export interface AgentDependencyMapReport {
   aiSummary: string;
 }
 
+export interface AgentContextProfile {
+  agentPersona: string;
+  totalTickets: number;
+  ticketsWithDescription: number;
+  ticketsWithLinkedHandoffs: number;
+  avgDescriptionLength: number;
+  contextScore: number;
+  contextRating: 'excellent' | 'good' | 'poor' | 'critical';
+  recommendation: string;
+}
+
+export interface ContextUtilizationReport {
+  projectId: string;
+  analyzedAt: string;
+  profiles: AgentContextProfile[];
+  summary: string;
+  criticalAgents: string[];
+}
+
+export function useAgentContextUtilization() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ContextUtilizationReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<ContextUtilizationReport>(
+        `/projects/${projectId}/agent-context-utilization`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useAgentDependencyMapper() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AgentDependencyMapReport | null>(null);
