@@ -2600,18 +2600,32 @@ export function useAgentEstimationAccuracy() {
   return { analyze, loading, result, setResult };
 }
 
-export interface AgentOutputQualityScore {
+export interface AgentOutputQualityAgent {
   personaId: string;
-  handoffAcceptanceRate: number;
-  ticketCompletionRate: number;
+  qualityScore: number;
+  acceptanceRate: number;
   reworkRate: number;
-  sessionSuccessRate: number;
-  overallQualityScore: number;
+  completenessScore: number;
+  formattingComplianceRate: number;
+  totalOutputs: number;
+  acceptedOutputs: number;
+  reworkedOutputs: number;
   qualityTier: 'excellent' | 'good' | 'fair' | 'poor';
 }
 
+export interface AgentOutputQualityReport {
+  agents: AgentOutputQualityAgent[];
+  avgQualityScore: number;
+  highestQuality: string | null;
+  lowestQuality: string | null;
+  mostReworked: string | null;
+  systemAcceptanceRate: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
 export const getAgentOutputQuality = (projectId: string) =>
-  fetch(`/api/agent-output-quality/${projectId}`).then((r) => r.json());
+  fetch(`/api/projects/${projectId}/agent-output-quality`, { method: 'POST' }).then((r) => r.json());
 
 export interface AgentCommunicationProfile {
   agentPersona: string;
@@ -3795,6 +3809,193 @@ export function useAgentDeadlineAdherence(projectId: string) {
     try {
       const r = await apiFetch<AgentDeadlineAdherenceReport>(
         `/projects/${projectId}/agent-deadline-adherence`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-099: Agent Session Duration
+export interface AgentDurationData {
+  personaId: string;
+  totalSessions: number;
+  avgDurationMinutes: number;
+  minDurationMinutes: number;
+  maxDurationMinutes: number;
+  completedSessions: number;
+  microSessionCount: number;
+  longSessionCount: number;
+  outputPerMinute: number;
+  durationScore: number;
+  durationTier: 'efficient' | 'optimal' | 'extended' | 'excessive';
+}
+
+export interface AgentSessionDurationReport {
+  projectId: string;
+  agents: AgentDurationData[];
+  mostEfficientAgent: string | null;
+  longestRunningAgent: string | null;
+  shortestRunningAgent: string | null;
+  avgProjectSessionMinutes: number;
+  totalProjectSessionMinutes: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentSessionDuration(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSessionDurationReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentSessionDurationReport>(
+        `/projects/${projectId}/agent-session-duration`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-100: Agent Retry Pattern
+export interface AgentRetryMetrics {
+  personaId: string;
+  totalSessions: number;
+  totalRetries: number;
+  avgRetriesPerSession: number;
+  zeroRetryRate: number;
+  retrySuccessRate: number;
+  maxRetriesInSession: number;
+  retryScore: number;
+  retryTier: 'efficient' | 'moderate' | 'frequent' | 'chronic';
+}
+
+export interface AgentRetryPatternReport {
+  agents: AgentRetryMetrics[];
+  avgRetriesPerSession: number;
+  mostEfficientAgent: string | null;
+  highestRetryAgent: string | null;
+  totalRetriesAcrossAllAgents: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentRetryPattern(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentRetryPatternReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentRetryPatternReport>(
+        `/projects/${projectId}/agent-retry-pattern`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-101: Agent Tool Usage Pattern
+export interface AgentToolUsageMetrics {
+  personaId: string;
+  totalToolCalls: number;
+  uniqueToolsUsed: number;
+  mostUsedTool: string;
+  toolDiversity: number;
+  avgToolCallsPerSession: number;
+  repeatedToolPattern: boolean;
+  usagePattern: 'diverse' | 'focused' | 'minimal' | 'none';
+}
+
+export interface AgentToolUsagePatternReport {
+  projectId: number;
+  generatedAt: string;
+  agents: AgentToolUsageMetrics[];
+  systemTotalToolCalls: number;
+  mostUsedToolSystem: string;
+  avgDiversityScore: number;
+  diverseAgents: number;
+  focusedAgents: number;
+  aiSummary: string;
+  recommendations: string[];
+}
+
+export function useAgentToolUsagePattern(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentToolUsagePatternReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentToolUsagePatternReport>(
+        `/projects/${projectId}/agent-tool-usage-pattern`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-103: Agent Priority Adherence
+export interface AgentPriorityAdherenceMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  highPriorityTasks: number;
+  mediumPriorityTasks: number;
+  lowPriorityTasks: number;
+  priorityInversions: number;
+  correctPrioritySequences: number;
+  adherenceRate: number;
+  avgEscalationResponseTime: number;
+  adherenceScore: number;
+  adherenceTier: 'disciplined' | 'consistent' | 'drifting' | 'chaotic';
+}
+
+export interface AgentPriorityAdherenceReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalTasks: number;
+    overallAdherenceRate: number;
+    mostDisciplined: string;
+    mostChaotic: string;
+    disciplinedAgents: number;
+  };
+  agents: AgentPriorityAdherenceMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentPriorityAdherence(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentPriorityAdherenceReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentPriorityAdherenceReport>(
+        `/projects/${projectId}/agent-priority-adherence`,
         { method: 'POST' },
       );
       setResult(r);

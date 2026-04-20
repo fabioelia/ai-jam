@@ -103,6 +103,11 @@ import { agentFeedbackIncorporationRoutes } from './routes/agent-feedback-incorp
 import { agentThroughputRateRoutes } from './routes/agent-throughput-rate.js';
 import { agentSuccessRateRoutes } from './routes/agent-success-rate.js';
 import { agentCostEfficiencyRoutes } from './routes/agent-cost-efficiency.js';
+import { agentDeadlineAdherenceRoutes } from './routes/agent-deadline-adherence.js';
+import { agentSessionDurationRoutes } from './routes/agent-session-duration.js';
+import { agentRetryPatternRoutes } from './routes/agent-retry-pattern.js';
+import { agentToolUsagePatternRoutes } from './routes/agent-tool-usage-pattern.js';
+import { agentPriorityAdherenceRoutes } from './routes/agent-priority-adherence-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -240,6 +245,11 @@ async function main() {
   await fastify.register(agentThroughputRateRoutes);
   await fastify.register(agentSuccessRateRoutes);
   await fastify.register(agentCostEfficiencyRoutes);
+  await fastify.register(agentDeadlineAdherenceRoutes);
+  await fastify.register(agentSessionDurationRoutes);
+  await fastify.register(agentRetryPatternRoutes);
+  await fastify.register(agentToolUsagePatternRoutes);
+  await fastify.register(agentPriorityAdherenceRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

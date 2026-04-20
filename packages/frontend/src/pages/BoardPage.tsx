@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, useAgentCostEfficiency, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, useAgentCostEfficiency, useAgentDeadlineAdherence, useAgentSessionDuration, useAgentRetryPattern, useAgentToolUsagePattern, useAgentPriorityAdherence, getAgentOutputQuality, AgentOutputQualityReport, getAgentLearningCurves, LearningCurveReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -98,6 +98,11 @@ import AgentMultitaskingEfficiencyModal from '../components/board/AgentMultitask
 import AgentResponseLatencyModal from '../components/board/AgentResponseLatencyModal.js';
 import AgentErrorRecoveryModal from '../components/board/AgentErrorRecoveryModal.js';
 import AgentSpecializationDriftModal from '../components/board/AgentSpecializationDriftModal.js';
+import AgentDeadlineAdherenceModal from '../components/board/AgentDeadlineAdherenceModal.js';
+import AgentSessionDurationModal from '../components/board/AgentSessionDurationModal.js';
+import AgentRetryPatternModal from '../components/board/AgentRetryPatternModal.js';
+import AgentToolUsagePatternModal from '../components/board/AgentToolUsagePatternModal.js';
+import AgentPriorityAdherenceModal from '../components/board/AgentPriorityAdherenceModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -318,7 +323,7 @@ export default function BoardPage() {
   const [showAgentCommunicationQuality, setShowAgentCommunicationQuality] = useState(false);
   const agentWorkloadDistribution = useAgentWorkloadDistribution();
   const [showAgentWorkloadDistribution, setShowAgentWorkloadDistribution] = useState(false);
-  const [agentOutputQualityScores, setAgentOutputQualityScores] = useState<AgentOutputQualityScore[] | null>(null);
+  const [agentOutputQualityScores, setAgentOutputQualityScores] = useState<AgentOutputQualityReport | null>(null);
   const [agentOutputQualityLoading, setAgentOutputQualityLoading] = useState(false);
   const [showAgentOutputQuality, setShowAgentOutputQuality] = useState(false);
   const agentTaskComplexity = useAgentTaskComplexity();
@@ -378,6 +383,16 @@ export default function BoardPage() {
   const [showAgentSuccessRate, setShowAgentSuccessRate] = useState(false);
   const agentCostEfficiency = useAgentCostEfficiency(projectId!);
   const [showAgentCostEfficiency, setShowAgentCostEfficiency] = useState(false);
+  const agentDeadlineAdherence = useAgentDeadlineAdherence(projectId!);
+  const [showAgentDeadlineAdherence, setShowAgentDeadlineAdherence] = useState(false);
+  const agentSessionDuration = useAgentSessionDuration(projectId!);
+  const [showAgentSessionDuration, setShowAgentSessionDuration] = useState(false);
+  const agentRetryPattern = useAgentRetryPattern(projectId!);
+  const [showAgentRetryPattern, setShowAgentRetryPattern] = useState(false);
+  const agentToolUsagePattern = useAgentToolUsagePattern(projectId!);
+  const [showAgentToolUsagePattern, setShowAgentToolUsagePattern] = useState(false);
+  const agentPriorityAdherence = useAgentPriorityAdherence(projectId!);
+  const [showAgentPriorityAdherence, setShowAgentPriorityAdherence] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -2121,7 +2136,7 @@ export default function BoardPage() {
             }
           }}
           disabled={agentOutputQualityLoading}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
         >
           {agentOutputQualityLoading ? (
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -2286,6 +2301,106 @@ export default function BoardPage() {
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           ) : (
             <>Cost Efficiency</>
+          )}
+        </button>
+
+        {/* Deadline Adherence Button */}
+        <button
+          onClick={async () => {
+            setShowAgentDeadlineAdherence(true);
+            try {
+              await agentDeadlineAdherence.analyze();
+            } catch (error) {
+              toast.error(`Deadline adherence analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentDeadlineAdherence.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+        >
+          {agentDeadlineAdherence.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Deadline Adherence</>
+          )}
+        </button>
+
+        {/* Session Duration Button */}
+        <button
+          onClick={async () => {
+            setShowAgentSessionDuration(true);
+            try {
+              await agentSessionDuration.analyze();
+            } catch (error) {
+              toast.error(`Session duration analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentSessionDuration.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+        >
+          {agentSessionDuration.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Session Duration</>
+          )}
+        </button>
+
+        {/* Retry Pattern Button */}
+        <button
+          onClick={async () => {
+            setShowAgentRetryPattern(true);
+            try {
+              await agentRetryPattern.analyze();
+            } catch (error) {
+              toast.error(`Retry pattern analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentRetryPattern.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+        >
+          {agentRetryPattern.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Retry Pattern</>
+          )}
+        </button>
+
+        {/* Tool Patterns Button */}
+        <button
+          onClick={async () => {
+            setShowAgentToolUsagePattern(true);
+            try {
+              await agentToolUsagePattern.analyze();
+            } catch (error) {
+              toast.error(`Tool usage pattern analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentToolUsagePattern.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+        >
+          {agentToolUsagePattern.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Tool Patterns</>
+          )}
+        </button>
+
+        {/* Priority Adherence Button */}
+        <button
+          onClick={async () => {
+            setShowAgentPriorityAdherence(true);
+            try {
+              await agentPriorityAdherence.analyze();
+            } catch (error) {
+              toast.error(`Priority adherence analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentPriorityAdherence.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+        >
+          {agentPriorityAdherence.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Priority Adherence</>
           )}
         </button>
 
@@ -2858,7 +2973,7 @@ export default function BoardPage() {
       )}
 
       {showAgentOutputQuality && (
-        <AgentOutputQualityModal scores={agentOutputQualityScores} isOpen={showAgentOutputQuality} loading={agentOutputQualityLoading} onClose={() => { setAgentOutputQualityScores(null); setShowAgentOutputQuality(false); }} />
+        <AgentOutputQualityModal report={agentOutputQualityScores} isOpen={showAgentOutputQuality} loading={agentOutputQualityLoading} onClose={() => { setAgentOutputQualityScores(null); setShowAgentOutputQuality(false); }} />
       )}
 
       {showAgentCommunicationQuality && (
@@ -2952,6 +3067,21 @@ export default function BoardPage() {
       )}
       {showAgentCostEfficiency && (
         <AgentCostEfficiencyModal result={agentCostEfficiency.result} isOpen={showAgentCostEfficiency} loading={agentCostEfficiency.loading} onClose={() => { agentCostEfficiency.setResult(null); setShowAgentCostEfficiency(false); }} />
+      )}
+      {showAgentDeadlineAdherence && (
+        <AgentDeadlineAdherenceModal result={agentDeadlineAdherence.result} isOpen={showAgentDeadlineAdherence} loading={agentDeadlineAdherence.loading} onClose={() => { agentDeadlineAdherence.setResult(null); setShowAgentDeadlineAdherence(false); }} />
+      )}
+      {showAgentSessionDuration && (
+        <AgentSessionDurationModal result={agentSessionDuration.result} isOpen={showAgentSessionDuration} loading={agentSessionDuration.loading} onClose={() => { agentSessionDuration.setResult(null); setShowAgentSessionDuration(false); }} />
+      )}
+      {showAgentRetryPattern && (
+        <AgentRetryPatternModal result={agentRetryPattern.result} isOpen={showAgentRetryPattern} loading={agentRetryPattern.loading} onClose={() => { agentRetryPattern.setResult(null); setShowAgentRetryPattern(false); }} />
+      )}
+      {showAgentToolUsagePattern && (
+        <AgentToolUsagePatternModal result={agentToolUsagePattern.result} isOpen={showAgentToolUsagePattern} loading={agentToolUsagePattern.loading} onClose={() => { agentToolUsagePattern.setResult(null); setShowAgentToolUsagePattern(false); }} />
+      )}
+      {showAgentPriorityAdherence && (
+        <AgentPriorityAdherenceModal result={agentPriorityAdherence.result} isOpen={showAgentPriorityAdherence} loading={agentPriorityAdherence.loading} onClose={() => { agentPriorityAdherence.setResult(null); setShowAgentPriorityAdherence(false); }} />
       )}
     </div>
   );
