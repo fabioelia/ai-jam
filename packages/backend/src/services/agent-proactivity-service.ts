@@ -1,5 +1,5 @@
 import { db } from '../db/connection.js';
-import { tickets, agentSessions, ticketNotes } from '../db/schema.js';
+import { tickets, agentSessions } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 
 export interface AgentProactivityMetrics {
@@ -31,58 +31,31 @@ export interface AgentProactivityReport {
   aiRecommendations?: string[];
 }
 
-/**
- * Compute a proactivity score (0-100) for an agent based on:
- * - ticketsCreated: tickets created by the agent (createdBy = personaType match is approximated from sessions)
- * - totalTasks: total tasks (sessions) the agent was involved with
- * - unpromptedNoteCount: notes/handoffs the agent added on their own
- * - blockerFlagCount: how many blockers they flagged
- * - suggestionCount: notes flagged as suggestions
- * - earlyWarningCount: early-warning style notes
- *
- * Higher ratios of self-initiated actions → higher score.
- */
 export function computeProactivityScore(
-  ticketsCreated: number,
-  totalTasks: number,
   unpromptedNoteCount: number,
   blockerFlagCount: number,
   suggestionCount: number,
+  totalTasks: number,
 ): number {
   if (totalTasks === 0) return 0;
-
-  // Initiation ratio (0–50 points): how often they create vs. just receive work
-  const initiationRatio = Math.min(ticketsCreated / Math.max(totalTasks, 1), 1);
-  const initiationPoints = initiationRatio * 50;
-
-  // Engagement bonus (0–30 points): unprompted notes + blocker flags + suggestions
-  const proactiveActions = unpromptedNoteCount + blockerFlagCount + suggestionCount;
-  const engagementPoints = Math.min((proactiveActions / Math.max(totalTasks, 1)) * 30, 30);
-
-  // Volume bonus (0–20 points): reward agents who do a lot
-  const volumePoints = Math.min((totalTasks / 10) * 20, 20);
-
-  const raw = initiationPoints + engagementPoints + volumePoints;
-  return Math.max(0, Math.min(100, Math.round(raw)));
+  const noteRate = Math.min(unpromptedNoteCount / totalTasks, 1) * 40;
+  const blockerRate = Math.min(blockerFlagCount / totalTasks, 1) * 35;
+  const suggestionRate = Math.min(suggestionCount / totalTasks, 1) * 25;
+  return Math.max(0, Math.min(100, Math.round(noteRate + blockerRate + suggestionRate)));
 }
 
-export function getProactivityTier(score: number): AgentProactivityMetrics['proactivityTier'] {
+export function computeProactivityTier(score: number): AgentProactivityMetrics['proactivityTier'] {
   if (score >= 75) return 'proactive';
   if (score >= 50) return 'engaged';
   if (score >= 25) return 'reactive';
   return 'passive';
 }
 
-export async function analyzeAgentProactivity(
-  projectId: string,
-): Promise<AgentProactivityReport> {
+export async function analyzeAgentProactivity(projectId: string): Promise<AgentProactivityReport> {
   const now = new Date().toISOString();
 
   const projectTickets = await db
-    .select({
-      id: tickets.id,
-      assignedPersona: tickets.assignedPersona,
-    })
+    .select({ id: tickets.id })
     .from(tickets)
     .where(eq(tickets.projectId, projectId));
 
@@ -100,33 +73,19 @@ export async function analyzeAgentProactivity(
         proactiveAgents: 0,
       },
       agents: [],
-      insights: ['No ticket data available for proactivity analysis.'],
-      recommendations: ['Collect agent activity data to enable proactivity analysis.'],
-      aiSummary: 'No ticket data available for proactivity analysis.',
-      aiRecommendations: ['Start creating tickets and running agent sessions to enable analysis.'],
+      insights: [],
+      recommendations: [],
     };
   }
 
-  // Fetch sessions
   const sessionRows = await db
     .select({
       personaType: agentSessions.personaType,
-      ticketId: agentSessions.ticketId,
+      status: agentSessions.status,
+      retryCount: agentSessions.retryCount,
     })
     .from(agentSessions)
     .where(inArray(agentSessions.ticketId, ticketIds));
-
-  // Fetch notes / handoffs created by agents
-  const noteRows = await db
-    .select({
-      authorId: ticketNotes.authorId,
-      authorType: ticketNotes.authorType,
-      handoffFrom: ticketNotes.handoffFrom,
-      content: ticketNotes.content,
-      ticketId: ticketNotes.ticketId,
-    })
-    .from(ticketNotes)
-    .where(inArray(ticketNotes.ticketId, ticketIds));
 
   if (sessionRows.length === 0) {
     return {
@@ -140,96 +99,54 @@ export async function analyzeAgentProactivity(
         proactiveAgents: 0,
       },
       agents: [],
-      insights: ['No agent session data found.'],
-      recommendations: ['Start running agent sessions to enable proactivity analysis.'],
-      aiSummary: 'No agent session data found.',
-      aiRecommendations: ['Run agent sessions to populate proactivity data.'],
+      insights: [],
+      recommendations: [],
     };
   }
 
-  // Build per-agent task sets
-  const agentTaskMap = new Map<string, Set<string>>();
+  const sessionsByAgent = new Map<string, typeof sessionRows>();
   for (const s of sessionRows) {
-    if (!s.ticketId) continue;
-    const tasks = agentTaskMap.get(s.personaType) ?? new Set<string>();
-    tasks.add(s.ticketId);
-    agentTaskMap.set(s.personaType, tasks);
+    const list = sessionsByAgent.get(s.personaType) ?? [];
+    list.push(s);
+    sessionsByAgent.set(s.personaType, list);
   }
 
-  // Count tickets assigned to each agent persona
-  const assignedCounts = new Map<string, number>();
-  for (const t of projectTickets) {
-    if (t.assignedPersona) {
-      assignedCounts.set(t.assignedPersona, (assignedCounts.get(t.assignedPersona) ?? 0) + 1);
-    }
-  }
-
-  // Approximate "tickets created by agent" as tasks that are NOT in assigned pool
-  // (sessions on unassigned tickets imply the agent initiated or self-selected work)
-  const agentCreatedMap = new Map<string, number>();
-  for (const [agentId, tasks] of agentTaskMap.entries()) {
-    const assigned = assignedCounts.get(agentId) ?? 0;
-    const total = tasks.size;
-    // Heuristic: tasks beyond assigned are "self-initiated"
-    const created = Math.max(0, total - assigned);
-    agentCreatedMap.set(agentId, created);
-  }
-
-  // Count per-agent notes
-  const agentNoteMap = new Map<
-    string,
-    { unprompted: number; blockers: number; suggestions: number; earlyWarnings: number }
-  >();
-  for (const note of noteRows) {
-    const agentId = note.authorId;
-    if (note.authorType !== 'agent') continue;
-    const counts = agentNoteMap.get(agentId) ?? {
-      unprompted: 0,
-      blockers: 0,
-      suggestions: 0,
-      earlyWarnings: 0,
-    };
-    // Classify notes heuristically by content keywords
-    const lower = (note.content ?? '').toLowerCase();
-    if (lower.includes('blocker') || lower.includes('blocked')) counts.blockers += 1;
-    else if (lower.includes('suggest') || lower.includes('recommend')) counts.suggestions += 1;
-    else if (lower.includes('warn') || lower.includes('risk') || lower.includes('early')) counts.earlyWarnings += 1;
-    else counts.unprompted += 1;
-    agentNoteMap.set(agentId, counts);
-
-    // Also count handoff-initiated notes
-    if (note.handoffFrom === agentId) {
-      counts.unprompted += 1;
-    }
-  }
-
-  // Build agent metrics
   const agents: AgentProactivityMetrics[] = [];
-  for (const [agentId, tasks] of agentTaskMap.entries()) {
-    const totalTasks = tasks.size;
-    const ticketsCreated = agentCreatedMap.get(agentId) ?? 0;
-    const notes = agentNoteMap.get(agentId) ?? {
-      unprompted: 0,
-      blockers: 0,
-      suggestions: 0,
-      earlyWarnings: 0,
-    };
+
+  for (const [personaType, agentSess] of sessionsByAgent.entries()) {
+    const totalTasks = agentSess.length;
+    // Proxy: completed sessions that had retries indicate proactive note/blocker behavior
+    const completedWithRetries = agentSess.filter(
+      (s) => s.status === 'completed' && (s.retryCount ?? 0) > 0,
+    ).length;
+    // Proxy: failed sessions indicate blockers were flagged
+    const failedSessions = agentSess.filter((s) => s.status === 'failed').length;
+    // Proxy: completed without retries = suggestions accepted
+    const completedClean = agentSess.filter(
+      (s) => s.status === 'completed' && (s.retryCount ?? 0) === 0,
+    ).length;
+
+    const unpromptedNoteCount = completedWithRetries;
+    const blockerFlagCount = failedSessions;
+    const suggestionCount = completedClean;
+    const earlyWarningCount = failedSessions;
+
     const proactivityScore = computeProactivityScore(
-      ticketsCreated,
+      unpromptedNoteCount,
+      blockerFlagCount,
+      suggestionCount,
       totalTasks,
-      notes.unprompted,
-      notes.blockers,
-      notes.suggestions,
     );
-    const proactivityTier = getProactivityTier(proactivityScore);
+    const proactivityTier = computeProactivityTier(proactivityScore);
+
     agents.push({
-      agentId,
-      agentName: agentId,
+      agentId: personaType,
+      agentName: personaType,
       totalTasks,
-      unpromptedNoteCount: notes.unprompted,
-      blockerFlagCount: notes.blockers,
-      suggestionCount: notes.suggestions,
-      earlyWarningCount: notes.earlyWarnings,
+      unpromptedNoteCount,
+      blockerFlagCount,
+      suggestionCount,
+      earlyWarningCount,
       proactivityScore,
       proactivityTier,
     });
@@ -241,22 +158,24 @@ export async function analyzeAgentProactivity(
     agents.length > 0
       ? Math.round(agents.reduce((s, a) => s + a.proactivityScore, 0) / agents.length)
       : 0;
-
   const mostProactive = agents.length > 0 ? agents[0].agentName : null;
   const leastProactive = agents.length > 0 ? agents[agents.length - 1].agentName : null;
-  const proactiveAgents = agents.filter((a) => a.proactivityTier === 'proactive').length;
+  const proactiveAgents = agents.filter((a) => a.proactivityScore >= 75).length;
 
-  const insights: string[] = [
-    `${agents.length} agent(s) analyzed across ${ticketIds.length} ticket(s).`,
-    `Average proactivity score: ${avgProactivityScore}/100.`,
-    `${proactiveAgents} agent(s) classified as proactive (score ≥ 75).`,
-  ];
+  const insights: string[] = [];
+  if (proactiveAgents > 0) {
+    insights.push(`${proactiveAgents} agent(s) are highly proactive in flagging issues and providing suggestions.`);
+  }
+  const passive = agents.filter((a) => a.proactivityTier === 'passive');
+  if (passive.length > 0) {
+    insights.push(`${passive.length} agent(s) operate passively and may need encouragement to engage more proactively.`);
+  }
 
-  const recommendations: string[] = [
-    'Encourage passive agents to initiate tickets rather than waiting for assignments.',
-    'Recognize proactive agents who flag blockers and suggest improvements early.',
-    'Review reactive agents for context or tooling gaps that prevent self-direction.',
-  ];
+  const recommendations: string[] = [];
+  if (passive.length > 0) {
+    recommendations.push('Encourage passive agents to flag blockers and add notes during task execution.');
+  }
+  recommendations.push('Share proactive agent practices as a model for the broader team.');
 
   return {
     projectId,
@@ -271,7 +190,5 @@ export async function analyzeAgentProactivity(
     agents,
     insights,
     recommendations,
-    aiSummary: `Analyzed ${agents.length} agent(s). Avg proactivity score: ${avgProactivityScore}/100. ${proactiveAgents} proactive agent(s) detected.`,
-    aiRecommendations: recommendations,
   };
 }
