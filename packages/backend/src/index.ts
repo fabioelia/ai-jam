@@ -64,6 +64,7 @@ import { agentDependencyMapperRoutes } from './routes/agent-dependency-mapper.js
 import { agentContextUtilizationRoutes } from './routes/agent-context-utilization.js';
 import { agentHandoffSuccessRoutes } from './routes/agent-handoff-success.js';
 import { agentIdleTimeRoutes } from './routes/agent-idle-time.js';
+import { agentThroughputEfficiencyRoutes } from './routes/agent-throughput-efficiency.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -162,6 +163,7 @@ async function main() {
   await fastify.register(agentContextUtilizationRoutes);
   await fastify.register(agentHandoffSuccessRoutes);
   await fastify.register(agentIdleTimeRoutes);
+  await fastify.register(agentThroughputEfficiencyRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

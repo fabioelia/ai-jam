@@ -2151,6 +2151,47 @@ export function useAgentIdleTime() {
   return { analyze, loading, result, setResult };
 }
 
+export interface AgentThroughputMetrics {
+  agentPersona: string;
+  completedTickets: number;
+  totalTickets: number;
+  avgCycleTimeHours: number;
+  throughputScore: number;
+  rank: number;
+  recommendation: string;
+}
+
+export interface ThroughputEfficiencyReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentThroughputMetrics[];
+  topAgent: string | null;
+  bottomAgent: string | null;
+  avgThroughputScore: number;
+  summary: string;
+  recommendations: string[];
+}
+
+export function useAgentThroughputEfficiency() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ThroughputEfficiencyReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<ThroughputEfficiencyReport>(
+        `/projects/${projectId}/agent-throughput-efficiency`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useAgentDependencyMapper() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AgentDependencyMapReport | null>(null);
