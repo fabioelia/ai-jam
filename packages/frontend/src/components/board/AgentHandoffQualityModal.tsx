@@ -1,37 +1,20 @@
-import type { HandoffQualityReport, HandoffQualityScore } from '../../api/mutations.js';
+import type { AgentHandoffQualityReport, AgentHandoffRole } from '../../api/mutations.js';
 
-interface AgentHandoffQualityModalProps {
-  result: HandoffQualityReport | null;
+interface Props {
+  result: AgentHandoffQualityReport | null;
   isOpen: boolean;
   loading: boolean;
   onClose: () => void;
 }
 
-function avgScoreBadgeClass(score: number): string {
-  if (score >= 80) return 'bg-green-500/20 text-green-300 border-green-500/40';
-  if (score >= 60) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
-  if (score >= 40) return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
-  return 'bg-red-500/20 text-red-300 border-red-500/40';
-}
+const ROLE_STYLES: Record<AgentHandoffRole['role'], string> = {
+  initiator: 'bg-blue-900/50 text-blue-300 border border-blue-700/50',
+  receiver: 'bg-green-900/50 text-green-300 border border-green-700/50',
+  collaborator: 'bg-purple-900/50 text-purple-300 border border-purple-700/50',
+  isolated: 'bg-gray-800/50 text-gray-400 border border-gray-600/50',
+};
 
-function gradeBadgeClass(grade: HandoffQualityScore['grade']): string {
-  switch (grade) {
-    case 'exemplary': return 'bg-green-500/20 text-green-300 border-green-500/40';
-    case 'proficient': return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
-    case 'adequate': return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
-    case 'deficient': return 'bg-red-500/20 text-red-300 border-red-500/40';
-  }
-}
-
-function severityPillClass(severity: 'high' | 'medium' | 'low'): string {
-  switch (severity) {
-    case 'high': return 'bg-red-500/20 text-red-300 border-red-500/40';
-    case 'medium': return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-    case 'low': return 'bg-gray-500/20 text-gray-300 border-gray-500/40';
-  }
-}
-
-export default function AgentHandoffQualityModal({ result, isOpen, loading, onClose }: AgentHandoffQualityModalProps) {
+export default function AgentHandoffQualityModal({ result, isOpen, loading, onClose }: Props) {
   if (!isOpen) return null;
 
   return (
@@ -40,21 +23,15 @@ export default function AgentHandoffQualityModal({ result, isOpen, loading, onCl
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
           <h2 className="text-white font-semibold text-lg flex items-center gap-3">
             <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             Agent Handoff Quality
-            {result && !loading && (
-              <span className={`text-xs font-medium px-2 py-1 rounded-full border ${avgScoreBadgeClass(result.averageScore)}`}>
-                Avg: {result.averageScore}
-              </span>
-            )}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -63,8 +40,7 @@ export default function AgentHandoffQualityModal({ result, isOpen, loading, onCl
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="flex items-center gap-3 text-gray-400">
@@ -75,104 +51,96 @@ export default function AgentHandoffQualityModal({ result, isOpen, loading, onCl
                 <span className="text-sm">Analyzing handoff quality...</span>
               </div>
             </div>
-          ) : !result || result.totalHandoffs === 0 ? (
+          ) : !result || result.agents.length === 0 ? (
             <div className="flex items-center justify-center py-12">
-              <p className="text-gray-500 text-sm italic">No handoffs found for quality analysis.</p>
+              <p className="text-gray-500 text-sm italic">No handoff data found for analysis.</p>
             </div>
           ) : (
             <>
-              {/* Summary row */}
               <div className="grid grid-cols-4 gap-3">
-                {[
-                  { label: 'Exemplary', count: result.excellentCount, cls: 'bg-green-500/20 text-green-300 border-green-500/40' },
-                  { label: 'Proficient', count: result.goodCount, cls: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
-                  { label: 'Adequate', count: result.needsImprovementCount, cls: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
-                  { label: 'Deficient', count: result.poorCount, cls: 'bg-red-500/20 text-red-300 border-red-500/40' },
-                ].map(({ label, count, cls }) => (
-                  <div key={label} className={`rounded-lg border p-3 text-center ${cls}`}>
-                    <p className="text-xl font-bold">{count}</p>
-                    <p className="text-xs mt-0.5 opacity-80">{label}</p>
-                  </div>
-                ))}
+                <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg px-4 py-3">
+                  <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-1">Total Handoffs</p>
+                  <p className="text-cyan-200 text-sm font-semibold">{result.summary.totalHandoffs}</p>
+                </div>
+                <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg px-4 py-3">
+                  <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-1">Avg Context Score</p>
+                  <p className="text-cyan-200 text-sm font-semibold">{result.summary.avgContextScore}</p>
+                </div>
+                <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg px-4 py-3">
+                  <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-1">Top Sender</p>
+                  <p className="text-cyan-200 text-sm font-semibold truncate">{result.summary.topSender || '—'}</p>
+                </div>
+                <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg px-4 py-3">
+                  <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-1">Low Quality</p>
+                  <p className="text-cyan-200 text-sm font-semibold">{result.summary.lowQualityHandoffCount}</p>
+                </div>
               </div>
 
-              {/* Top Issues */}
-              {result.topIssues.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Top Issues</h3>
-                  <div className="space-y-2">
-                    {result.topIssues.map(({ category, count }) => (
-                      <div key={category} className="flex items-center justify-between bg-gray-800/50 rounded-lg px-4 py-2">
-                        <span className="text-sm text-gray-300 capitalize">{category.replace(/-/g, ' ')}</span>
-                        <span className="text-xs font-medium bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">{count}</span>
-                      </div>
+              <div className="overflow-x-auto rounded-lg border border-gray-700">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-800/60 text-gray-400 text-xs uppercase tracking-wide">
+                      <th className="px-4 py-3 text-left">Agent</th>
+                      <th className="px-4 py-3 text-center">Role</th>
+                      <th className="px-4 py-3 text-center">Sent</th>
+                      <th className="px-4 py-3 text-center">Received</th>
+                      <th className="px-4 py-3 text-center">Avg Context</th>
+                      <th className="px-4 py-3 text-center">Efficiency</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {result.agents.map((agent, i) => (
+                      <tr key={i} className="hover:bg-gray-800/30 transition-colors">
+                        <td className="px-4 py-3 text-white font-medium">{agent.agentName}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${ROLE_STYLES[agent.role]}`}>
+                            {agent.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.handoffsSent}</td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.handoffsReceived}</td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.avgContextScore}</td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{Math.round(agent.handoffEfficiency)}</td>
+                      </tr>
                     ))}
-                  </div>
+                  </tbody>
+                </table>
+              </div>
+
+              {(result.insights.length > 0 || result.recommendations.length > 0) && (
+                <div className="space-y-3">
+                  {result.insights.length > 0 && (
+                    <div className="bg-gray-800/40 border border-gray-700 rounded-lg px-4 py-3">
+                      <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-2">Insights</p>
+                      <ul className="space-y-1">
+                        {result.insights.map((ins, i) => (
+                          <li key={i} className="text-gray-300 text-sm flex gap-2">
+                            <span className="text-cyan-400 shrink-0">•</span>{ins}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.recommendations.length > 0 && (
+                    <div className="bg-gray-800/40 border border-gray-700 rounded-lg px-4 py-3">
+                      <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-2">Recommendations</p>
+                      <ul className="space-y-1">
+                        {result.recommendations.map((rec, i) => (
+                          <li key={i} className="text-gray-300 text-sm flex gap-2">
+                            <span className="text-cyan-400 shrink-0">•</span>{rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
-
-              {/* Handoff Cards */}
-              <div className="space-y-4">
-                {result.handoffs.map((handoff) => (
-                  <div key={handoff.handoffId} className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 space-y-3">
-                    {/* Ticket + agents */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-white">{handoff.ticketTitle}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {handoff.fromAgent} → {handoff.toAgent}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${gradeBadgeClass(handoff.grade)}`}>
-                          {handoff.score}
-                        </span>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border capitalize ${gradeBadgeClass(handoff.grade)}`}>
-                          {handoff.grade.replace('-', ' ')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Issue pills */}
-                    {handoff.issues.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {handoff.issues.map((issue, i) => (
-                          <span
-                            key={i}
-                            className={`text-xs px-2 py-0.5 rounded-full border capitalize ${severityPillClass(issue.severity)}`}
-                            title={issue.description}
-                          >
-                            {issue.category.replace(/-/g, ' ')}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* AI suggestion */}
-                    {handoff.grade !== 'exemplary' && handoff.suggestions.length > 0 && (
-                      <div className="bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 border border-indigo-500/30 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                          </svg>
-                          <span className="text-xs font-medium text-cyan-300 uppercase tracking-wider">Suggestion</span>
-                        </div>
-                        <p className="text-xs text-indigo-200 leading-relaxed">{handoff.suggestions[0]}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
             </>
           )}
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-800 flex items-center justify-end">
-          <button
-            onClick={onClose}
-            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
+          <button onClick={onClose} className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             Close
           </button>
         </div>

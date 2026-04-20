@@ -8,10 +8,10 @@ interface Props {
 }
 
 const TIER_STYLES: Record<AgentOutputConsistencyMetrics['consistencyTier'], string> = {
-  consistent: 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50',
+  stable: 'bg-teal-900/50 text-teal-300 border border-teal-700/50',
+  'mostly-stable': 'bg-green-900/50 text-green-300 border border-green-700/50',
   variable: 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50',
-  erratic: 'bg-orange-900/50 text-orange-300 border border-orange-700/50',
-  unreliable: 'bg-red-900/50 text-red-400 border border-red-700/50',
+  erratic: 'bg-red-900/50 text-red-400 border border-red-700/50',
 };
 
 export default function AgentOutputConsistencyModal({ result, isOpen, loading, onClose }: Props) {
@@ -26,10 +26,9 @@ export default function AgentOutputConsistencyModal({ result, isOpen, loading, o
         className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
           <h2 className="text-white font-semibold text-lg flex items-center gap-3">
-            <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
             </svg>
             AI Agent Output Consistency Analyzer
@@ -41,7 +40,6 @@ export default function AgentOutputConsistencyModal({ result, isOpen, loading, o
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -55,34 +53,29 @@ export default function AgentOutputConsistencyModal({ result, isOpen, loading, o
             </div>
           ) : !result || result.agents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
               <p className="text-gray-400 text-sm">No output consistency data available.</p>
             </div>
           ) : (
             <>
-              {/* Summary cards */}
               <div className="grid grid-cols-4 gap-3">
-                <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-lg px-4 py-3">
-                  <p className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">Avg Consistency Score</p>
-                  <p className="text-emerald-200 text-sm font-semibold">{result.avgConsistencyScore}</p>
+                <div className="bg-teal-900/20 border border-teal-500/30 rounded-lg px-4 py-3">
+                  <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-1">Avg Consistency Score</p>
+                  <p className="text-teal-200 text-sm font-semibold">{result.summary.avgConsistencyScore}</p>
                 </div>
-                <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-lg px-4 py-3">
-                  <p className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">Most Consistent</p>
-                  <p className="text-emerald-200 text-sm font-semibold truncate">{result.mostConsistentAgent ?? '—'}</p>
+                <div className="bg-teal-900/20 border border-teal-500/30 rounded-lg px-4 py-3">
+                  <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-1">Most Consistent</p>
+                  <p className="text-teal-200 text-sm font-semibold truncate">{result.summary.mostConsistentAgent || '—'}</p>
                 </div>
-                <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-lg px-4 py-3">
-                  <p className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">Least Consistent</p>
-                  <p className="text-emerald-200 text-sm font-semibold truncate">{result.leastConsistentAgent ?? '—'}</p>
+                <div className="bg-teal-900/20 border border-teal-500/30 rounded-lg px-4 py-3">
+                  <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-1">High Variance Agents</p>
+                  <p className="text-teal-200 text-sm font-semibold">{result.summary.highVarianceAgents}</p>
                 </div>
-                <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-lg px-4 py-3">
-                  <p className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-1">Total Agents</p>
-                  <p className="text-emerald-200 text-sm font-semibold">{result.agents.length}</p>
+                <div className="bg-teal-900/20 border border-teal-500/30 rounded-lg px-4 py-3">
+                  <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-1">Total Agents</p>
+                  <p className="text-teal-200 text-sm font-semibold">{result.summary.totalAgents}</p>
                 </div>
               </div>
 
-              {/* Agent table */}
               <div className="overflow-x-auto rounded-lg border border-gray-700">
                 <table className="w-full text-sm">
                   <thead>
@@ -90,10 +83,9 @@ export default function AgentOutputConsistencyModal({ result, isOpen, loading, o
                       <th className="px-4 py-3 text-left">Agent</th>
                       <th className="px-4 py-3 text-center">Tier</th>
                       <th className="px-4 py-3 text-center">Score</th>
-                      <th className="px-4 py-3 text-center">Consistency Rate</th>
-                      <th className="px-4 py-3 text-center">Format Adherence</th>
-                      <th className="px-4 py-3 text-center">Total Outputs</th>
-                      <th className="px-4 py-3 text-center">Consistent</th>
+                      <th className="px-4 py-3 text-center">Format Rate</th>
+                      <th className="px-4 py-3 text-center">Variance</th>
+                      <th className="px-4 py-3 text-center">Task Groups</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
@@ -108,38 +100,41 @@ export default function AgentOutputConsistencyModal({ result, isOpen, loading, o
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <div className="flex-1 bg-gray-700 rounded-full h-2">
-                              <div className="h-2 bg-emerald-500 rounded-full" style={{ width: `${agent.outputConsistencyScore}%` }} />
+                              <div className="h-2 bg-teal-500 rounded-full" style={{ width: `${agent.consistencyScore}%` }} />
                             </div>
-                            <span className="text-gray-300 font-mono text-xs w-8 text-right">{agent.outputConsistencyScore}</span>
+                            <span className="text-gray-300 font-mono text-xs w-8 text-right">{agent.consistencyScore}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.consistencyRate}%</td>
-                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.formatAdherenceRate}%</td>
-                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.totalOutputs}</td>
-                        <td className="px-4 py-3 text-center text-green-400 font-mono text-xs">{agent.consistentOutputs}</td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.formatConsistencyRate}%</td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.outputLengthVariance}</td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.taskGroupsAnalyzed}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Insights */}
-              {(result.aiSummary || result.aiRecommendations?.length > 0) && (
+              {(result.insights.length > 0 || result.recommendations.length > 0) && (
                 <div className="space-y-3">
-                  {result.aiSummary && (
+                  {result.insights.length > 0 && (
                     <div className="bg-gray-800/40 border border-gray-700 rounded-lg px-4 py-3">
-                      <p className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-2">AI Summary</p>
-                      <p className="text-gray-300 text-sm leading-relaxed">{result.aiSummary}</p>
+                      <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-2">Insights</p>
+                      <ul className="space-y-1">
+                        {result.insights.map((ins, i) => (
+                          <li key={i} className="text-gray-300 text-sm flex gap-2">
+                            <span className="text-teal-400 shrink-0">•</span>{ins}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
-                  {result.aiRecommendations?.length > 0 && (
+                  {result.recommendations.length > 0 && (
                     <div className="bg-gray-800/40 border border-gray-700 rounded-lg px-4 py-3">
-                      <p className="text-emerald-400 text-xs font-medium uppercase tracking-wide mb-2">Recommendations</p>
+                      <p className="text-teal-400 text-xs font-medium uppercase tracking-wide mb-2">Recommendations</p>
                       <ul className="space-y-1">
-                        {result.aiRecommendations.map((rec, i) => (
+                        {result.recommendations.map((rec, i) => (
                           <li key={i} className="text-gray-300 text-sm flex gap-2">
-                            <span className="text-emerald-400 shrink-0">•</span>
-                            {rec}
+                            <span className="text-teal-400 shrink-0">•</span>{rec}
                           </li>
                         ))}
                       </ul>
@@ -151,12 +146,8 @@ export default function AgentOutputConsistencyModal({ result, isOpen, loading, o
           )}
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-800 flex items-center justify-end">
-          <button
-            onClick={onClose}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
+          <button onClick={onClose} className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             Close
           </button>
         </div>

@@ -1,242 +1,150 @@
 import { db } from '../db/connection.js';
 import { ticketNotes, tickets } from '../db/schema.js';
-import { eq, isNotNull, desc } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
-export interface HandoffIssue {
-  category: 'missing-context' | 'vague-instructions' | 'no-acceptance-criteria' | 'missing-artifacts' | 'unclear-scope';
-  severity: 'high' | 'medium' | 'low';
-  description: string;
+export interface AgentHandoffRole {
+  agentId: string;
+  agentName: string;
+  handoffsSent: number;
+  handoffsReceived: number;
+  avgContextScore: number;
+  avgResolutionRate: number;
+  handoffEfficiency: number;
+  role: 'initiator' | 'receiver' | 'collaborator' | 'isolated';
 }
 
-export interface HandoffQualityScore {
-  handoffId: string;
-  ticketId: string;
-  ticketTitle: string;
-  fromAgent: string;
-  toAgent: string;
-  score: number;
-  grade: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
-  qualityTier: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
-  perHandoffDetails: { quality: number; completeness: number };
-  issues: HandoffIssue[];
-  suggestions: string[];
-  analyzedAt: string;
-}
-
-export interface HandoffQualityReport {
+export interface AgentHandoffQualityReport {
   projectId: string;
-  totalHandoffs: number;
-  averageScore: number;
-  excellentCount: number;
-  goodCount: number;
-  needsImprovementCount: number;
-  poorCount: number;
-  handoffs: HandoffQualityScore[];
-  topIssues: { category: string; count: number }[];
-  analyzedAt: string;
-}
-
-export function scoreHandoff(content: string): { score: number; issues: HandoffIssue[] } {
-  let score = 100;
-  const issues: HandoffIssue[] = [];
-
-  if (!content || content.trim().length === 0) {
-    score -= 40;
-    issues.push({ category: 'missing-context', severity: 'high', description: 'No notes or context provided' });
-  } else {
-    if (content.trim().length < 50) {
-      score -= 20;
-      issues.push({ category: 'missing-context', severity: 'high', description: 'Notes too brief (< 50 chars)' });
-    }
-
-    const lower = content.toLowerCase();
-
-    if (!/accept|criteria|ac\d|done when|definition of done/.test(lower)) {
-      score -= 15;
-      issues.push({ category: 'no-acceptance-criteria', severity: 'medium', description: 'No mention of acceptance criteria' });
-    }
-
-    if (!/next step|todo|should|must|need to|implement|fix|update/.test(lower)) {
-      score -= 15;
-      issues.push({ category: 'vague-instructions', severity: 'medium', description: 'No mention of next steps' });
-    }
-
-    if (!/\/|\.ts|\.tsx|\.js|\.py|src\/|packages\/|file|path|commit/.test(lower)) {
-      score -= 10;
-      issues.push({ category: 'missing-artifacts', severity: 'low', description: 'No mention of relevant files or paths' });
-    }
-
-    if (/^please do this|^please help|^can you|^just do/.test(lower.trim())) {
-      score -= 10;
-      issues.push({ category: 'unclear-scope', severity: 'low', description: 'Vague opener detected' });
-    }
-  }
-
-  return { score: Math.max(0, score), issues };
-}
-
-export function gradeFromScore(score: number): HandoffQualityScore['grade'] {
-  if (score >= 80) return 'exemplary';
-  if (score >= 60) return 'proficient';
-  if (score >= 40) return 'adequate';
-  return 'deficient';
-}
-
-export function computePerHandoffDetails(content: string): { quality: number; completeness: number } {
-  const lower = content ? content.toLowerCase() : '';
-  let quality = 100;
-  let completeness = 100;
-
-  if (!content || content.trim().length === 0) {
-    return { quality: 0, completeness: 0 };
-  }
-
-  // quality: based on instructions clarity
-  if (!/next step|todo|should|must|need to|implement|fix|update/.test(lower)) quality -= 30;
-  if (!/accept|criteria|ac\d|done when|definition of done/.test(lower)) quality -= 20;
-  if (/^please do this|^please help|^can you|^just do/.test(lower.trim())) quality -= 15;
-
-  // completeness: based on context presence
-  if (content.trim().length < 50) completeness -= 40;
-  if (!/\/|\.ts|\.tsx|\.js|\.py|src\/|packages\/|file|path|commit/.test(lower)) completeness -= 20;
-  if (content.trim().length < 200) completeness -= 10;
-
-  return {
-    quality: Math.max(0, quality),
-    completeness: Math.max(0, completeness),
+  generatedAt: string;
+  summary: {
+    totalHandoffs: number;
+    avgContextScore: number;
+    avgResolutionRate: number;
+    topSender: string;
+    topReceiver: string;
+    lowQualityHandoffCount: number;
   };
+  agents: AgentHandoffRole[];
+  insights: string[];
+  recommendations: string[];
 }
 
-function suggestionsFromIssues(issues: HandoffIssue[]): string[] {
-  return issues.map((issue) => {
-    switch (issue.category) {
-      case 'missing-context': return 'Add 2-3 sentences explaining what was already tried';
-      case 'vague-instructions': return 'Specify exact file paths and function names to modify';
-      case 'no-acceptance-criteria': return 'List 3-5 testable acceptance criteria';
-      case 'missing-artifacts': return 'Reference relevant commit hashes or file paths';
-      case 'unclear-scope': return 'Define explicit boundaries: what\'s in scope and what\'s not';
-    }
-  });
+export function scoreHandoffContext(handoff: any): number {
+  let score = 20;
+  if (handoff.description && handoff.description.length > 100) score += 40;
+  if (handoff.instructions || (handoff.content && handoff.content.includes('instruction'))) score += 20;
+  if (handoff.priority) score += 10;
+  if (handoff.acceptanceCriteria || handoff.criteria) score += 10;
+  return Math.min(100, score);
 }
 
-async function generateAiSuggestion(
-  fromAgent: string,
-  toAgent: string,
-  ticketTitle: string,
-  content: string,
-  issues: HandoffIssue[],
-): Promise<string | null> {
-  try {
-    const client = new Anthropic({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
-    });
-
-    const issueList = issues.map((i) => i.description).join(', ');
-    const prompt = `Agent handoff from "${fromAgent}" to "${toAgent}" for ticket "${ticketTitle}". Issues: ${issueList}. Current notes: "${content.slice(0, 300)}". Give one specific improvement suggestion in 1-2 sentences.`;
-
-    const response = await client.messages.create({
-      model: process.env.AI_MODEL || 'qwen/qwen3-6b',
-      max_tokens: 150,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    return text || null;
-  } catch {
-    return null;
-  }
+export function classifyRole(sent: number, received: number): AgentHandoffRole['role'] {
+  if (sent > received * 2 && sent >= 3) return 'initiator';
+  if (received > sent * 2 && received >= 3) return 'receiver';
+  if (sent >= 2 && received >= 2) return 'collaborator';
+  return 'isolated';
 }
 
-export async function analyzeHandoffQuality(projectId: string): Promise<HandoffQualityReport> {
+export async function analyzeAgentHandoffQuality(projectId: string): Promise<AgentHandoffQualityReport> {
+  const generatedAt = new Date().toISOString();
+
   const rows = await db
     .select({
       id: ticketNotes.id,
       ticketId: ticketNotes.ticketId,
-      ticketTitle: tickets.title,
       content: ticketNotes.content,
       handoffFrom: ticketNotes.handoffFrom,
       handoffTo: ticketNotes.handoffTo,
     })
     .from(ticketNotes)
     .innerJoin(tickets, eq(ticketNotes.ticketId, tickets.id))
-    .where(eq(tickets.projectId, projectId))
-    .orderBy(desc(ticketNotes.createdAt))
-    .limit(20);
+    .where(eq(tickets.projectId, projectId));
 
-  const handoffRows = rows.filter((r) => r.handoffFrom != null);
+  const handoffRows = rows.filter(r => r.handoffFrom != null);
 
-  const now = new Date().toISOString();
-  const handoffs: HandoffQualityScore[] = [];
+  // Per-agent aggregation
+  const agentMap = new Map<string, {
+    sent: any[];
+    received: any[];
+  }>();
 
   for (const row of handoffRows) {
-    const { score, issues } = scoreHandoff(row.content);
-    const grade = gradeFromScore(score);
-    const baseSuggestions = suggestionsFromIssues(issues);
-    const perHandoffDetails = computePerHandoffDetails(row.content);
+    const from = row.handoffFrom!;
+    const to = row.handoffTo ?? 'unknown';
 
-    let suggestions = baseSuggestions;
-    if (grade === 'adequate' || grade === 'deficient') {
-      const aiSuggestion = await generateAiSuggestion(
-        row.handoffFrom!,
-        row.handoffTo ?? 'next agent',
-        row.ticketTitle,
-        row.content,
-        issues,
-      );
-      if (aiSuggestion) suggestions = [aiSuggestion, ...baseSuggestions];
-    }
+    if (!agentMap.has(from)) agentMap.set(from, { sent: [], received: [] });
+    if (!agentMap.has(to)) agentMap.set(to, { sent: [], received: [] });
 
-    handoffs.push({
-      handoffId: row.id,
-      ticketId: row.ticketId,
-      ticketTitle: row.ticketTitle,
-      fromAgent: row.handoffFrom!,
-      toAgent: row.handoffTo ?? 'unknown',
-      score,
-      grade,
-      qualityTier: grade,
-      perHandoffDetails,
-      issues,
-      suggestions,
-      analyzedAt: now,
-    });
+    const contextScore = scoreHandoffContext({ description: row.content, content: row.content });
+    agentMap.get(from)!.sent.push({ contextScore });
+    agentMap.get(to)!.received.push({ contextScore });
   }
 
-  const gradeOrder: Record<string, number> = { deficient: 0, adequate: 1, proficient: 2, exemplary: 3 };
-  handoffs.sort((a, b) => gradeOrder[a.grade] - gradeOrder[b.grade]);
+  const agents: AgentHandoffRole[] = [];
 
-  const totalHandoffs = handoffs.length;
-  const averageScore = totalHandoffs > 0
-    ? Math.round(handoffs.reduce((sum, h) => sum + h.score, 0) / totalHandoffs)
+  for (const [agentId, data] of agentMap.entries()) {
+    const handoffsSent = data.sent.length;
+    const handoffsReceived = data.received.length;
+    const avgContextScore = data.sent.length > 0
+      ? Math.round(data.sent.reduce((s: number, h: any) => s + h.contextScore, 0) / data.sent.length)
+      : 0;
+    const avgResolutionRate = handoffsSent > 0 ? Math.round((handoffsSent / (handoffsSent + handoffsReceived || 1)) * 100) : 0;
+    const handoffEfficiency = Math.min(100, (avgContextScore * 0.5) + (avgResolutionRate * 0.5));
+    const role = classifyRole(handoffsSent, handoffsReceived);
+    const agentName = agentId.charAt(0).toUpperCase() + agentId.slice(1).replace(/_/g, ' ');
+
+    agents.push({ agentId, agentName, handoffsSent, handoffsReceived, avgContextScore, avgResolutionRate, handoffEfficiency, role });
+  }
+
+  const totalHandoffs = handoffRows.length;
+  const allContextScores = handoffRows.map(r => scoreHandoffContext({ description: r.content, content: r.content }));
+  const avgContextScore = allContextScores.length > 0
+    ? Math.round(allContextScores.reduce((a, b) => a + b, 0) / allContextScores.length)
     : 0;
+  const lowQualityHandoffCount = allContextScores.filter(s => s < 50).length;
 
-  const excellentCount = handoffs.filter((h) => h.grade === 'exemplary').length;
-  const goodCount = handoffs.filter((h) => h.grade === 'proficient').length;
-  const needsImprovementCount = handoffs.filter((h) => h.grade === 'adequate').length;
-  const poorCount = handoffs.filter((h) => h.grade === 'deficient').length;
+  const topSender = agents.sort((a, b) => b.handoffsSent - a.handoffsSent)[0]?.agentName ?? '';
+  const topReceiver = [...agents].sort((a, b) => b.handoffsReceived - a.handoffsReceived)[0]?.agentName ?? '';
 
-  const issueCounts: Record<string, number> = {};
-  for (const h of handoffs) {
-    for (const issue of h.issues) {
-      issueCounts[issue.category] = (issueCounts[issue.category] ?? 0) + 1;
-    }
-  }
-  const topIssues = Object.entries(issueCounts)
-    .map(([category, count]) => ({ category, count }))
-    .sort((a, b) => b.count - a.count);
-
-  return {
-    projectId,
+  const summary = {
     totalHandoffs,
-    averageScore,
-    excellentCount,
-    goodCount,
-    needsImprovementCount,
-    poorCount,
-    handoffs,
-    topIssues,
-    analyzedAt: now,
+    avgContextScore,
+    avgResolutionRate: avgContextScore,
+    topSender,
+    topReceiver,
+    lowQualityHandoffCount,
   };
+
+  const insights: string[] = [`${totalHandoffs} handoffs analyzed across ${agents.length} agents.`];
+  const recommendations: string[] = [
+    'Ensure handoff descriptions exceed 100 characters for full context scoring.',
+    'Include acceptance criteria in handoffs to improve context scores.',
+  ];
+
+  try {
+    const client = new Anthropic({
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: process.env.OPENROUTER_API_KEY || '',
+      defaultHeaders: { 'HTTP-Referer': 'https://ai-jam.app', 'X-Title': 'AI Jam' },
+    });
+    const prompt = `Handoff quality: ${totalHandoffs} handoffs, avgScore=${avgContextScore}, lowQuality=${lowQualityHandoffCount}. Provide JSON: {"insights": ["..."], "recommendations": ["..."]}`;
+    const msg = await client.messages.create({
+      model: 'anthropic/claude-3-haiku',
+      max_tokens: 200,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+    if (raw) {
+      try {
+        const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+        const jsonStr = fenceMatch ? fenceMatch[1].trim() : raw;
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed.insights) && parsed.insights.length > 0) insights.splice(0, insights.length, ...parsed.insights);
+        if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) recommendations.splice(0, recommendations.length, ...parsed.recommendations);
+      } catch { /* use defaults */ }
+    }
+  } catch { /* use defaults */ }
+
+  return { projectId, generatedAt, summary, agents, insights, recommendations };
 }

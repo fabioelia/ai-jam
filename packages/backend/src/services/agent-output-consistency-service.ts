@@ -3,181 +3,128 @@ import { tickets, agentSessions } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
-export interface AgentOutputConsistencyMetrics {
+export interface AgentOutputConsistencyData {
   agentId: string;
   agentName: string;
-  totalOutputs: number;
-  consistentOutputs: number;
-  consistencyRate: number;
-  formatAdherenceRate: number;
-  outputConsistencyScore: number; // 0-100
-  consistencyTier: 'consistent' | 'variable' | 'erratic' | 'unreliable';
+  taskGroupsAnalyzed: number;
+  avgOutputLength: number;
+  outputLengthVariance: number;
+  formatConsistencyRate: number;
+  completionPhraseConsistency: number;
+  consistencyScore: number;
+  consistencyTier: 'stable' | 'mostly-stable' | 'variable' | 'erratic';
 }
 
 export interface AgentOutputConsistencyReport {
   projectId: string;
-  agents: AgentOutputConsistencyMetrics[];
-  avgConsistencyScore: number;
-  mostConsistentAgent: string | null;
-  leastConsistentAgent: string | null;
-  outputCategories: { consistent: number; variable: number; erratic: number; unreliable: number };
-  aiSummary: string;
-  aiRecommendations: string[];
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalTaskGroups: number;
+    avgConsistencyScore: number;
+    mostConsistentAgent: string;
+    highVarianceAgents: number;
+  };
+  agents: AgentOutputConsistencyData[];
+  insights: string[];
+  recommendations: string[];
 }
 
-export const FALLBACK_SUMMARY = 'Output consistency analysis complete.';
-export const FALLBACK_RECOMMENDATIONS = [
-  'Ensure agents with erratic output patterns receive clearer task specifications.',
-  'Implement output format templates to improve format adherence rates.',
-];
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
+export function computeConsistencyScore(formatConsistencyRate: number, outputLengthVariance: number): number {
+  let base = formatConsistencyRate;
+  if (outputLengthVariance < 100 && formatConsistencyRate >= 80) base += 10;
+  if (outputLengthVariance > 500) base -= 15;
+  return Math.max(0, Math.min(100, base));
 }
 
-export function computeOutputConsistencyScore(
-  consistencyRate: number,
-  formatAdherenceRate: number,
-): number {
-  return clamp(Math.round(consistencyRate * 0.5 + formatAdherenceRate * 0.5), 0, 100);
+export function computeConsistencyTier(score: number): AgentOutputConsistencyData['consistencyTier'] {
+  if (score >= 85) return 'stable';
+  if (score >= 65) return 'mostly-stable';
+  if (score >= 40) return 'variable';
+  return 'erratic';
 }
 
-export function computeConsistencyTier(
-  score: number,
-): AgentOutputConsistencyMetrics['consistencyTier'] {
-  if (score >= 80) return 'consistent';
-  if (score >= 60) return 'variable';
-  if (score >= 40) return 'erratic';
-  return 'unreliable';
-}
+export async function analyzeAgentOutputConsistency(projectId: string, sessions: any[]): Promise<AgentOutputConsistencyReport> {
+  const generatedAt = new Date().toISOString();
 
-type SessionRow = {
-  id: string;
-  ticketId: string | null;
-  personaType: string;
-  status: string;
-  outputSummary: string | null;
-};
-
-export function buildOutputConsistencyMetrics(
-  allSessions: SessionRow[],
-): AgentOutputConsistencyMetrics[] {
   // Group sessions by personaType
-  const sessionsByPersona = new Map<string, SessionRow[]>();
-  for (const s of allSessions) {
-    const list = sessionsByPersona.get(s.personaType) ?? [];
+  const byPersona = new Map<string, any[]>();
+  for (const s of sessions) {
+    const list = byPersona.get(s.personaType) ?? [];
     list.push(s);
-    sessionsByPersona.set(s.personaType, list);
+    byPersona.set(s.personaType, list);
   }
 
-  const metrics: AgentOutputConsistencyMetrics[] = [];
+  const agents: AgentOutputConsistencyData[] = [];
 
-  for (const [personaType, agentSessionList] of sessionsByPersona.entries()) {
-    const totalOutputs = agentSessionList.length;
+  for (const [personaType, agentSessions] of byPersona.entries()) {
+    const taskGroupsAnalyzed = agentSessions.length;
 
-    // consistentOutputs = completed sessions
-    const consistentOutputs = agentSessionList.filter(
-      (s) => s.status === 'completed',
-    ).length;
+    const outputLengths = agentSessions
+      .filter((s: any) => s.outputSummary != null)
+      .map((s: any) => (s.outputSummary as string).length);
 
-    // consistencyRate = completedSessions / totalSessions * 100
-    const consistencyRate =
-      totalOutputs > 0
-        ? Math.round((consistentOutputs / totalOutputs) * 100)
-        : 0;
+    const avgOutputLength = outputLengths.length > 0
+      ? Math.round(outputLengths.reduce((a: number, b: number) => a + b, 0) / outputLengths.length)
+      : 0;
 
-    // formatAdherenceRate = sessions with non-empty outputSummary / totalSessions * 100
-    const sessionsWithOutput = agentSessionList.filter(
-      (s) => s.outputSummary != null && s.outputSummary.trim() !== '',
-    ).length;
-    const formatAdherenceRate =
-      totalOutputs > 0
-        ? Math.round((sessionsWithOutput / totalOutputs) * 100)
-        : 0;
+    const variance = outputLengths.length > 1
+      ? Math.round(outputLengths.reduce((sum: number, l: number) => sum + Math.pow(l - avgOutputLength, 2), 0) / outputLengths.length)
+      : 0;
 
-    const outputConsistencyScore = computeOutputConsistencyScore(
-      consistencyRate,
-      formatAdherenceRate,
-    );
+    const completedCount = agentSessions.filter((s: any) => s.status === 'completed').length;
+    const formatConsistencyRate = taskGroupsAnalyzed > 0
+      ? Math.round((completedCount / taskGroupsAnalyzed) * 100)
+      : 0;
 
-    const agentName =
-      personaType.charAt(0).toUpperCase() + personaType.slice(1).replace(/_/g, ' ');
+    const withOutput = agentSessions.filter((s: any) => s.outputSummary != null && (s.outputSummary as string).trim() !== '').length;
+    const completionPhraseConsistency = taskGroupsAnalyzed > 0
+      ? Math.round((withOutput / taskGroupsAnalyzed) * 100)
+      : 0;
 
-    metrics.push({
+    const consistencyScore = computeConsistencyScore(formatConsistencyRate, variance);
+    const agentName = personaType.charAt(0).toUpperCase() + personaType.slice(1).replace(/_/g, ' ');
+
+    agents.push({
       agentId: personaType,
       agentName,
-      totalOutputs,
-      consistentOutputs,
-      consistencyRate,
-      formatAdherenceRate,
-      outputConsistencyScore,
-      consistencyTier: computeConsistencyTier(outputConsistencyScore),
+      taskGroupsAnalyzed,
+      avgOutputLength,
+      outputLengthVariance: variance,
+      formatConsistencyRate,
+      completionPhraseConsistency,
+      consistencyScore,
+      consistencyTier: computeConsistencyTier(consistencyScore),
     });
   }
 
-  metrics.sort((a, b) => b.outputConsistencyScore - a.outputConsistencyScore);
-  return metrics;
-}
+  agents.sort((a, b) => b.consistencyScore - a.consistencyScore);
 
-export async function analyzeAgentOutputConsistency(
-  projectId: string,
-): Promise<AgentOutputConsistencyReport> {
-  const projectTickets = await db
-    .select({ id: tickets.id })
-    .from(tickets)
-    .where(eq(tickets.projectId, projectId));
+  const highVarianceAgents = agents.filter(a => a.outputLengthVariance > 500).length;
+  const avgConsistencyScore = agents.length > 0
+    ? Math.round(agents.reduce((s, a) => s + a.consistencyScore, 0) / agents.length)
+    : 0;
+  const mostConsistentAgent = agents.length > 0 ? agents[0].agentName : '';
 
-  const ticketIds = projectTickets.map((t) => t.id);
-  let allSessions: SessionRow[] = [];
-
-  if (ticketIds.length > 0) {
-    allSessions = await db
-      .select({
-        id: agentSessions.id,
-        ticketId: agentSessions.ticketId,
-        personaType: agentSessions.personaType,
-        status: agentSessions.status,
-        outputSummary: agentSessions.outputSummary,
-      })
-      .from(agentSessions)
-      .where(inArray(agentSessions.ticketId, ticketIds));
-  }
-
-  if (allSessions.length === 0) {
-    return {
-      projectId,
-      agents: [],
-      avgConsistencyScore: 0,
-      mostConsistentAgent: null,
-      leastConsistentAgent: null,
-      outputCategories: { consistent: 0, variable: 0, erratic: 0, unreliable: 0 },
-      aiSummary: FALLBACK_SUMMARY,
-      aiRecommendations: FALLBACK_RECOMMENDATIONS,
-    };
-  }
-
-  const agents = buildOutputConsistencyMetrics(allSessions);
-
-  const avgConsistencyScore =
-    agents.length > 0
-      ? Math.round(
-          agents.reduce((s, a) => s + a.outputConsistencyScore, 0) / agents.length,
-        )
-      : 0;
-
-  const mostConsistentAgent = agents.length > 0 ? agents[0].agentName : null;
-  const leastConsistentAgent =
-    agents.length > 0 ? agents[agents.length - 1].agentName : null;
-
-  const outputCategories = {
-    consistent: agents.filter((a) => a.consistencyTier === 'consistent').length,
-    variable: agents.filter((a) => a.consistencyTier === 'variable').length,
-    erratic: agents.filter((a) => a.consistencyTier === 'erratic').length,
-    unreliable: agents.filter((a) => a.consistencyTier === 'unreliable').length,
+  const summary = {
+    totalAgents: agents.length,
+    totalTaskGroups: sessions.length,
+    avgConsistencyScore,
+    mostConsistentAgent,
+    highVarianceAgents,
   };
 
-  let aiSummary = FALLBACK_SUMMARY;
-  let aiRecommendations = FALLBACK_RECOMMENDATIONS;
+  const insights: string[] = [];
+  const recommendations: string[] = [];
+
+  if (agents.length > 0) {
+    insights.push(`${agents.length} agents analyzed across ${sessions.length} sessions.`);
+    if (highVarianceAgents > 0) {
+      insights.push(`${highVarianceAgents} agent(s) show high output length variance (>500).`);
+    }
+    recommendations.push('Establish output format templates for agents with erratic or variable tiers.');
+    recommendations.push('Review task specifications for high-variance agents to improve consistency.');
+  }
 
   try {
     const client = new Anthropic({
@@ -186,15 +133,11 @@ export async function analyzeAgentOutputConsistency(
       defaultHeaders: { 'HTTP-Referer': 'https://ai-jam.app', 'X-Title': 'AI Jam' },
     });
 
-    const agentSummaryText = agents
-      .slice(0, 8)
-      .map(
-        (a) =>
-          `${a.agentId}: score=${a.outputConsistencyScore}, tier=${a.consistencyTier}, consistencyRate=${a.consistencyRate}%, formatAdherence=${a.formatAdherenceRate}%, totalOutputs=${a.totalOutputs}`,
-      )
-      .join('\n');
+    const agentSummaryText = agents.slice(0, 8).map(a =>
+      `${a.agentId}: score=${a.consistencyScore}, tier=${a.consistencyTier}, formatRate=${a.formatConsistencyRate}%, variance=${a.outputLengthVariance}`
+    ).join('\n');
 
-    const prompt = `Analyze the output consistency of AI agents:\n${agentSummaryText}\n\nProject: avgConsistency=${avgConsistencyScore}%, mostConsistent=${mostConsistentAgent}, leastConsistent=${leastConsistentAgent}\n\nProvide:\n1. A summary paragraph about output consistency health\n2. 2-3 specific recommendations\n\nFormat as JSON: {"summary": "...", "recommendations": ["...", "..."]}`;
+    const prompt = `Analyze AI agent output consistency:\n${agentSummaryText}\n\nProvide JSON: {"insights": ["..."], "recommendations": ["...", "..."]}`;
 
     const msg = await client.messages.create({
       model: 'anthropic/claude-3-haiku',
@@ -208,26 +151,11 @@ export async function analyzeAgentOutputConsistency(
         const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
         const jsonStr = fenceMatch ? fenceMatch[1].trim() : raw;
         const parsed = JSON.parse(jsonStr);
-        if (parsed.summary) aiSummary = parsed.summary;
-        if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
-          aiRecommendations = parsed.recommendations;
-        }
-      } catch {
-        aiSummary = raw;
-      }
+        if (Array.isArray(parsed.insights) && parsed.insights.length > 0) insights.splice(0, insights.length, ...parsed.insights);
+        if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) recommendations.splice(0, recommendations.length, ...parsed.recommendations);
+      } catch { /* use defaults */ }
     }
-  } catch (e) {
-    console.warn('Output consistency AI analysis failed, using fallback:', e);
-  }
+  } catch { /* use defaults */ }
 
-  return {
-    projectId,
-    agents,
-    avgConsistencyScore,
-    mostConsistentAgent,
-    leastConsistentAgent,
-    outputCategories,
-    aiSummary,
-    aiRecommendations,
-  };
+  return { projectId, generatedAt, summary, agents, insights, recommendations };
 }

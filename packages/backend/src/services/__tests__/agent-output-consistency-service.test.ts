@@ -1,70 +1,68 @@
 import { describe, it, expect } from 'vitest';
-import {
-  computeOutputConsistencyScore,
-  computeConsistencyTier,
-  buildOutputConsistencyMetrics,
-} from '../agent-output-consistency-service.js';
+import { computeConsistencyScore, computeConsistencyTier, analyzeAgentOutputConsistency } from '../agent-output-consistency-service.js';
 
 describe('computeConsistencyScore', () => {
-  it('returns 0 for all zero inputs', () => {
-    expect(computeOutputConsistencyScore(0, 0)).toBe(0);
+  it('uses formatConsistencyRate as base', () => {
+    expect(computeConsistencyScore(70, 200)).toBe(70);
   });
 
-  it('returns 100 for 100% consistency and 100% format adherence', () => {
-    expect(computeOutputConsistencyScore(100, 100)).toBe(100);
+  it('adds +10 bonus when variance < 100 AND formatConsistencyRate >= 80', () => {
+    expect(computeConsistencyScore(80, 50)).toBe(90);
   });
 
-  it('returns 50 for 50% consistency and 50% format adherence', () => {
-    expect(computeOutputConsistencyScore(50, 50)).toBe(50);
+  it('does NOT add bonus when variance >= 100', () => {
+    expect(computeConsistencyScore(80, 100)).toBe(80);
+  });
+
+  it('applies -15 penalty when variance > 500', () => {
+    expect(computeConsistencyScore(70, 600)).toBe(55);
+  });
+
+  it('clamps to 0-100', () => {
+    expect(computeConsistencyScore(100, 50)).toBe(100);
+    expect(computeConsistencyScore(10, 600)).toBe(0);
   });
 });
 
 describe('computeConsistencyTier', () => {
-  it('returns consistent tier at score >= 80', () => {
-    const tier = computeConsistencyTier(80);
-    expect(['consistent', 'stable']).toContain(tier);
+  it('returns stable at score >= 85', () => {
+    expect(computeConsistencyTier(85)).toBe('stable');
+    expect(computeConsistencyTier(100)).toBe('stable');
   });
 
-  it('returns variable tier at score >= 60', () => {
-    const tier = computeConsistencyTier(60);
-    expect(tier).toBe('variable');
+  it('returns mostly-stable at score 65-84', () => {
+    expect(computeConsistencyTier(65)).toBe('mostly-stable');
+    expect(computeConsistencyTier(84)).toBe('mostly-stable');
   });
 
-  it('returns erratic tier at score >= 40', () => {
-    const tier = computeConsistencyTier(40);
-    expect(tier).toBe('erratic');
+  it('returns variable at score 40-64', () => {
+    expect(computeConsistencyTier(40)).toBe('variable');
+    expect(computeConsistencyTier(64)).toBe('variable');
   });
 
-  it('returns unreliable tier at score < 40', () => {
-    expect(computeConsistencyTier(0)).toBe('unreliable');
-    expect(computeConsistencyTier(39)).toBe('unreliable');
+  it('returns erratic at score < 40', () => {
+    expect(computeConsistencyTier(0)).toBe('erratic');
+    expect(computeConsistencyTier(39)).toBe('erratic');
   });
 });
 
-describe('buildOutputConsistencyMetrics', () => {
-  it('returns empty array when no sessions', () => {
-    const result = buildOutputConsistencyMetrics([]);
-    expect(result).toEqual([]);
+describe('analyzeAgentOutputConsistency', () => {
+  it('returns report with correct shape (generatedAt, summary, agents, insights, recommendations)', async () => {
+    const sessions = [
+      { personaType: 'dev', status: 'completed', outputSummary: 'Done' },
+    ];
+    const report = await analyzeAgentOutputConsistency('proj1', sessions);
+    expect(report.projectId).toBe('proj1');
+    expect(report.generatedAt).toBeDefined();
+    expect(report.summary).toBeDefined();
+    expect(Array.isArray(report.agents)).toBe(true);
+    expect(Array.isArray(report.insights)).toBe(true);
+    expect(Array.isArray(report.recommendations)).toBe(true);
   });
 
-  it('builds metrics correctly for completed sessions', () => {
-    const sessions = [
-      { id: '1', ticketId: 't1', personaType: 'developer', status: 'completed', outputSummary: 'Done' },
-      { id: '2', ticketId: 't2', personaType: 'developer', status: 'failed', outputSummary: null },
-    ];
-    const result = buildOutputConsistencyMetrics(sessions);
-    expect(result.length).toBe(1);
-    expect(result[0].agentId).toBe('developer');
-    expect(result[0].totalOutputs).toBe(2);
-    expect(result[0].consistentOutputs).toBe(1);
-  });
-
-  it('groups sessions by persona correctly', () => {
-    const sessions = [
-      { id: '1', ticketId: 't1', personaType: 'dev', status: 'completed', outputSummary: 'Done' },
-      { id: '2', ticketId: 't2', personaType: 'qa', status: 'completed', outputSummary: 'Tested' },
-    ];
-    const result = buildOutputConsistencyMetrics(sessions);
-    expect(result.length).toBe(2);
+  it('uses sessions param (empty sessions = empty agents)', async () => {
+    const report = await analyzeAgentOutputConsistency('proj1', []);
+    expect(report.agents).toHaveLength(0);
+    expect(report.summary.totalAgents).toBe(0);
   });
 });
