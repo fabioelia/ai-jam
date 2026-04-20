@@ -1262,3 +1262,23 @@ export function useEpicHealth() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface SequencedTicket {
+  ticketId: string; title: string; priority: string | null; storyPoints: number | null;
+  status: string; dueDate: string | null; score: number; rationale: string;
+}
+export interface AgentTaskSequence { agentName: string; ticketCount: number; sequence: SequencedTicket[]; }
+export interface TaskSequenceReport { projectId: string; agentSequences: AgentTaskSequence[]; totalAgents: number; totalTickets: number; generatedAt: string; }
+
+export function useAgentTaskSequence() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<TaskSequenceReport | null>(null);
+  const sequence = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<TaskSequenceReport>(`/projects/${projectId}/agent-task-sequence`, { method: 'POST' });
+      setResult(data);
+    } finally { setLoading(false); }
+  };
+  return { sequence, loading, result, setResult };
+}
