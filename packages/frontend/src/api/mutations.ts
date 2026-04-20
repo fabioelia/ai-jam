@@ -3184,3 +3184,49 @@ export function useAgentScopeAdherence(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface BlockerBreakdown {
+  waitingForInfo: number;
+  dependencyBlocked: number;
+  reviewBlocked: number;
+  clarificationNeeded: number;
+  other: number;
+}
+
+export interface AgentBlockerMetrics {
+  personaId: string;
+  totalBlockerEvents: number;
+  avgBlockerDuration: number;
+  blockerFrequencyScore: number;
+  blockerBreakdown: BlockerBreakdown;
+  blockerSeverityTier: 'minimal' | 'manageable' | 'significant' | 'critical';
+}
+
+export interface BlockerFrequencyReport {
+  agents: AgentBlockerMetrics[];
+  systemAvgBlockerRate: number;
+  mostBlockedAgent: string | null;
+  leastBlockedAgent: string | null;
+  totalBlockerEvents: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentBlockerFrequency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<BlockerFrequencyReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<BlockerFrequencyReport>(`/projects/${projectId}/agent-blocker-frequency`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

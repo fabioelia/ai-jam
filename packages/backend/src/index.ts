@@ -89,6 +89,7 @@ import { agentHandoffChainDepthRoutes } from './routes/agent-handoff-chain-depth
 import { agentDecisionSpeedRoutes } from './routes/agent-decision-speed.js';
 import { agentScopeAdherenceRoutes } from './routes/agent-scope-adherence.js';
 import { agentInterruptionImpactRoutes } from './routes/agent-interruption-impact.js';
+import { agentBlockerFrequencyRoutes } from './routes/agent-blocker-frequency.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -212,6 +213,7 @@ async function main() {
   await fastify.register(agentHandoffChainDepthRoutes);
   await fastify.register(agentScopeAdherenceRoutes);
   await fastify.register(agentInterruptionImpactRoutes);
+  await fastify.register(agentBlockerFrequencyRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
