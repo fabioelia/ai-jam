@@ -1442,12 +1442,12 @@ export function useAgentCollaborationNetwork(projectId: string) {
 
 export interface AgentContextRetentionProfile {
   personaId: string;
-  avgContextUtilizationRate: number;
+  totalHandoffs: number;
   contextLossCount: number;
   redundantWorkCount: number;
-  avgNoteReadDepth: number;
+  avgContextUtilizationRate: number;
   retentionScore: number;
-  retentionCategory: 'excellent' | 'good' | 'fair' | 'poor';
+  retentionTier: 'excellent' | 'good' | 'fair' | 'poor';
 }
 
 export interface ContextRetentionReport {

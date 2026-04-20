@@ -7,7 +7,7 @@ interface AgentContextRetentionModalProps {
   onClose: () => void;
 }
 
-function categoryBadgeClass(cat: AgentContextRetentionProfile['retentionCategory']): string {
+function categoryBadgeClass(cat: AgentContextRetentionProfile['retentionTier']): string {
   switch (cat) {
     case 'excellent': return 'bg-green-500/20 text-green-300 border-green-500/40';
     case 'good': return 'bg-teal-500/20 text-teal-300 border-teal-500/40';
@@ -16,7 +16,7 @@ function categoryBadgeClass(cat: AgentContextRetentionProfile['retentionCategory
   }
 }
 
-function scoreBarClass(cat: AgentContextRetentionProfile['retentionCategory']): string {
+function scoreBarClass(cat: AgentContextRetentionProfile['retentionTier']): string {
   switch (cat) {
     case 'excellent': return 'bg-green-500';
     case 'good': return 'bg-teal-500';
@@ -124,7 +124,7 @@ export default function AgentContextRetentionModal({
                           <div className="flex items-center gap-2 justify-center">
                             <div className="w-20 bg-gray-700 rounded-full h-1.5">
                               <div
-                                className={`h-1.5 rounded-full ${scoreBarClass(agent.retentionCategory)}`}
+                                className={`h-1.5 rounded-full ${scoreBarClass(agent.retentionTier)}`}
                                 style={{ width: `${agent.retentionScore}%` }}
                               />
                             </div>
@@ -135,8 +135,8 @@ export default function AgentContextRetentionModal({
                         <td className="px-4 py-3 text-center text-gray-300">{agent.contextLossCount}</td>
                         <td className="px-4 py-3 text-center text-gray-300">{agent.redundantWorkCount}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${categoryBadgeClass(agent.retentionCategory)}`}>
-                            {agent.retentionCategory}
+                          <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${categoryBadgeClass(agent.retentionTier)}`}>
+                            {agent.retentionTier}
                           </span>
                         </td>
                       </tr>
