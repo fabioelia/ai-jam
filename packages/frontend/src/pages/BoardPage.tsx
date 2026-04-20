@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -74,6 +74,7 @@ import AgentCommunicationQualityModal from '../components/board/AgentCommunicati
 import AgentWorkloadDistributionModal from '../components/board/AgentWorkloadDistributionModal.js';
 import AgentSessionDepthModal from '../components/board/AgentSessionDepthModal.js';
 import AgentFeedbackLoopModal from '../components/board/AgentFeedbackLoopModal.js';
+import AgentReassignmentRatesModal from '../components/board/AgentReassignmentRatesModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -303,6 +304,8 @@ export default function BoardPage() {
   const [showAgentSessionDepth, setShowAgentSessionDepth] = useState(false);
   const agentFeedbackLoops = useAgentFeedbackLoops();
   const [showAgentFeedbackLoops, setShowAgentFeedbackLoops] = useState(false);
+  const agentReassignmentRates = useAgentReassignmentRates();
+  const [showAgentReassignmentRates, setShowAgentReassignmentRates] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1712,6 +1715,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Agent Reassignment Rates Button */}
+        <button
+          onClick={async () => {
+            setShowAgentReassignmentRates(true);
+            try {
+              await agentReassignmentRates.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Reassignment rate analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentReassignmentRates.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+        >
+          {agentReassignmentRates.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg> Reassignments</>
+          )}
+        </button>
+
         {/* Task Complexity Button */}
         <button
           onClick={async () => {
@@ -2322,6 +2345,10 @@ export default function BoardPage() {
 
       {showAgentFeedbackLoops && (
         <AgentFeedbackLoopModal result={agentFeedbackLoops.result} isOpen={showAgentFeedbackLoops} loading={agentFeedbackLoops.loading} onClose={() => { agentFeedbackLoops.setResult(null); setShowAgentFeedbackLoops(false); }} />
+      )}
+
+      {showAgentReassignmentRates && agentReassignmentRates.result && (
+        <AgentReassignmentRatesModal report={agentReassignmentRates.result} onClose={() => { agentReassignmentRates.setResult(null); setShowAgentReassignmentRates(false); }} />
       )}
     </div>
   );

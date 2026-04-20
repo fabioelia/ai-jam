@@ -2865,3 +2865,53 @@ export function useAgentFeedbackLoops() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentReassignmentMetrics {
+  agentPersona: string;
+  ticketsReceived: number;
+  ticketsReassignedAway: number;
+  ticketsReassignedIn: number;
+  reassignmentAwayRate: number;
+  avgHeldDuration: number;
+  stabilityScore: number;
+  stabilityLevel: 'stable' | 'moderate' | 'volatile' | 'critical';
+}
+
+export interface ReassignmentHotspot {
+  fromPersona: string;
+  toPersona: string;
+  count: number;
+}
+
+export interface AgentReassignmentReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentReassignmentMetrics[];
+  hotspots: ReassignmentHotspot[];
+  summary: {
+    totalAgents: number;
+    totalReassignments: number;
+    avgReassignmentAwayRate: number;
+    mostStableAgent: string | null;
+    mostVolatileAgent: string | null;
+  };
+  aiSummary: string;
+}
+
+export function useAgentReassignmentRates() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentReassignmentReport | null>(null);
+
+  const analyze = async (projectId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/agent-reassignment-rates`, { method: 'POST' });
+      const data = await res.json();
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
