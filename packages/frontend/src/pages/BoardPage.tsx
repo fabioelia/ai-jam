@@ -106,6 +106,7 @@ import AgentParallelTaskEfficiencyModal from '../components/AgentParallelTaskEff
 import AgentLearningVelocityModal from '../components/board/AgentLearningVelocityModal.js';
 import AgentGoalCompletionModal from '../components/board/AgentGoalCompletionModal.js';
 import AgentDecisionQualityV2Modal from '../components/board/AgentDecisionQualityV2Modal.js';
+import AgentCommunicationPatternModal from '../components/board/AgentCommunicationPatternModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -2499,7 +2500,27 @@ export default function BoardPage() {
           )}
         </button>
 
-                {/* Deadline Risk Button */}
+                {/* Communication Patterns Button */}
+        <button
+          onClick={async () => {
+            setShowAgentCommunicationPatterns(true);
+            try {
+              await agentCommunicationPatterns.analyze();
+            } catch (error) {
+              toast.error(`Communication pattern analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentCommunicationPatterns.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+        >
+          {agentCommunicationPatterns.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Communication Patterns</>
+          )}
+        </button>
+
+        {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
             type="date"
@@ -3180,6 +3201,9 @@ export default function BoardPage() {
       )}
       {showAgentDecisionQualityV2 && (
         <AgentDecisionQualityV2Modal result={agentDecisionQualityV2.result} isOpen={showAgentDecisionQualityV2} loading={agentDecisionQualityV2.loading} onClose={() => { agentDecisionQualityV2.setResult(null); setShowAgentDecisionQualityV2(false); }} />
+      )}
+      {showAgentCommunicationPatterns && (
+        <AgentCommunicationPatternModal result={agentCommunicationPatterns.result} isOpen={showAgentCommunicationPatterns} loading={agentCommunicationPatterns.loading} onClose={() => { agentCommunicationPatterns.setResult(null); setShowAgentCommunicationPatterns(false); }} />
       )}
     </div>
   );

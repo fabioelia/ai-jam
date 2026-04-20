@@ -58,6 +58,7 @@ import { agentQueueDepthRoutes } from './routes/agent-queue-depth.js';
 import { agentSkillGapRoutes } from './routes/agent-skill-gap.js';
 import { agentConflictDetectorRoutes } from './routes/agent-conflict-detector.js';
 import { agentDecisionQualityRoutes } from './routes/agent-decision-quality.js';
+import { agentDecisionQualityV2Routes } from './routes/agent-decision-quality-v2.js';
 import { agentPerformanceTrendRoutes } from './routes/agent-performance-trend.js';
 import { agentCoverageGapRoutes } from './routes/agent-coverage-gap.js';
 import { agentDependencyMapperRoutes } from './routes/agent-dependency-mapper.js';
@@ -112,6 +113,11 @@ import { agentCognitiveLoadRoutes } from './routes/agent-cognitive-load.js';
 import { agentGoalCompletionRoutes } from './routes/agent-goal-completion-route.js';
 import { agentParallelTaskEfficiencyRoutes } from './routes/agent-parallel-task-efficiency-route.js';
 import { agentLearningVelocityRoutes } from './routes/agent-learning-velocity.js';
+import { agentCommunicationPatternRoutes } from './routes/agent-communication-pattern-route.js';
+import { agentSelfCorrectionRateRoutes } from './routes/agent-self-correction-rate.js';
+import { agentDependencyResolutionRoutes } from './routes/agent-dependency-resolution.js';
+import { agentContextWindowRoutes } from './routes/agent-context-window.js';
+import { agentOutputConsistencyRoutes } from './routes/agent-output-consistency-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -204,6 +210,7 @@ async function main() {
   await fastify.register(agentSkillGapRoutes);
   await fastify.register(agentConflictDetectorRoutes);
   await fastify.register(agentDecisionQualityRoutes);
+  await fastify.register(agentDecisionQualityV2Routes);
   await fastify.register(agentPerformanceTrendRoutes);
   await fastify.register(agentCoverageGapRoutes);
   await fastify.register(agentDependencyMapperRoutes);
@@ -258,6 +265,11 @@ async function main() {
   await fastify.register(agentGoalCompletionRoutes);
   await fastify.register(agentParallelTaskEfficiencyRoutes);
   await fastify.register(agentLearningVelocityRoutes);
+  await fastify.register(agentCommunicationPatternRoutes);
+  await fastify.register(agentSelfCorrectionRateRoutes);
+  await fastify.register(agentDependencyResolutionRoutes);
+  await fastify.register(agentContextWindowRoutes);
+  await fastify.register(agentOutputConsistencyRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
