@@ -2915,3 +2915,36 @@ export function useAgentReassignmentRates() {
 
   return { analyze, loading, result, setResult };
 }
+
+
+export interface WeeklySnapshot {
+  weekStart: string;
+  ticketsCompleted: number;
+  avgCompletionTimeHours: number;
+  qualityScore: number;
+  handoffSuccessRate: number;
+}
+
+export interface AgentLearningProfile {
+  agentPersona: string;
+  snapshots: WeeklySnapshot[];
+  improvementSlope: number;
+  trend: 'improving' | 'stable' | 'declining';
+  stagnationWeeks: number;
+  peakQualityScore: number;
+  currentQualityScore: number;
+  recommendation: string;
+}
+
+export interface LearningCurveReport {
+  projectId: string;
+  generatedAt: string;
+  windowWeeks: number;
+  agents: AgentLearningProfile[];
+}
+
+export async function getAgentLearningCurves(projectId: string): Promise<LearningCurveReport> {
+  const response = await fetch(`/api/agent-learning-curves/${projectId}`);
+  if (!response.ok) throw new Error('Failed to fetch agent learning curves');
+  return response.json();
+}

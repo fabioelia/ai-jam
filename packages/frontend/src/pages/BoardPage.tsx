@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -75,6 +75,7 @@ import AgentWorkloadDistributionModal from '../components/board/AgentWorkloadDis
 import AgentSessionDepthModal from '../components/board/AgentSessionDepthModal.js';
 import AgentFeedbackLoopModal from '../components/board/AgentFeedbackLoopModal.js';
 import AgentReassignmentRatesModal from '../components/board/AgentReassignmentRatesModal.js';
+import AgentLearningCurveModal from '../components/board/AgentLearningCurveModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -306,6 +307,8 @@ export default function BoardPage() {
   const [showAgentFeedbackLoops, setShowAgentFeedbackLoops] = useState(false);
   const agentReassignmentRates = useAgentReassignmentRates();
   const [showAgentReassignmentRates, setShowAgentReassignmentRates] = useState(false);
+  const [showLearningCurveModal, setShowLearningCurveModal] = useState(false);
+  const [learningCurveData, setLearningCurveData] = useState<LearningCurveReport | null>(null);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1735,6 +1738,25 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Agent Learning Curves Button */}
+        <button
+          onClick={async () => {
+            setShowLearningCurveModal(true);
+            try {
+              const data = await getAgentLearningCurves(projectId!);
+              setLearningCurveData(data);
+            } catch (error) {
+              toast.error(`Learning curve analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+          Learning Curves
+        </button>
+
         {/* Task Complexity Button */}
         <button
           onClick={async () => {
@@ -2349,6 +2371,9 @@ export default function BoardPage() {
 
       {showAgentReassignmentRates && agentReassignmentRates.result && (
         <AgentReassignmentRatesModal report={agentReassignmentRates.result} onClose={() => { agentReassignmentRates.setResult(null); setShowAgentReassignmentRates(false); }} />
+      )}
+      {showLearningCurveModal && learningCurveData && (
+        <AgentLearningCurveModal report={learningCurveData} onClose={() => { setLearningCurveData(null); setShowLearningCurveModal(false); }} />
       )}
     </div>
   );
