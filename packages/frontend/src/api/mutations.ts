@@ -1574,16 +1574,30 @@ export interface AgentPriorityRecord {
   explanation: string;
 }
 
+export interface AgentPriorityAlignmentData {
+  agentId: string;
+  agentName: string;
+  criticalResolutionRate: number;
+  highPriorityFocusRate: number;
+  avgCriticalTimeHours: number;
+  avgLowTimeHours: number;
+  priorityAlignmentScore: number;
+  alignmentTier: 'aligned' | 'balanced' | 'inconsistent' | 'misaligned';
+}
+
 export interface PriorityAlignmentReport {
   projectId: string;
-  analyzedAt: string;
-  totalAgentsAnalyzed: number;
-  totalActiveTickets: number;
-  alignedAgents: number;
-  driftingAgents: number;
-  misalignedAgents: number;
-  agentRecords: AgentPriorityRecord[];
-  aiRecommendation: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgAlignmentScore: number;
+    mostAligned: string;
+    leastAligned: string;
+    criticalBacklogCount: number;
+  };
+  agents: AgentPriorityAlignmentData[];
+  insights: string[];
+  recommendations: string[];
 }
 
 export function useAgentPriorityAlignment() {

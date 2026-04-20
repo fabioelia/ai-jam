@@ -1,187 +1,229 @@
 import { db } from '../db/connection.js';
-import { tickets } from '../db/schema.js';
-import { eq, and, inArray, isNotNull } from 'drizzle-orm';
+import { tickets, agentSessions } from '../db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
-export type TicketPriority = 'critical' | 'high' | 'medium' | 'low';
-
-export interface AgentPriorityRecord {
-  agentPersona: string;
-  totalActiveTickets: number;
-  criticalCount: number;
-  highCount: number;
-  mediumCount: number;
-  lowCount: number;
-  highestPriorityWorking: TicketPriority | null;
-  lowestPriorityWorking: TicketPriority | null;
-  alignmentScore: number;
-  alignmentStatus: 'aligned' | 'drifting' | 'misaligned';
-  explanation: string;
+export interface AgentPriorityAlignmentData {
+  agentId: string;
+  agentName: string;
+  criticalResolutionRate: number;
+  highPriorityFocusRate: number;
+  avgCriticalTimeHours: number;
+  avgLowTimeHours: number;
+  priorityAlignmentScore: number;
+  alignmentTier: 'aligned' | 'balanced' | 'inconsistent' | 'misaligned';
 }
 
 export interface PriorityAlignmentReport {
   projectId: string;
-  analyzedAt: string;
-  totalAgentsAnalyzed: number;
-  totalActiveTickets: number;
-  alignedAgents: number;
-  driftingAgents: number;
-  misalignedAgents: number;
-  agentRecords: AgentPriorityRecord[];
-  aiRecommendation: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgAlignmentScore: number;
+    mostAligned: string;
+    leastAligned: string;
+    criticalBacklogCount: number;
+  };
+  agents: AgentPriorityAlignmentData[];
+  insights: string[];
+  recommendations: string[];
 }
 
-const PRIORITY_RANK: Record<TicketPriority, number> = {
-  critical: 4,
-  high: 3,
-  medium: 2,
-  low: 1,
-};
+export function computePriorityWeightedScore(
+  criticalResolutionRate: number,
+  highPriorityFocusRate: number,
+  avgCriticalTimeHours: number,
+  avgLowTimeHours: number,
+): number {
+  const hasTimeData = avgCriticalTimeHours > 0 || avgLowTimeHours > 0;
+  const speedRatio = hasTimeData
+    ? (avgLowTimeHours > 0 ? Math.min(avgCriticalTimeHours / avgLowTimeHours, 4) / 4 : 0.5)
+    : 0;
+  const speedWeight = hasTimeData ? 0.25 : 0;
+  const rateWeight = hasTimeData ? 1.0 : 1.0 / 0.75; // normalize when no speed data
+  const raw = hasTimeData
+    ? (criticalResolutionRate * 0.40) + (highPriorityFocusRate * 0.35) + ((1 - speedRatio) * 100 * speedWeight)
+    : (criticalResolutionRate * 0.40) + (highPriorityFocusRate * 0.35);
+  return Math.min(100, Math.max(0, Math.round(raw)));
+}
 
-const PRIORITY_ORDER: TicketPriority[] = ['critical', 'high', 'medium', 'low'];
-
-const FALLBACK_RECOMMENDATION =
-  'Ensure agents address critical and high-priority tickets before medium and low-priority work.';
-
-function computeAlignmentStatus(score: number): AgentPriorityRecord['alignmentStatus'] {
-  if (score >= 0.75) return 'aligned';
-  if (score >= 0.4) return 'drifting';
+export function getPriorityAlignmentTier(score: number): AgentPriorityAlignmentData['alignmentTier'] {
+  if (score >= 75) return 'aligned';
+  if (score >= 50) return 'balanced';
+  if (score >= 25) return 'inconsistent';
   return 'misaligned';
 }
 
-function computeExplanation(record: Omit<AgentPriorityRecord, 'explanation'>): string {
-  const { agentPersona, alignmentStatus, criticalCount, highCount, mediumCount, lowCount, alignmentScore } = record;
-  const pct = (alignmentScore * 100).toFixed(0);
-  if (alignmentStatus === 'aligned') {
-    return `${agentPersona} is working high-priority tickets (${pct}% alignment score).`;
-  }
-  if (alignmentStatus === 'drifting') {
-    const low = mediumCount + lowCount;
-    return `${agentPersona} has ${low} medium/low ticket(s) alongside ${criticalCount + highCount} critical/high — ${pct}% alignment.`;
-  }
-  return `${agentPersona} is focused on low-priority work (${mediumCount} medium, ${lowCount} low) while ${criticalCount + highCount} critical/high ticket(s) are assigned — ${pct}% alignment.`;
-}
+const FALLBACK_INSIGHTS = ['Priority alignment analysis complete.'];
+const FALLBACK_RECOMMENDATIONS = ['Focus on resolving critical tickets first to improve alignment scores.'];
 
 export async function analyzeAgentPriorityAlignment(projectId: string): Promise<PriorityAlignmentReport> {
-  const activeTickets = await db
+  const projectTickets = await db
     .select({
       id: tickets.id,
-      priority: tickets.priority,
       assignedPersona: tickets.assignedPersona,
+      status: tickets.status,
+      priority: tickets.priority,
+      createdAt: tickets.createdAt,
     })
     .from(tickets)
-    .where(
-      and(
-        eq(tickets.projectId, projectId),
-        inArray(tickets.status, ['in_progress']),
-        isNotNull(tickets.assignedPersona),
-      ),
-    );
+    .where(eq(tickets.projectId, projectId));
 
-  if (activeTickets.length === 0) {
+  const ticketIds = projectTickets.map(t => t.id);
+  let allSessions: { id: string; ticketId: string | null; personaType: string; status: string; startedAt: Date | null; completedAt: Date | null }[] = [];
+
+  if (ticketIds.length > 0) {
+    allSessions = await db
+      .select({
+        id: agentSessions.id,
+        ticketId: agentSessions.ticketId,
+        personaType: agentSessions.personaType,
+        status: agentSessions.status,
+        startedAt: agentSessions.startedAt,
+        completedAt: agentSessions.completedAt,
+      })
+      .from(agentSessions)
+      .where(inArray(agentSessions.ticketId, ticketIds));
+  }
+
+  const criticalBacklogCount = projectTickets.filter(
+    t => (t.priority === 'critical') && t.status !== 'done' && t.status !== 'acceptance',
+  ).length;
+
+  if (projectTickets.length === 0 || allSessions.length === 0) {
     return {
       projectId,
-      analyzedAt: new Date().toISOString(),
-      totalAgentsAnalyzed: 0,
-      totalActiveTickets: 0,
-      alignedAgents: 0,
-      driftingAgents: 0,
-      misalignedAgents: 0,
-      agentRecords: [],
-      aiRecommendation: FALLBACK_RECOMMENDATION,
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalAgents: 0,
+        avgAlignmentScore: 0,
+        mostAligned: '',
+        leastAligned: '',
+        criticalBacklogCount,
+      },
+      agents: [],
+      insights: FALLBACK_INSIGHTS,
+      recommendations: FALLBACK_RECOMMENDATIONS,
     };
   }
 
-  const agentMap = new Map<string, { critical: number; high: number; medium: number; low: number }>();
+  // Build ticket map
+  const ticketMap = new Map(projectTickets.map(t => [t.id, t]));
 
-  for (const t of activeTickets) {
-    const persona = t.assignedPersona as string;
-    if (!agentMap.has(persona)) {
-      agentMap.set(persona, { critical: 0, high: 0, medium: 0, low: 0 });
+  // Group sessions by persona
+  const sessionsByPersona = new Map<string, typeof allSessions>();
+  for (const s of allSessions) {
+    const list = sessionsByPersona.get(s.personaType) ?? [];
+    list.push(s);
+    sessionsByPersona.set(s.personaType, list);
+  }
+
+  const agents: AgentPriorityAlignmentData[] = [];
+
+  for (const [personaType, sessions] of sessionsByPersona.entries()) {
+    const ticketsForAgent = projectTickets.filter(t => t.assignedPersona === personaType);
+    const totalTickets = ticketsForAgent.length;
+
+    const criticalTickets = ticketsForAgent.filter(t => t.priority === 'critical');
+    const criticalResolved = criticalTickets.filter(t => t.status === 'done' || t.status === 'acceptance').length;
+    const criticalResolutionRate = criticalTickets.length > 0 ? (criticalResolved / criticalTickets.length) * 100 : 0;
+
+    const highOrCritical = ticketsForAgent.filter(t => t.priority === 'critical' || t.priority === 'high').length;
+    const highPriorityFocusRate = totalTickets > 0 ? (highOrCritical / totalTickets) * 100 : 0;
+
+    // Compute avg session durations for critical vs low tickets
+    const completedSessions = sessions.filter(s => s.status === 'completed' && s.startedAt && s.completedAt);
+    const criticalSessionHours: number[] = [];
+    const lowSessionHours: number[] = [];
+
+    for (const s of completedSessions) {
+      const ticket = ticketMap.get(s.ticketId ?? '');
+      if (!ticket) continue;
+      const hours = (new Date(s.completedAt!).getTime() - new Date(s.startedAt!).getTime()) / (1000 * 60 * 60);
+      if (ticket.priority === 'critical') criticalSessionHours.push(hours);
+      if (ticket.priority === 'low') lowSessionHours.push(hours);
     }
-    const counts = agentMap.get(persona)!;
-    const p = (t.priority ?? 'medium') as TicketPriority;
-    if (p in counts) counts[p as keyof typeof counts]++;
+
+    const avgCriticalTimeHours = criticalSessionHours.length > 0
+      ? criticalSessionHours.reduce((a, b) => a + b, 0) / criticalSessionHours.length
+      : 0;
+    const avgLowTimeHours = lowSessionHours.length > 0
+      ? lowSessionHours.reduce((a, b) => a + b, 0) / lowSessionHours.length
+      : 0;
+
+    const priorityAlignmentScore = computePriorityWeightedScore(
+      criticalResolutionRate,
+      highPriorityFocusRate,
+      avgCriticalTimeHours,
+      avgLowTimeHours,
+    );
+
+    agents.push({
+      agentId: personaType,
+      agentName: personaType.charAt(0).toUpperCase() + personaType.slice(1).replace(/_/g, ' '),
+      criticalResolutionRate: Math.round(criticalResolutionRate * 100) / 100,
+      highPriorityFocusRate: Math.round(highPriorityFocusRate * 100) / 100,
+      avgCriticalTimeHours: Math.round(avgCriticalTimeHours * 10) / 10,
+      avgLowTimeHours: Math.round(avgLowTimeHours * 10) / 10,
+      priorityAlignmentScore,
+      alignmentTier: getPriorityAlignmentTier(priorityAlignmentScore),
+    });
   }
 
-  const agentRecords: AgentPriorityRecord[] = [];
+  agents.sort((a, b) => b.priorityAlignmentScore - a.priorityAlignmentScore);
 
-  for (const [persona, counts] of agentMap) {
-    const tickets: TicketPriority[] = [
-      ...Array(counts.critical).fill('critical' as TicketPriority),
-      ...Array(counts.high).fill('high' as TicketPriority),
-      ...Array(counts.medium).fill('medium' as TicketPriority),
-      ...Array(counts.low).fill('low' as TicketPriority),
-    ];
+  const avgAlignmentScore = agents.length > 0
+    ? Math.round(agents.reduce((s, a) => s + a.priorityAlignmentScore, 0) / agents.length)
+    : 0;
+  const mostAligned = agents.length > 0 ? agents[0].agentName : '';
+  const leastAligned = agents.length > 0 ? agents[agents.length - 1].agentName : '';
 
-    const total = tickets.length;
-    const avgRank = tickets.reduce((sum, p) => sum + PRIORITY_RANK[p], 0) / total;
-    const alignmentScore = avgRank / 4;
-    const alignmentStatus = computeAlignmentStatus(alignmentScore);
+  let insights = FALLBACK_INSIGHTS;
+  let recommendations = FALLBACK_RECOMMENDATIONS;
 
-    const working = tickets.slice().sort((a, b) => PRIORITY_RANK[b] - PRIORITY_RANK[a]);
-    const highestPriorityWorking = working[0] ?? null;
-    const lowestPriorityWorking = working[working.length - 1] ?? null;
-
-    const partial: Omit<AgentPriorityRecord, 'explanation'> = {
-      agentPersona: persona,
-      totalActiveTickets: total,
-      criticalCount: counts.critical,
-      highCount: counts.high,
-      mediumCount: counts.medium,
-      lowCount: counts.low,
-      highestPriorityWorking,
-      lowestPriorityWorking,
-      alignmentScore,
-      alignmentStatus,
-    };
-
-    agentRecords.push({ ...partial, explanation: computeExplanation(partial) });
-  }
-
-  agentRecords.sort((a, b) => a.alignmentScore - b.alignmentScore);
-
-  const alignedAgents = agentRecords.filter((r) => r.alignmentStatus === 'aligned').length;
-  const driftingAgents = agentRecords.filter((r) => r.alignmentStatus === 'drifting').length;
-  const misalignedAgents = agentRecords.filter((r) => r.alignmentStatus === 'misaligned').length;
-
-  let aiRecommendation = FALLBACK_RECOMMENDATION;
   try {
     const client = new Anthropic({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: process.env.OPENROUTER_API_KEY || '',
+      defaultHeaders: { 'HTTP-Referer': 'https://ai-jam.app', 'X-Title': 'AI Jam' },
     });
 
-    const summary = agentRecords
-      .map(
-        (r) =>
-          `Agent: ${r.agentPersona}, Score: ${(r.alignmentScore * 100).toFixed(0)}%, Status: ${r.alignmentStatus}, Critical: ${r.criticalCount}, High: ${r.highCount}, Medium: ${r.mediumCount}, Low: ${r.lowCount}`,
-      )
-      .join('\n');
+    const agentSummary = agents.slice(0, 8).map(a =>
+      `${a.agentName}: score=${a.priorityAlignmentScore}, tier=${a.alignmentTier}, critRate=${a.criticalResolutionRate}%, highFocus=${a.highPriorityFocusRate}%`
+    ).join('\n');
 
-    const prompt = `Analyze this agent priority alignment data and write a single paragraph (2-3 sentences) with an actionable recommendation for improving priority alignment. Be concise.\n\n${summary}`;
+    const prompt = `Analyze AI agent priority alignment:\n${agentSummary}\n\nProvide JSON: {"insights": ["...", "..."], "recommendations": ["...", "..."]}`;
 
-    const response = await client.messages.create({
+    const msg = await client.messages.create({
       model: process.env.AI_MODEL || 'qwen/qwen3-6b',
-      max_tokens: 200,
+      max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    if (content) aiRecommendation = content;
-  } catch (e) {
-    console.warn('Priority alignment AI recommendation failed, using fallback:', e);
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+    if (raw) {
+      const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const jsonStr = fenceMatch ? fenceMatch[1].trim() : raw;
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed.insights) && parsed.insights.length > 0) insights = parsed.insights;
+      if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) recommendations = parsed.recommendations;
+    }
+  } catch {
+    // fallback
   }
 
   return {
     projectId,
-    analyzedAt: new Date().toISOString(),
-    totalAgentsAnalyzed: agentRecords.length,
-    totalActiveTickets: activeTickets.length,
-    alignedAgents,
-    driftingAgents,
-    misalignedAgents,
-    agentRecords,
-    aiRecommendation,
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalAgents: agents.length,
+      avgAlignmentScore,
+      mostAligned,
+      leastAligned,
+      criticalBacklogCount,
+    },
+    agents,
+    insights,
+    recommendations,
   };
 }
