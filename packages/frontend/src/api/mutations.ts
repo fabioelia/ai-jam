@@ -1557,3 +1557,50 @@ export function useAgentResponseTime() {
 
   return { profile, loading, result, setResult };
 }
+
+export type TicketPriority = 'critical' | 'high' | 'medium' | 'low';
+
+export interface AgentPriorityRecord {
+  agentPersona: string;
+  totalActiveTickets: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  highestPriorityWorking: TicketPriority | null;
+  lowestPriorityWorking: TicketPriority | null;
+  alignmentScore: number;
+  alignmentStatus: 'aligned' | 'drifting' | 'misaligned';
+  explanation: string;
+}
+
+export interface PriorityAlignmentReport {
+  projectId: string;
+  analyzedAt: string;
+  totalAgentsAnalyzed: number;
+  totalActiveTickets: number;
+  alignedAgents: number;
+  driftingAgents: number;
+  misalignedAgents: number;
+  agentRecords: AgentPriorityRecord[];
+  aiRecommendation: string;
+}
+
+export function useAgentPriorityAlignment() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<PriorityAlignmentReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<PriorityAlignmentReport>(`/projects/${projectId}/agent-priority-alignment`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

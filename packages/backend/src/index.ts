@@ -50,6 +50,7 @@ import { agentCollaborationNetworkRoutes } from './routes/agent-collaboration-ne
 import { agentContextRetentionRoutes } from './routes/agent-context-retention.js';
 import { agentFocusAdvisorRoutes } from './routes/agent-focus-advisor.js';
 import { agentResponseTimeRoutes } from './routes/agent-response-time.js';
+import { agentPriorityAlignmentRoutes } from './routes/agent-priority-alignment.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -134,6 +135,7 @@ async function main() {
   await fastify.register(agentContextRetentionRoutes);
   await fastify.register(agentFocusAdvisorRoutes);
   await fastify.register(agentResponseTimeRoutes);
+  await fastify.register(agentPriorityAlignmentRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
