@@ -1,4 +1,5 @@
 import type { TicketStatus, TicketPriority, GateResult, AttentionItemType, AttentionItemStatus } from '../enums.js';
+import type { CommentReaction } from './presence.js';
 
 export interface Epic {
   id: string;
@@ -58,14 +59,30 @@ export interface TicketNote {
   createdAt: string;
 }
 
+export interface CommentReactionSummary {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
 export interface Comment {
   id: string;
   ticketId: string;
   userId: string;
   body: string;
   source: 'human' | 'mcp' | 'api';
+  mentionedUserIds: string[];
+  reactions: CommentReactionSummary[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface GateValidationResult {
+  approved: boolean;
+  score: number;
+  assessment: string;
+  gaps: string[];
+  checklist: Array<{ item: string; met: boolean }>;
 }
 
 export interface TransitionGate {
@@ -76,6 +93,7 @@ export interface TransitionGate {
   gatekeeperPersona: string;
   result: GateResult;
   feedback: string | null;
+  aiAssessment: GateValidationResult | null;
   agentSessionId: string | null;
   createdAt: string;
   resolvedAt: string | null;
@@ -127,4 +145,14 @@ export interface CreateEpicRequest {
   title: string;
   description?: string;
   color?: string;
+}
+
+export interface DependencyChainNode {
+  ticket: Ticket;
+  depth: number;
+}
+
+export interface DependencyChain {
+  upstream: DependencyChainNode[];
+  downstream: DependencyChainNode[];
 }

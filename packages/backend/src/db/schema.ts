@@ -183,6 +183,7 @@ export const transitionGates = pgTable('transition_gates', {
   agentSessionId: uuid('agent_session_id').references(() => agentSessions.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  aiAssessment: jsonb('ai_assessment'),
 });
 
 // Agent Sessions

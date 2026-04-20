@@ -48,18 +48,7 @@ export default function HandoffTimeline({ notes, gates, sessions }: HandoffTimel
   ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   if (items.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-6">
-        <div className="text-center animate-in fade-in duration-300">
-          <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-2 animate-in scale-in duration-200">
-            <svg className="w-5 h-5 text-gray-600 animate-in fade-in duration-300 delay-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <p className="text-xs text-gray-600 italic animate-in fade-in duration-300 delay-200">No agent activity yet</p>
-        </div>
-      </div>
-    );
+    return <p className="text-xs text-gray-600 italic">No agent activity yet</p>;
   }
 
   return (
@@ -119,6 +108,7 @@ function HandoffEntry({ note }: { note: TicketNote }) {
 
 function GateEntry({ gate }: { gate: TransitionGate }) {
   const style = GATE_RESULT_STYLES[gate.result] || GATE_RESULT_STYLES.pending;
+  const ai = gate.aiAssessment;
 
   return (
     <div>
@@ -135,6 +125,43 @@ function GateEntry({ gate }: { gate: TransitionGate }) {
       </div>
       {gate.feedback && (
         <p className="text-xs text-red-400/80 mt-0.5 line-clamp-2">{gate.feedback}</p>
+      )}
+      {ai && (
+        <div className="mt-1.5 rounded bg-gray-800/60 border border-gray-700 p-2 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-400">AI Assessment</span>
+            <span className={`text-xs px-1 py-0.5 rounded ${ai.approved ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+              {ai.approved ? '✓ Approved' : '⚠ Gaps found'}
+            </span>
+            <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full ${ai.score >= 0.85 ? 'bg-green-500' : ai.score >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                style={{ width: `${Math.round(ai.score * 100)}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-500">{Math.round(ai.score * 100)}%</span>
+          </div>
+          <p className="text-xs text-gray-400">{ai.assessment}</p>
+          {ai.checklist.length > 0 && (
+            <ul className="space-y-0.5">
+              {ai.checklist.map((c, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-xs">
+                  <span className={c.met ? 'text-green-400 mt-0.5' : 'text-red-400 mt-0.5'}>
+                    {c.met ? '✓' : '✗'}
+                  </span>
+                  <span className={c.met ? 'text-gray-400' : 'text-gray-300'}>{c.item}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {ai.gaps.length > 0 && (
+            <ul className="space-y-0.5">
+              {ai.gaps.map((gap, i) => (
+                <li key={i} className="text-xs text-yellow-400/80">• {gap}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

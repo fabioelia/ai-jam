@@ -1194,6 +1194,57 @@ export function useAgentKnowledgeGaps() {
   return { analyze, loading, result, setResult };
 }
 
+export interface HandoffIssue {
+  category: 'missing-context' | 'vague-instructions' | 'no-acceptance-criteria' | 'missing-artifacts' | 'unclear-scope';
+  severity: 'high' | 'medium' | 'low';
+  description: string;
+}
+
+export interface HandoffQualityScore {
+  handoffId: string;
+  ticketId: string;
+  ticketTitle: string;
+  fromAgent: string;
+  toAgent: string;
+  score: number;
+  grade: 'excellent' | 'good' | 'needs-improvement' | 'poor';
+  issues: HandoffIssue[];
+  suggestions: string[];
+  analyzedAt: string;
+}
+
+export interface HandoffQualityReport {
+  projectId: string;
+  totalHandoffs: number;
+  averageScore: number;
+  excellentCount: number;
+  goodCount: number;
+  needsImprovementCount: number;
+  poorCount: number;
+  handoffs: HandoffQualityScore[];
+  topIssues: { category: string; count: number }[];
+  analyzedAt: string;
+}
+
+export function useAgentHandoffQuality() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<HandoffQualityReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<HandoffQualityReport>(`/projects/${projectId}/agent-handoff-quality`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);

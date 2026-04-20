@@ -8,6 +8,7 @@ import {
   rejectTransition,
   getTransitionGates,
 } from '../services/transition-service.js';
+import { validateTicketForTransition } from '../services/gate-validator-service.js';
 import { notifyTicketStakeholders } from '../services/notification-service.js';
 import type { TicketStatus } from '@ai-jam/shared';
 
@@ -21,6 +22,23 @@ export async function transitionGateRoutes(fastify: FastifyInstance) {
       return getTransitionGates(request.params.ticketId);
     }
   );
+
+  // Standalone AI validation — check readiness without triggering a move
+  fastify.post<{
+    Params: { ticketId: string };
+    Body: { targetStatus: TicketStatus };
+  }>('/api/tickets/:ticketId/transitions/ai-validate', async (request, reply) => {
+    const { targetStatus } = request.body;
+    if (!targetStatus) return reply.status(400).send({ error: 'targetStatus is required' });
+
+    try {
+      const result = await validateTicketForTransition(request.params.ticketId, targetStatus);
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return reply.status(500).send({ error: message });
+    }
+  });
 
   // Create a transition gate (used by agent-runtime gatekeeper)
   fastify.post<{

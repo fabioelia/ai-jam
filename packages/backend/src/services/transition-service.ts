@@ -4,7 +4,8 @@ import { eq, and, desc } from 'drizzle-orm';
 import { broadcastToBoard, broadcastToTicket } from '../websocket/socket-server.js';
 import { notifyProjectMembers } from './notification-service.js';
 import { createAttentionItem } from './attention-service.js';
-import type { TicketStatus } from '@ai-jam/shared';
+import { validateTicketForTransition } from './gate-validator-service.js';
+import type { TicketStatus, GateValidationResult } from '@ai-jam/shared';
 
 /** Map of transitions that require a gatekeeper */
 const GATED_TRANSITIONS: Record<string, string> = {
@@ -42,6 +43,7 @@ export async function requestTransition(
   toStatus: TicketStatus,
   gatekeeperPersona: string,
   agentSessionId?: string,
+  aiAssessment?: GateValidationResult,
 ): Promise<string> {
   // Check rejection count to enforce cap
   const [ticketForCheck] = await db.select().from(tickets).where(eq(tickets.id, ticketId));
@@ -113,6 +115,7 @@ export async function requestTransition(
       toStatus,
       gatekeeperPersona,
       result: 'pending',
+      aiAssessment: aiAssessment ?? null,
       agentSessionId: agentSessionId || null,
     })
     .returning();
@@ -386,6 +389,52 @@ export async function requestGateAwareMove(params: {
     return { transitioned: true, gated: false, ticketStatus: toStatus, requestedStatus: toStatus };
   }
 
+  // Run AI pre-validation before creating gate record
+  let aiAssessment: GateValidationResult | undefined;
+  try {
+    aiAssessment = await validateTicketForTransition(ticketId, toStatus);
+  } catch (err) {
+    console.warn('[transition-service] AI gate validation failed (non-blocking):', err);
+  }
+
+  // Check project-level autoApproveGates setting
+  const [projectSettings] = await db
+    .select({ transitionGates: projects.transitionGates })
+    .from(projects)
+    .where(eq(projects.id, ticket.projectId));
+
+  const gateConfig = (projectSettings?.transitionGates as Record<string, boolean>) ?? {};
+  const autoApprove = gateConfig['autoApproveGates'] === true;
+
+  if (autoApprove && aiAssessment?.approved && aiAssessment.score >= 0.85) {
+    // AI approved at high confidence — skip gate and move directly
+    const [updated] = await db
+      .update(tickets)
+      .set({ status: toStatus, updatedAt: new Date() })
+      .where(eq(tickets.id, ticketId))
+      .returning();
+
+    broadcastToBoard(ticket.projectId, 'board:ticket:moved', {
+      ticketId: updated.id,
+      fromStatus,
+      toStatus,
+      sortOrder: updated.sortOrder,
+    });
+
+    notifyProjectMembers({
+      projectId: ticket.projectId,
+      type: 'ticket_moved',
+      title: `${ticket.title} auto-approved by AI (score ${aiAssessment.score.toFixed(2)})`,
+      body: aiAssessment.assessment,
+      actionUrl: `/projects/${ticket.projectId}/board?ticket=${ticket.id}`,
+      featureId: ticket.featureId ?? undefined,
+      ticketId: ticket.id,
+      metadata: { fromStatus, toStatus, persona: requestedBy },
+    }).catch(() => {});
+
+    return { transitioned: true, gated: false, ticketStatus: toStatus, requestedStatus: toStatus };
+  }
+
   // Gate is active — create gate record + attention item (via existing requestTransition)
   const gateId = await requestTransition(
     ticketId,
@@ -393,6 +442,7 @@ export async function requestGateAwareMove(params: {
     toStatus,
     requestedBy,
     agentSessionId,
+    aiAssessment,
   );
 
   return {
