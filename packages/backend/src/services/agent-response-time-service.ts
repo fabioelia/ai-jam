@@ -75,7 +75,7 @@ export async function profileResponseTimes(projectId: string): Promise<ResponseT
     }
     const bucket = agentMap.get(persona)!;
 
-    if (ticket.status === 'backlog' || ticket.status === 'todo') {
+    if (ticket.status === 'backlog') {
       bucket.unstarted += 1;
     } else {
       const createdAt = ticket.createdAt ? new Date(ticket.createdAt).getTime() : 0;

@@ -45,10 +45,10 @@ describe('profileResponseTimes', () => {
     expect(report.totalAgents).toBe(0);
   });
 
-  it('skips backlog/todo tickets from response time calculation', async () => {
+  it('skips backlog tickets from response time calculation', async () => {
     const tickets = [
       makeTicket({ id: 't1', status: 'backlog' }),
-      makeTicket({ id: 't2', status: 'todo' }),
+      makeTicket({ id: 't2', status: 'backlog' }),
     ];
     mockDb(tickets);
     const report = await profileResponseTimes('proj-1');
@@ -94,7 +94,7 @@ describe('profileResponseTimes', () => {
     mockDb([
       makeTicket({ id: 't1', status: 'in_progress', createdAt: created, updatedAt: updated }),
       makeTicket({ id: 't2', status: 'backlog' }),
-      makeTicket({ id: 't3', status: 'todo' }),
+      makeTicket({ id: 't3', status: 'backlog' }),
     ]);
     const report = await profileResponseTimes('proj-1');
     const agent = report.agentProfiles[0];
