@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -47,6 +47,7 @@ import AgentPriorityAlignmentModal from '../components/board/AgentPriorityAlignm
 import AgentStallDetectorModal from '../components/board/AgentStallDetectorModal.js';
 import AgentSpecializationMapperModal from '../components/board/AgentSpecializationMapperModal.js';
 import AgentBottleneckAnalyzerModal from '../components/board/AgentBottleneckAnalyzerModal.js';
+import AgentQueueDepthModal from '../components/board/AgentQueueDepthModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -221,6 +222,8 @@ export default function BoardPage() {
   const [showSpecializationMapper, setShowSpecializationMapper] = useState(false);
   const agentBottleneckAnalyzer = useAgentBottleneckAnalyzer();
   const [showBottleneckAnalyzer, setShowBottleneckAnalyzer] = useState(false);
+  const agentQueueDepth = useAgentQueueDepth();
+  const [showAgentQueueDepth, setShowAgentQueueDepth] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1106,6 +1109,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Queue Depth Button */}
+        <button
+          onClick={async () => {
+            setShowAgentQueueDepth(true);
+            try {
+              await agentQueueDepth.monitor(projectId!);
+            } catch (error) {
+              toast.error(`Queue depth monitoring failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentQueueDepth.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+        >
+          {agentQueueDepth.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4' /></svg> Queue Depth</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1588,6 +1611,10 @@ export default function BoardPage() {
 
       {showBottleneckAnalyzer && (
         <AgentBottleneckAnalyzerModal result={agentBottleneckAnalyzer.result} isOpen={showBottleneckAnalyzer} loading={agentBottleneckAnalyzer.loading} onClose={() => { agentBottleneckAnalyzer.setResult(null); setShowBottleneckAnalyzer(false); }} />
+      )}
+
+      {showAgentQueueDepth && (
+        <AgentQueueDepthModal result={agentQueueDepth.result} isOpen={showAgentQueueDepth} loading={agentQueueDepth.loading} onClose={() => { agentQueueDepth.setResult(null); setShowAgentQueueDepth(false); }} />
       )}
     </div>
   );

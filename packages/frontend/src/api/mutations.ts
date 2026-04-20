@@ -1744,3 +1744,44 @@ export function useAgentBottleneckAnalyzer() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentQueueProfile {
+  agentPersona: string;
+  queueDepth: number;
+  criticalQueued: number;
+  highQueued: number;
+  activeTickets: number;
+  totalLoad: number;
+  overflowRisk: 'low' | 'medium' | 'high';
+  recommendation: string;
+}
+
+export interface QueueDepthReport {
+  projectId: string;
+  agentProfiles: AgentQueueProfile[];
+  totalAgents: number;
+  overloadedAgents: number;
+  idleAgents: number;
+  avgQueueDepth: number;
+  generatedAt: string;
+}
+
+export function useAgentQueueDepth() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<QueueDepthReport | null>(null);
+
+  const monitor = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<QueueDepthReport>(
+        `/projects/${projectId}/agent-queue-depth`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { monitor, loading, result, setResult };
+}
