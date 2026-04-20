@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzeKnowledgeGaps } from './agent-knowledge-gap-service.js';
+import {
+  analyzeKnowledgeGaps,
+  analyzeAgentKnowledgeGaps,
+  detectDomain,
+  computeKnowledgeScore,
+  getGapSeverity,
+  getProficiencyTier,
+} from './agent-knowledge-gap-service.js';
 
 vi.mock('../db/connection.js', () => ({ db: { select: vi.fn() } }));
 vi.mock('@anthropic-ai/sdk', () => ({
@@ -144,5 +151,67 @@ describe('analyzeKnowledgeGaps', () => {
     ]);
     const result = await analyzeKnowledgeGaps('proj-1');
     expect(result.insight).toBe('Analysis based on current ticket assignment distribution');
+  });
+});
+
+// FEAT-114: analyzeAgentKnowledgeGaps tests
+describe('analyzeAgentKnowledgeGaps', () => {
+  it('returns report with correct projectId and generatedAt', () => {
+    const result = analyzeAgentKnowledgeGaps('proj-xyz', []);
+    expect(result.projectId).toBe('proj-xyz');
+    expect(result.generatedAt).toBeTruthy();
+    expect(new Date(result.generatedAt).getTime()).toBeGreaterThan(0);
+  });
+
+  it('correctly detects domain from keywords in session title', () => {
+    const sessions = [
+      { agentId: 'alice', title: 'Fix database migration issue', status: 'completed' },
+      { agentId: 'alice', title: 'Update React component styles', status: 'completed' },
+    ];
+    const result = analyzeAgentKnowledgeGaps('proj-1', sessions);
+    const domains = result.agents[0].domains.map((d) => d.domain);
+    expect(domains).toContain('backend');
+    expect(domains).toContain('frontend');
+  });
+
+  it('computes high knowledgeScore for high success + low retries + low escalation', () => {
+    const score = computeKnowledgeScore(100, 0, 0);
+    expect(score).toBeGreaterThanOrEqual(90);
+  });
+
+  it('computes low knowledgeScore (capped at 0) for low success + high retries + high escalation', () => {
+    const score = computeKnowledgeScore(0, 10, 100);
+    expect(score).toBe(0);
+  });
+
+  it('gapSeverity: 80→none, 60→minor, 40→moderate, 20→critical', () => {
+    expect(getGapSeverity(80)).toBe('none');
+    expect(getGapSeverity(60)).toBe('minor');
+    expect(getGapSeverity(40)).toBe('moderate');
+    expect(getGapSeverity(20)).toBe('critical');
+  });
+
+  it('proficiencyTier: specialist(80), generalist(60), developing(40), struggling(20)', () => {
+    expect(getProficiencyTier(80)).toBe('specialist');
+    expect(getProficiencyTier(60)).toBe('generalist');
+    expect(getProficiencyTier(40)).toBe('developing');
+    expect(getProficiencyTier(20)).toBe('struggling');
+  });
+
+  it('summary.criticalGapCount is correct', () => {
+    const sessions = [
+      { agentId: 'alice', title: 'api fix', status: 'failed', retries: 5, escalated: true },
+    ];
+    const result = analyzeAgentKnowledgeGaps('proj-1', sessions);
+    expect(result.summary.criticalGapCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('summary.mostStruggling is the agent with lowest avgDomainScore', () => {
+    const sessions = [
+      { agentId: 'good-agent', title: 'api work', status: 'completed', retries: 0, escalated: false },
+      { agentId: 'bad-agent', title: 'api work', status: 'failed', retries: 8, escalated: true },
+    ];
+    const result = analyzeAgentKnowledgeGaps('proj-1', sessions);
+    expect(result.summary.mostStruggling).toBe('bad-agent');
   });
 });
