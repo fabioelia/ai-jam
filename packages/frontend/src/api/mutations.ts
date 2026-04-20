@@ -2108,6 +2108,49 @@ export function useAgentHandoffSuccess() {
   return { analyze, loading, result, setResult };
 }
 
+export type IdleStatus = 'overloaded' | 'active' | 'underutilized' | 'idle';
+
+export interface AgentIdleTimeStats {
+  agentPersona: string;
+  totalTickets: number;
+  idleGapHours: number;
+  longestIdleGap: number;
+  utilizationRate: number;
+  status: IdleStatus;
+}
+
+export interface AgentIdleTimeAnalysis {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentIdleTimeStats[];
+  avgIdleGapHours: number;
+  mostIdleAgent: string | null;
+  totalIdleRisk: number;
+  overallUtilization: number;
+  summary: string;
+  recommendations: string[];
+}
+
+export function useAgentIdleTime() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentIdleTimeAnalysis | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentIdleTimeAnalysis>(
+        `/projects/${projectId}/agent-idle-time`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useAgentDependencyMapper() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AgentDependencyMapReport | null>(null);
