@@ -137,6 +137,53 @@ export default function AgentDependencyResolutionModal({ result, isOpen, loading
                 </table>
               </div>
 
+              {/* Blocked Tickets */}
+              {result.blockedTicketDetails && result.blockedTicketDetails.length > 0 && (
+                <div>
+                  <h3 className="text-indigo-400 text-sm font-semibold mb-2">Blocked Tickets</h3>
+                  <div className="overflow-x-auto rounded-lg border border-gray-700">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-800/60 text-gray-400 text-xs uppercase tracking-wide">
+                          <th className="px-4 py-3 text-left">Ticket</th>
+                          <th className="px-4 py-3 text-center">Blocked By (count)</th>
+                          <th className="px-4 py-3 text-center">Wait Time</th>
+                          <th className="px-4 py-3 text-center">Risk</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800">
+                        {result.blockedTicketDetails.map((t, i) => (
+                          <tr key={i} className="hover:bg-gray-800/30 transition-colors">
+                            <td className="px-4 py-3 text-white font-medium">{t.ticketTitle}</td>
+                            <td className="px-4 py-3 text-center text-gray-300">{t.blockedBy.length}</td>
+                            <td className="px-4 py-3 text-center text-gray-300">{t.waitTimeHours}h</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${
+                                t.riskLevel === 'critical' ? 'bg-red-500/20 text-red-400 border-red-500/40' :
+                                t.riskLevel === 'high' ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' :
+                                t.riskLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' :
+                                'bg-green-500/20 text-green-400 border-green-500/40'
+                              }`}>{t.riskLevel}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              {/* Circular Dependencies */}
+              {result.circularDependencyChains && result.circularDependencyChains.length > 0 && (
+                <div>
+                  <h3 className="text-indigo-400 text-sm font-semibold mb-2">Circular Dependencies</h3>
+                  {result.circularDependencyChains.map((c, i) => (
+                    <div key={i} className="bg-red-900/20 border border-red-500/30 rounded p-2 mb-1 text-sm text-gray-300">
+                      {c.chain.join(' → ')}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Insights */}
               {(result.aiSummary || result.aiRecommendations?.length > 0) && (
                 <div className="space-y-3">

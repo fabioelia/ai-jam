@@ -4328,6 +4328,8 @@ export interface AgentDependencyResolutionReport {
   longestBlockChain: number;
   aiSummary: string;
   aiRecommendations: string[];
+  blockedTicketDetails?: { ticketId: string; ticketTitle: string; blockedBy: string[]; waitTimeHours: number; riskLevel: string }[];
+  circularDependencyChains?: { chain: string[]; detectedAt: string }[];
 }
 
 export function useAgentDependencyResolution(projectId: string) {

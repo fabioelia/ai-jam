@@ -14,6 +14,19 @@ export interface AgentDependencyResolutionMetrics {
   resolutionTier: 'expert' | 'proficient' | 'developing' | 'struggling';
 }
 
+export interface BlockedTicketInfo {
+  ticketId: string;
+  ticketTitle: string;
+  blockedBy: string[];
+  waitTimeHours: number;
+  riskLevel: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface CircularDependencyChain {
+  chain: string[];
+  detectedAt: string;
+}
+
 export interface AgentDependencyResolutionReport {
   projectId: string;
   agents: AgentDependencyResolutionMetrics[];
@@ -26,6 +39,8 @@ export interface AgentDependencyResolutionReport {
   longestBlockChain: number;
   aiSummary: string;
   aiRecommendations: string[];
+  blockedTicketDetails?: BlockedTicketInfo[];
+  circularDependencyChains?: CircularDependencyChain[];
 }
 
 // Pure functions for testing (FEAT-109)
@@ -187,7 +202,7 @@ export function buildDependencyResolutionMetrics(
 
     const dependencyResolutionRate =
       totalDependencies > 0
-        ? Math.round((resolvedDependencies / totalDependencies) * 100)
+        ? Math.round((resolvedDependencies / totalDependencies) * 10000) / 100
         : 0;
 
     // avgResolutionTime: avg duration of completed sessions for this agent (hours)
@@ -269,7 +284,7 @@ export async function analyzeAgentDependencyResolution(
   ).length;
   const dependencyResolutionRate =
     totalDependencies > 0
-      ? Math.round((resolvedDependencies / totalDependencies) * 100)
+      ? Math.round((resolvedDependencies / totalDependencies) * 10000) / 100
       : 0;
 
   const blockedTickets = totalDependencies;
@@ -337,6 +352,21 @@ export async function analyzeAgentDependencyResolution(
     console.warn('Dependency resolution AI analysis failed, using fallback:', e);
   }
 
+  const blockedTicketDetails: BlockedTicketInfo[] = projectTickets
+    .filter(t => t.blockedBy && t.blockedBy !== '')
+    .map(t => ({
+      ticketId: t.id,
+      ticketTitle: t.id,
+      blockedBy: [t.blockedBy!],
+      waitTimeHours: 24,
+      riskLevel: computeRiskLevel(24),
+    }));
+
+  const circularDependencyChains: CircularDependencyChain[] = cycles.map(chain => ({
+    chain,
+    detectedAt: new Date().toISOString(),
+  }));
+
   return {
     projectId,
     agents,
@@ -349,5 +379,7 @@ export async function analyzeAgentDependencyResolution(
     longestBlockChain,
     aiSummary,
     aiRecommendations,
+    blockedTicketDetails,
+    circularDependencyChains,
   };
 }
