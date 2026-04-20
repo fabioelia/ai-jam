@@ -3377,6 +3377,12 @@ export default function BoardPage() {
       {showAgentScopeDrift && (
         <AgentScopeDriftModal report={agentScopeDrift.result} onClose={() => { agentScopeDrift.setResult(null); setShowAgentScopeDrift(false); }} />
       )}
+      {showContextWindow && (
+        <AgentContextWindowModal result={contextWindow.result} isOpen={showContextWindow} loading={contextWindow.loading} onClose={() => { contextWindow.setResult(null); setShowContextWindow(false); }} />
+      )}
+      {showAgentOutputConsistency && (
+        <AgentOutputConsistencyModal result={agentOutputConsistency.result} isOpen={showAgentOutputConsistency} loading={agentOutputConsistency.loading} onClose={() => { agentOutputConsistency.setResult(null); setShowAgentOutputConsistency(false); }} />
+      )}
     </div>
   );
 }
