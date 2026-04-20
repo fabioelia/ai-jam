@@ -2988,3 +2988,199 @@ export function useAgentAutonomy(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentReworkMetrics {
+  personaId: string;
+  totalTicketsWorked: number;
+  reworkCount: number;
+  reworkRate: number;
+  avgReworksPerTicket: number;
+  reworkSourceBreakdown: {
+    fromReview: number;
+    fromQA: number;
+    fromAcceptance: number;
+  };
+  qualityTier: 'excellent' | 'good' | 'fair' | 'poor';
+}
+
+export interface ReworkRateReport {
+  agents: AgentReworkMetrics[];
+  systemReworkRate: number;
+  lowestReworkAgent: string | null;
+  highestReworkAgent: string | null;
+  totalReworkEvents: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentReworkRate(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ReworkRateReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<ReworkRateReport>(`/projects/${projectId}/agent-rework-rate`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface ChainTicket {
+  ticketId: string;
+  title: string;
+  chainDepth: number;
+  agentSequence: string[];
+}
+
+export interface AgentChainStats {
+  personaId: string;
+  passAlongRate: number;
+  avgChainDepthInvolved: number;
+  totalHandoffsReceived: number;
+  totalHandoffsGiven: number;
+}
+
+export interface HandoffChainReport {
+  deepChainTickets: ChainTicket[];
+  agentStats: AgentChainStats[];
+  summary: {
+    avgChainDepth: number;
+    maxChainDepth: number;
+    totalTicketsAnalyzed: number;
+    mostCommonChainPath: string;
+  };
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentHandoffChainDepth(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<HandoffChainReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<HandoffChainReport>(`/projects/${projectId}/agent-handoff-chain-depth`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentDecisionSpeedMetrics {
+  personaId: string;
+  avgHandoffLatencyMs: number;
+  avgSessionDurationMs: number;
+  avgTurnaroundMs: number;
+  decisionVelocity: number;
+  stallRate: number;
+  speedTier: 'fast' | 'moderate' | 'slow' | 'stalled';
+}
+
+export interface DecisionSpeedReport {
+  agents: AgentDecisionSpeedMetrics[];
+  systemAvgLatencyMs: number;
+  fastestAgent: string | null;
+  slowestAgent: string | null;
+  systemStallRate: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentDecisionSpeed(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<DecisionSpeedReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<DecisionSpeedReport>(`/projects/${projectId}/agent-decision-speed`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentInterruptionMetrics {
+  personaId: string; totalInterruptions: number; interruptionRate: number;
+  avgCycleTimeWithInterruption: number; avgCycleTimeWithoutInterruption: number;
+  cycleTimeOverheadPct: number; recoveryScore: number;
+  resilienceLevel: 'high' | 'medium' | 'low' | 'fragile';
+}
+export interface InterruptionImpactReport {
+  agents: AgentInterruptionMetrics[];
+  systemAvgInterruptionRate: number; mostResilient: string | null; mostFragile: string | null;
+  aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentInterruptionImpact(projectId: string) {
+  const [result, setResult] = useState<InterruptionImpactReport | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const analyze = async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await apiFetch<InterruptionImpactReport>(`/projects/${projectId}/agent-interruption-impact`, { method: 'POST' });
+      setResult(data);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Failed'); }
+    finally { setLoading(false); }
+  };
+  return { result, loading, error, analyze };
+}
+
+export interface AgentScopeMetrics {
+  personaId: string;
+  adherenceScore: number;
+  overEngineeringPct: number;
+  underDeliveryPct: number;
+  reworkPct: number;
+  avgNotesPerTicket: number;
+  adherenceLevel: 'excellent' | 'good' | 'fair' | 'poor';
+}
+
+export interface ScopeAdherenceReport {
+  agents: AgentScopeMetrics[];
+  summary: {
+    avgAdherenceScore: number;
+    mostAdherent: string | null;
+    leastAdherent: string | null;
+    systemReworkRate: number;
+  };
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentScopeAdherence(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ScopeAdherenceReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<ScopeAdherenceReport>(`/projects/${projectId}/agent-scope-adherence`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

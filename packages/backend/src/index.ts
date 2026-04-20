@@ -85,6 +85,10 @@ import { agentReassignmentRatesRoutes } from './routes/agent-reassignment-rates.
 import { agentLearningCurvesRoutes } from './routes/agent-learning-curves.js';
 import { agentAutonomyRoutes } from './routes/agent-autonomy.js';
 import { agentReworkRateRoutes } from './routes/agent-rework-rate.js';
+import { agentHandoffChainDepthRoutes } from './routes/agent-handoff-chain-depth.js';
+import { agentDecisionSpeedRoutes } from './routes/agent-decision-speed.js';
+import { agentScopeAdherenceRoutes } from './routes/agent-scope-adherence.js';
+import { agentInterruptionImpactRoutes } from './routes/agent-interruption-impact.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -204,6 +208,10 @@ async function main() {
   await fastify.register(agentLearningCurvesRoutes);
   await fastify.register(agentAutonomyRoutes);
   await fastify.register(agentReworkRateRoutes);
+  await fastify.register(agentDecisionSpeedRoutes);
+  await fastify.register(agentHandoffChainDepthRoutes);
+  await fastify.register(agentScopeAdherenceRoutes);
+  await fastify.register(agentInterruptionImpactRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

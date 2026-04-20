@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -77,6 +77,7 @@ import AgentFeedbackLoopModal from '../components/board/AgentFeedbackLoopModal.j
 import AgentReassignmentRatesModal from '../components/board/AgentReassignmentRatesModal.js';
 import AgentLearningCurveModal from '../components/board/AgentLearningCurveModal.js';
 import AgentAutonomyLevelModal from '../components/board/AgentAutonomyLevelModal.js';
+import AgentReworkRateModal from '../components/board/AgentReworkRateModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -312,6 +313,8 @@ export default function BoardPage() {
   const [learningCurveData, setLearningCurveData] = useState<LearningCurveReport | null>(null);
   const agentAutonomy = useAgentAutonomy(projectId!);
   const [showAgentAutonomy, setShowAgentAutonomy] = useState(false);
+  const agentReworkRate = useAgentReworkRate(projectId!);
+  const [showAgentReworkRate, setShowAgentReworkRate] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1094,6 +1097,26 @@ export default function BoardPage() {
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           ) : (
             <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' /></svg> Agent Autonomy</>
+          )}
+        </button>
+
+        {/* Agent Rework Rate Button */}
+        <button
+          onClick={async () => {
+            setShowAgentReworkRate(true);
+            try {
+              await agentReworkRate.analyze();
+            } catch (error) {
+              toast.error(`Agent rework rate analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentReworkRate.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+        >
+          {agentReworkRate.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' /></svg> Agent Rework Rate</>
           )}
         </button>
 
@@ -2400,6 +2423,9 @@ export default function BoardPage() {
       )}
       {showAgentAutonomy && (
         <AgentAutonomyLevelModal result={agentAutonomy.result} isOpen={showAgentAutonomy} loading={agentAutonomy.loading} onClose={() => { agentAutonomy.setResult(null); setShowAgentAutonomy(false); }} />
+      )}
+      {showAgentReworkRate && (
+        <AgentReworkRateModal result={agentReworkRate.result} isOpen={showAgentReworkRate} loading={agentReworkRate.loading} onClose={() => { agentReworkRate.setResult(null); setShowAgentReworkRate(false); }} />
       )}
     </div>
   );
