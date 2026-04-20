@@ -67,7 +67,7 @@ import { agentIdleTimeRoutes } from './routes/agent-idle-time.js';
 import { agentThroughputEfficiencyRoutes } from './routes/agent-throughput-efficiency.js';
 import { agentWorkloadFairnessRoutes } from './routes/agent-workload-fairness.js';
 import { agentErrorRatesRoutes } from './routes/agent-error-rates.js';
-import { agentEscalationPatternRoutes } from './routes/agent-escalation-patterns.js';
+import { agentEscalationPatternRoutes } from './routes/agent-escalation-pattern.js';
 import { agentRecoveryPatternRoutes } from './routes/agent-recovery-patterns.js';
 import { agentTaskVelocityRoutes } from './routes/agent-task-velocity.js';
 import { agentContextSwitchRoutes } from './routes/agent-context-switch.js';
