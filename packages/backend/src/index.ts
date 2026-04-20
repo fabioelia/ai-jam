@@ -47,7 +47,7 @@ import { agentLoadPredictorRoutes } from './routes/agent-load-predictor.js';
 import { agentVelocityForecasterRoutes } from './routes/agent-velocity-forecaster.js';
 import { agentSprintCommitmentRoutes } from './routes/agent-sprint-commitment.js';
 import { agentCollaborationNetworkRoutes } from './routes/agent-collaboration-network.js';
-import { agentContextRetentionRoutes } from './routes/agent-context-retention.js';
+import { agentContextRetentionRoutes } from './routes/agent-context-retention-route.js';
 import { agentFocusAdvisorRoutes } from './routes/agent-focus-advisor.js';
 import { agentResponseTimeRoutes } from './routes/agent-response-time.js';
 import { agentPriorityAlignmentRoutes } from './routes/agent-priority-alignment.js';

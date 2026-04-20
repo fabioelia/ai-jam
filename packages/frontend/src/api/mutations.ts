@@ -1441,43 +1441,49 @@ export function useAgentCollaborationNetwork(projectId: string) {
   return { analyze, loading, result, setResult };
 }
 
-export interface AgentContextRetentionProfile {
-  personaId: string;
-  totalHandoffs: number;
-  contextLossCount: number;
-  redundantWorkCount: number;
-  avgContextUtilizationRate: number;
-  retentionScore: number;
-  retentionTier: 'excellent' | 'good' | 'fair' | 'poor';
+export interface AgentContextRetentionMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalHandoffsReceived: number;
+  avgContextFieldsProvided: number;
+  contextReferenceRate: number;
+  crossSessionCoherence: number;
+  contextRetentionScore: number;
+  retentionTier: 'exemplary' | 'proficient' | 'adequate' | 'fragmented';
 }
 
-export interface ContextRetentionReport {
-  agents: AgentContextRetentionProfile[];
-  avgRetentionScore: number;
-  bestRetainer: string | null;
-  worstRetainer: string | null;
-  systemContextLossRate: number;
+export interface AgentContextRetentionReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgRetentionScore: number;
+    topContextUser: string;
+    exemplaryCount: number;
+  };
+  agents: AgentContextRetentionMetrics[];
   aiSummary: string;
   aiRecommendations: string[];
 }
 
 export function useAgentContextRetention(projectId: string) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ContextRetentionReport | null>(null);
+  const [data, setData] = useState<AgentContextRetentionReport | null>(null);
 
   const analyze = async (): Promise<void> => {
     setLoading(true);
     try {
-      const data = await apiFetch<ContextRetentionReport>(`/projects/${projectId}/agent-context-retention`, {
+      const result = await apiFetch<AgentContextRetentionReport>(`/projects/${projectId}/agent-context-retention`, {
         method: 'POST',
       });
-      setResult(data);
+      setData(result);
     } finally {
       setLoading(false);
     }
   };
 
-  return { analyze, loading, result, setResult };
+  return { analyze, loading, data, setData };
 }
 
 export interface AgentFocusAdvice {
