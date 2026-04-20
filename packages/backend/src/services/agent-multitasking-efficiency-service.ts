@@ -330,3 +330,141 @@ ${agentLines}`;
     recommendations,
   };
 }
+
+// Spec-compliant interface for QA validation
+export interface AgentMultitaskingMetrics {
+  agentId: string;
+  agentName: string;
+  totalSessions: number;
+  concurrentTaskSessions: number;
+  avgConcurrentTasks: number;
+  peakConcurrentTasks: number;
+  singleTaskCompletionRate: number;
+  multiTaskCompletionRate: number;
+  efficiencyDropRate: number;
+  multitaskingScore: number;
+  multitaskingTier: 'efficient' | 'capable' | 'strained' | 'overwhelmed';
+}
+
+export interface AgentMultitaskingReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgMultitaskingScore: number;
+    mostEfficientAgent: string;
+    mostOverloadedAgent: string;
+    concurrentCapableAgents: number;
+  };
+  agents: AgentMultitaskingMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function computeMultitaskingScore(
+  multiTaskCompletionRate: number,
+  efficiencyDropRate: number,
+  avgConcurrentTasks: number,
+): number {
+  let score = multiTaskCompletionRate;
+  score += Math.min(10, (1 - efficiencyDropRate / 100) * 10);
+  score -= Math.max(0, (avgConcurrentTasks - 3) * 5);
+  return Math.min(100, Math.max(0, Math.round(score)));
+}
+
+export function getMultitaskingTier(
+  score: number,
+): AgentMultitaskingMetrics['multitaskingTier'] {
+  if (score >= 75) return 'efficient';
+  if (score >= 50) return 'capable';
+  if (score >= 25) return 'strained';
+  return 'overwhelmed';
+}
+
+export async function analyzeAgentMultitaskingEfficiency(
+  projectId: string,
+): Promise<AgentMultitaskingReport> {
+  const raw = await analyzeMultitaskingEfficiency(projectId);
+
+  const agents: AgentMultitaskingMetrics[] = raw.agents.map((a) => {
+    const avgConcurrentTasks = a.avgConcurrency;
+    const peakConcurrentTasks = a.peakConcurrency;
+    const singleBucket = a.concurrencyBuckets.find((b) => b.concurrencyLevel === 1);
+    const multiBuckets = a.concurrencyBuckets.filter((b) => b.concurrencyLevel > 1);
+
+    const singleTaskCompletionRate = singleBucket
+      ? Math.round((1 - singleBucket.reworkRate / 100) * 100)
+      : 100;
+    const multiTaskCompletionRate =
+      multiBuckets.length > 0
+        ? Math.round(
+            multiBuckets.reduce(
+              (acc, b) => acc + (1 - b.reworkRate / 100) * 100,
+              0,
+            ) / multiBuckets.length,
+          )
+        : singleTaskCompletionRate;
+    const efficiencyDropRate = Math.max(
+      0,
+      singleTaskCompletionRate - multiTaskCompletionRate,
+    );
+
+    const totalSessions = a.concurrencyBuckets.reduce(
+      (acc, b) => acc + b.ticketCount,
+      0,
+    );
+    const concurrentTaskSessions = multiBuckets.reduce(
+      (acc, b) => acc + b.ticketCount,
+      0,
+    );
+    const multitaskingScore = computeMultitaskingScore(
+      multiTaskCompletionRate,
+      efficiencyDropRate,
+      avgConcurrentTasks,
+    );
+    const multitaskingTier = getMultitaskingTier(multitaskingScore);
+
+    return {
+      agentId: a.personaId,
+      agentName: a.personaId,
+      totalSessions,
+      concurrentTaskSessions,
+      avgConcurrentTasks,
+      peakConcurrentTasks,
+      singleTaskCompletionRate,
+      multiTaskCompletionRate,
+      efficiencyDropRate,
+      multitaskingScore,
+      multitaskingTier,
+    };
+  });
+
+  const avgMultitaskingScore =
+    agents.length > 0
+      ? Math.round(
+          agents.reduce((s, a) => s + a.multitaskingScore, 0) / agents.length,
+        )
+      : 0;
+  const sorted = [...agents].sort(
+    (a, b) => b.multitaskingScore - a.multitaskingScore,
+  );
+  const concurrentCapableAgents = agents.filter(
+    (a) =>
+      a.multitaskingTier === 'efficient' || a.multitaskingTier === 'capable',
+  ).length;
+
+  return {
+    projectId,
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalAgents: agents.length,
+      avgMultitaskingScore,
+      mostEfficientAgent: sorted[0]?.agentName ?? '',
+      mostOverloadedAgent: sorted[sorted.length - 1]?.agentName ?? '',
+      concurrentCapableAgents,
+    },
+    agents,
+    insights: raw.recommendations ?? [],
+    recommendations: raw.recommendations ?? [],
+  };
+}

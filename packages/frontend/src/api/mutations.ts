@@ -3393,6 +3393,36 @@ export const useAgentMultitaskingEfficiency = (projectId: string) =>
       fetch(`/api/projects/${projectId}/agent-multitasking-efficiency`, { method: 'POST' }).then(r => r.json()),
   });
 
+// Spec-compliant type aliases
+export interface AgentMultitaskingMetrics {
+  agentId: string;
+  agentName: string;
+  totalSessions: number;
+  concurrentTaskSessions: number;
+  avgConcurrentTasks: number;
+  peakConcurrentTasks: number;
+  singleTaskCompletionRate: number;
+  multiTaskCompletionRate: number;
+  efficiencyDropRate: number;
+  multitaskingScore: number;
+  multitaskingTier: 'efficient' | 'capable' | 'strained' | 'overwhelmed';
+}
+
+export interface AgentMultitaskingReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgMultitaskingScore: number;
+    mostEfficientAgent: string;
+    mostOverloadedAgent: string;
+    concurrentCapableAgents: number;
+  };
+  agents: AgentMultitaskingMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
 export interface CollaborationEdge {
   sourcePersonaId: string;
   targetPersonaId: string;
