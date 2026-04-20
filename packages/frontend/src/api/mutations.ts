@@ -2067,6 +2067,47 @@ export function useAgentContextUtilization() {
   return { analyze, loading, result, setResult };
 }
 
+export interface HandoffPair {
+  fromAgent: string;
+  toAgent: string;
+  totalHandoffs: number;
+  successfulHandoffs: number;
+  stalledHandoffs: number;
+  successRate: number;
+  rating: 'excellent' | 'good' | 'poor' | 'critical';
+  recommendation: string;
+}
+
+export interface HandoffSuccessReport {
+  projectId: string;
+  analyzedAt: string;
+  totalPairs: number;
+  criticalPairs: number;
+  avgSuccessRate: number;
+  pairs: HandoffPair[];
+  aiSummary: string;
+}
+
+export function useAgentHandoffSuccess() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<HandoffSuccessReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<HandoffSuccessReport>(
+        `/projects/${projectId}/agent-handoff-success`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
 export function useAgentDependencyMapper() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AgentDependencyMapReport | null>(null);
