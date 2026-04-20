@@ -3525,11 +3525,14 @@ export interface AgentErrorRecoveryData {
   totalErrors: number;
   recoveredErrors: number;
   errorRecoveryRate: number;
+  recoveryRate: number;
   avgRecoveryTimeHours: number;
+  avgErrorsPerSession: number;
+  consecutiveFailures: number;
   failedHandoffs: number;
   retryAttempts: number;
   resilienceScore: number;
-  resilienceTier: 'resilient' | 'adaptive' | 'fragile' | 'critical';
+  resilienceTier: 'resilient' | 'recovering' | 'fragile' | 'critical';
 }
 
 export interface AgentErrorRecoveryReport {

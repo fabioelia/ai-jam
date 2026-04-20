@@ -8,11 +8,14 @@ export interface AgentErrorRecoveryData {
   totalErrors: number;
   recoveredErrors: number;
   errorRecoveryRate: number;
+  recoveryRate: number;
   avgRecoveryTimeHours: number;
+  avgErrorsPerSession: number;
+  consecutiveFailures: number;
   failedHandoffs: number;
   retryAttempts: number;
   resilienceScore: number;
-  resilienceTier: 'resilient' | 'adaptive' | 'fragile' | 'critical';
+  resilienceTier: 'resilient' | 'recovering' | 'fragile' | 'critical';
 }
 
 export interface AgentErrorRecoveryReport {
@@ -53,21 +56,19 @@ export type SessionRow = {
 
 export function computeResilienceTier(score: number): AgentErrorRecoveryData['resilienceTier'] {
   if (score >= 80) return 'resilient';
-  if (score >= 60) return 'adaptive';
+  if (score >= 60) return 'recovering';
   if (score >= 40) return 'fragile';
   return 'critical';
 }
 
 export function computeResilienceScore(
-  errorRecoveryRate: number,
-  avgRecoveryTimeHours: number,
-  failedHandoffs: number,
-  retryAttempts: number,
+  recoveryRate: number,
+  avgErrorsPerSession: number,
+  consecutiveFailures: number,
 ): number {
-  let score = errorRecoveryRate;
-  if (avgRecoveryTimeHours < 2 && avgRecoveryTimeHours >= 0) score += 10;
-  score -= Math.min(30, failedHandoffs * 5);
-  if (retryAttempts > 0) score += 5;
+  let score = recoveryRate;
+  if (avgErrorsPerSession < 0.5) score += 10;
+  if (consecutiveFailures >= 3) score -= 20;
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
@@ -139,11 +140,22 @@ export function buildRecoveryProfiles(
       return delta >= 0 && delta <= TWENTY_FOUR_HOURS;
     }).length;
 
+    // avgErrorsPerSession: totalErrors / max(sessions count for this persona, 1)
+    const agentSessionCount = sessions.filter((s) => s.personaType === personaId).length;
+    const avgErrorsPerSession = agentSessionCount > 0 ? totalErrors / agentSessionCount : totalErrors > 0 ? totalErrors : 0;
+
+    // consecutiveFailures: count of consecutive blocked (unrecovered) tickets
+    const unrecoveredTickets = blockedTickets.filter(
+      (t) => t.status !== 'done' && t.status !== 'acceptance',
+    );
+    const consecutiveFailures = unrecoveredTickets.length;
+
+    const recoveryRate = errorRecoveryRate;
+
     const resilienceScore = computeResilienceScore(
-      errorRecoveryRate,
-      avgRecoveryTimeHours,
-      failedHandoffs,
-      retryAttempts,
+      recoveryRate,
+      avgErrorsPerSession,
+      consecutiveFailures,
     );
 
     profiles.push({
@@ -151,7 +163,10 @@ export function buildRecoveryProfiles(
       totalErrors,
       recoveredErrors,
       errorRecoveryRate: Math.round(errorRecoveryRate * 100) / 100,
+      recoveryRate: Math.round(recoveryRate * 100) / 100,
       avgRecoveryTimeHours,
+      avgErrorsPerSession: Math.round(avgErrorsPerSession * 100) / 100,
+      consecutiveFailures,
       failedHandoffs,
       retryAttempts,
       resilienceScore,

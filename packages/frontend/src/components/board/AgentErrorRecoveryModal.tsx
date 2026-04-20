@@ -10,7 +10,7 @@ interface AgentErrorRecoveryModalProps {
 function tierBadgeClass(tier: AgentErrorRecoveryData['resilienceTier']): string {
   switch (tier) {
     case 'resilient': return 'bg-green-500/20 text-green-300 border-green-500/40';
-    case 'adaptive': return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+    case 'recovering': return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
     case 'fragile': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
     default: return 'bg-red-500/20 text-red-300 border-red-500/40';
   }
@@ -106,7 +106,14 @@ export default function AgentErrorRecoveryModal({
                     {result.agents.map((agent, i) => (
                       <tr key={i} className="hover:bg-gray-800/30 transition-colors">
                         <td className="px-4 py-3 text-white font-medium">{agent.personaId}</td>
-                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.resilienceScore}/100</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className='w-full bg-gray-700 rounded-full h-2'>
+                              <div className='h-2 bg-rose-500 rounded-full' style={{ width: `${agent.resilienceScore}%` }} />
+                            </div>
+                            <span className="text-gray-300 font-mono text-xs w-8 text-right">{agent.resilienceScore}</span>
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-center">
                           <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${tierBadgeClass(agent.resilienceTier)}`}>
                             {agent.resilienceTier}

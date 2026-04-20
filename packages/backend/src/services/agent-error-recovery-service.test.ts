@@ -77,24 +77,26 @@ function mockDb(tickets: TicketRow[], notes: NoteRow[], sessions: SessionRow[]) 
 
 beforeEach(() => vi.clearAllMocks());
 
-// Test 1: resilienceScore formula — base + bonus/penalty
+// Test 1: resilienceScore formula
 it('computeResilienceScore applies formula correctly', () => {
-  // 80% recovery, <2h recovery time (+10), 0 failed handoffs, 1 retry (+5) → 80+10+5=95
-  expect(computeResilienceScore(80, 1, 0, 1)).toBe(95);
-  // 50% recovery, 5h recovery (no +10), 2 failed handoffs (-10), 0 retries → 50-10=40
-  expect(computeResilienceScore(50, 5, 2, 0)).toBe(40);
-  // 0%, 0h (+10), 7 failed handoffs (-30 capped), 0 retries → 0+10-30=-20 → clamped 0
-  expect(computeResilienceScore(0, 0, 7, 0)).toBe(0);
-  // 100%, <2h (+10), 0 failed, 1 retry (+5) → 115 → clamped 100
-  expect(computeResilienceScore(100, 1, 0, 1)).toBe(100);
+  // 80% recovery, avgErrorsPerSession < 0.5 (+10), 0 consecutiveFailures → 90
+  expect(computeResilienceScore(80, 0.3, 0)).toBe(90);
+  // 50% recovery, avgErrors >= 0.5 (no bonus), 3 consecutive (-20) → 30
+  expect(computeResilienceScore(50, 1, 3)).toBe(30);
+  // 0% recovery, avgErrors < 0.5 (+10), 0 consecutive → 10
+  expect(computeResilienceScore(0, 0.1, 0)).toBe(10);
+  // 100%, avgErrors < 0.5 (+10), 0 consecutive → 110 → clamped 100
+  expect(computeResilienceScore(100, 0.1, 0)).toBe(100);
+  // 60%, avgErrors < 0.5 (+10), >= 3 consecutive (-20) → 50
+  expect(computeResilienceScore(60, 0.2, 3)).toBe(50);
 });
 
 // Test 2: resilienceTier thresholds
 it('computeResilienceTier assigns correct tiers', () => {
   expect(computeResilienceTier(80)).toBe('resilient');
   expect(computeResilienceTier(100)).toBe('resilient');
-  expect(computeResilienceTier(60)).toBe('adaptive');
-  expect(computeResilienceTier(79)).toBe('adaptive');
+  expect(computeResilienceTier(60)).toBe('recovering');
+  expect(computeResilienceTier(79)).toBe('recovering');
   expect(computeResilienceTier(40)).toBe('fragile');
   expect(computeResilienceTier(59)).toBe('fragile');
   expect(computeResilienceTier(39)).toBe('critical');
