@@ -1,6 +1,6 @@
 import { db } from '../db/connection.js';
 import { tickets, ticketNotes } from '../db/schema.js';
-import { eq, isNotNull, ne } from 'drizzle-orm';
+import { eq, isNotNull } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
 export interface AgentReassignmentMetrics {
@@ -206,42 +206,37 @@ export async function analyzeAgentReassignmentRates(projectId: string): Promise<
     ? eligibleAgents.reduce((worst, a) => a.stabilityScore < worst.stabilityScore ? a : worst).agentPersona
     : null;
 
-  // AI summary via OpenRouter
-  let aiSummary = 'AI summary unavailable.';
+  const FALLBACK_SUMMARY = 'Review reassignment patterns to improve initial ticket routing and reduce handoff overhead.';
+  let aiSummary = FALLBACK_SUMMARY;
   try {
     const client = new Anthropic({
-      apiKey: process.env.OPENROUTER_API_KEY ?? '',
-      baseURL: 'https://openrouter.ai/api/v1',
-      defaultHeaders: {
-        'HTTP-Referer': 'https://ai-jam.app',
-        'X-Title': 'AI Jam',
-      },
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
     });
 
-    const stableCount = agents.filter(a => a.stabilityLevel === 'stable').length;
-    const criticalCount = agents.filter(a => a.stabilityLevel === 'critical').length;
-    const prompt = `Analyze this AI agent reassignment rate data for a software project:
-- Total agents: ${agents.length}
-- Total reassignments: ${totalReassignments}
-- Average reassignment away rate: ${(avgReassignmentAwayRate * 100).toFixed(1)}%
-- Stable agents: ${stableCount}, Critical agents: ${criticalCount}
-- Most stable: ${mostStableAgent ?? 'N/A'}, Most volatile: ${mostVolatileAgent ?? 'N/A'}
-- Top hotspots: ${hotspots.slice(0, 3).map(h => `${h.fromPersona}→${h.toPersona}(${h.count})`).join(', ') || 'none'}
-
-Provide a concise 2-3 sentence summary of agent reassignment patterns, stability concerns, and recommendations.`;
+    const agentLines = agents
+      .slice(0, 5)
+      .map(
+        a =>
+          `${a.agentPersona}: received=${a.ticketsReceived}, reassignedAway=${a.ticketsReassignedAway}, awayRate=${a.reassignmentAwayRate}, stability=${a.stabilityLevel}`,
+      )
+      .join('\n');
+    const topHotspot =
+      hotspots[0]
+        ? `Top hotspot: ${hotspots[0].fromPersona} → ${hotspots[0].toPersona} (${hotspots[0].count}x)`
+        : 'No hotspots';
+    const prompt = `Analyze agent reassignment patterns for a software project. Identify routing issues and suggest improvements.\n\nAgents:\n${agentLines}\n\n${topHotspot}\n\nProvide a 2-3 sentence analysis.`;
 
     const response = await client.messages.create({
-      model: 'qwen/qwen3-6b',
+      model: process.env.AI_MODEL || 'qwen/qwen3-6b',
       max_tokens: 200,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = response.content[0];
-    if (content.type === 'text') {
-      aiSummary = content.text;
-    }
-  } catch {
-    aiSummary = 'AI summary unavailable.';
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    if (text) aiSummary = text;
+  } catch (e) {
+    console.warn('Agent reassignment AI summary failed, using fallback:', e);
   }
 
   return {
