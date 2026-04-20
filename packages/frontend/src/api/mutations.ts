@@ -5420,3 +5420,52 @@ export function useAgentSpecialization(projectId: string) {
 
   return { analyze, loading, isPending: loading, data, setData };
 }
+
+// FEAT-139: AI Agent Collaboration Score Analyzer
+export interface AgentCollaborationScoreMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalCollaborations: number;
+  successfulCollaborations: number;
+  collaborationSuccessRate: number;
+  avgContextQuality: number;
+  avgHandoffCompleteness: number;
+  collaborationScore: number;
+  collaborationTier: 'synergistic' | 'collaborative' | 'functional' | 'isolated';
+  topCollaborator: string | null;
+}
+
+export interface AgentCollaborationScoreReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgCollaborationScore: number;
+    mostCollaborativeAgent: string;
+    synergisticCount: number;
+  };
+  agents: AgentCollaborationScoreMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentCollaborationScore(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentCollaborationScoreReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentCollaborationScoreReport>(
+        `/projects/${projectId}/agent-collaboration-score`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, isPending: loading, data, setData };
+}

@@ -136,6 +136,7 @@ import { agentAutonomyIndexRoutes } from './routes/agent-autonomy-index-route.js
 import { agentBlockedTimeRoutes } from './routes/agent-blocked-time-route.js';
 import { agentQualitySpeedRoutes } from './routes/agent-quality-speed-route.js';
 import { agentSpecializationRoutes } from './routes/agent-specialization-route.js';
+import { agentCollaborationScoreRoutes } from './routes/agent-collaboration-score-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -306,6 +307,7 @@ async function main() {
   await fastify.register(agentBlockedTimeRoutes);
   await fastify.register(agentQualitySpeedRoutes);
   await fastify.register(agentSpecializationRoutes);
+  await fastify.register(agentCollaborationScoreRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
