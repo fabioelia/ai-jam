@@ -2297,3 +2297,49 @@ export function useAgentErrorRates() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface EscalationChain {
+  fromAgent: string;
+  toAgent: string;
+  count: number;
+  avgResolutionTime: number | null;
+  topTriggers: string[];
+}
+
+export interface EscalationHotspot {
+  agentId: string;
+  escalationsReceived: number;
+  escalationsSent: number;
+  escalationRate: number;
+  severity: 'critical' | 'high' | 'moderate' | 'low';
+}
+
+export interface EscalationAnalysis {
+  chains: EscalationChain[];
+  hotspots: EscalationHotspot[];
+  circularPatterns: string[][];
+  totalEscalations: number;
+  avgChainLength: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentEscalationPatternAnalyzer() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<EscalationAnalysis | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<EscalationAnalysis>(
+        `/projects/${projectId}/agent-escalation-pattern`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
