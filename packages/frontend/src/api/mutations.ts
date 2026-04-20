@@ -3462,3 +3462,47 @@ export function useAgentKnowledgeFreshness(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentLatencyData {
+  personaId: string;
+  totalSessions: number;
+  avgDurationMinutes: number;
+  medianDurationMinutes: number;
+  minDurationMinutes: number;
+  maxDurationMinutes: number;
+  sessionsUnder5min: number;
+  sessionsOver30min: number;
+  fastCompletionRate: number;
+  stallRate: number;
+  latencyTier: 'fast' | 'moderate' | 'slow' | 'stalled';
+}
+
+export interface AgentResponseLatencyReport {
+  projectId: string;
+  agents: AgentLatencyData[];
+  fastestAgent: string | null;
+  slowestAgent: string | null;
+  avgProjectLatencyMinutes: number;
+  stallRiskCount: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentResponseLatency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentResponseLatencyReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentResponseLatencyReport>(`/projects/${projectId}/agent-response-latency`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

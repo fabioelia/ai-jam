@@ -96,6 +96,7 @@ import { agentCollaborationGraphRoutes } from './routes/agent-collaboration-grap
 import { agentMultitaskingEfficiencyRoutes } from './routes/agent-multitasking-efficiency.js';
 import { agentPersonaAlignmentRoutes } from './routes/agent-persona-alignment.js';
 import { agentKnowledgeFreshnessRoutes } from './routes/agent-knowledge-freshness.js';
+import { agentResponseLatencyRoutes } from './routes/agent-response-latency.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -226,6 +227,7 @@ async function main() {
   await fastify.register(agentCollaborationGraphRoutes);
   await fastify.register(agentPersonaAlignmentRoutes);
   await fastify.register(agentKnowledgeFreshnessRoutes);
+  await fastify.register(agentResponseLatencyRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
