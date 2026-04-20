@@ -5370,3 +5370,53 @@ export function useAgentQualitySpeed(projectId: string) {
 
   return { analyze, loading, isPending: loading, data, setData };
 }
+
+// FEAT-137: Agent Specialization Score Analyzer
+export interface AgentSpecializationMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalTasks: number;
+  inDomainTasks: number;
+  outOfDomainTasks: number;
+  inDomainRate: number;
+  specializationScore: number;
+  topInDomainCategory: string;
+  topOutOfDomainCategory: string;
+  specializationTier: 'highly-specialized' | 'focused' | 'generalist' | 'unfocused';
+}
+
+export interface AgentSpecializationReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgSpecializationScore: number;
+    mostSpecializedAgent: string;
+    mostUnfocusedAgent: string;
+    highlySpecializedCount: number;
+  };
+  agents: AgentSpecializationMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentSpecialization(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentSpecializationReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentSpecializationReport>(
+        `/projects/${projectId}/agent-specialization`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, isPending: loading, data, setData };
+}
