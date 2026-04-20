@@ -4654,3 +4654,153 @@ export function useAgentInstructionCompliance(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+// FEAT-114: Agent Knowledge Gap Analyzer
+export interface DomainGap {
+  domain: string;
+  tasksAttempted: number;
+  successRate: number;
+  avgRetriesPerTask: number;
+  escalationRate: number;
+  knowledgeScore: number;
+  gapSeverity: 'none' | 'minor' | 'moderate' | 'critical';
+}
+
+export interface AgentKnowledgeGapMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasksAnalyzed: number;
+  avgDomainScore: number;
+  proficiencyTier: 'specialist' | 'generalist' | 'developing' | 'struggling';
+  domains: DomainGap[];
+}
+
+export interface AgentKnowledgeGapReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalDomains: number;
+    criticalGapCount: number;
+    mostStruggling: string;
+    mostCoveredDomain: string;
+  };
+  agents: AgentKnowledgeGapMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentKnowledgeGap(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentKnowledgeGapReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentKnowledgeGapReport>(
+        `/projects/${projectId}/agent-knowledge-gap`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
+
+// FEAT-120: Agent Escalation Pattern Analyzer
+export interface AgentEscalationPatternMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  escalatedTasks: number;
+  escalationRate: number;
+  unnecessaryEscalations: number;
+  avgResolutionTime: number;
+  escalationScore: number;
+  escalationTier: 'autonomous' | 'measured' | 'dependent' | 'over-reliant';
+}
+
+export interface AgentEscalationPatternAnalyzerReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgEscalationScore: number;
+    mostAutonomous: string;
+    overReliantAgents: number;
+    avgEscalationRate: number;
+  };
+  agents: AgentEscalationPatternMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentEscalationPatternAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentEscalationPatternAnalyzerReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentEscalationPatternAnalyzerReport>(
+        `/projects/${projectId}/agent-escalation-patterns`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
+
+// FEAT-121: Agent Feedback Integration Rate Analyzer
+export interface AgentFeedbackData {
+  agentId: string;
+  agentName: string;
+  feedbackReceived: number;
+  feedbackActedOn: number;
+  integrationRate: number;
+  responsivenessTier: 'proactive' | 'responsive' | 'selective' | 'resistant';
+  avgResponseTimeHours: number;
+  integrationScore: number;
+}
+
+export interface AgentFeedbackIntegrationReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalFeedbackItems: number;
+    avgIntegrationRate: number;
+    topResponsiveAgent: string | null;
+    leastResponsiveAgent: string | null;
+    proactiveAgentCount: number;
+  };
+  agents: AgentFeedbackData[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentFeedbackIntegration(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentFeedbackIntegrationReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentFeedbackIntegrationReport>(
+        `/projects/${projectId}/agent-feedback-integration`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
