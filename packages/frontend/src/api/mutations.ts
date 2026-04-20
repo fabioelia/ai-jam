@@ -1439,3 +1439,43 @@ export function useAgentCollaborationNetwork(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentContextScore {
+  agentType: string;
+  ticketsHandled: number;
+  midFlowPickups: number;
+  escalationRate: number;
+  contextRetentionScore: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  gradeExplanation: string;
+}
+
+export interface ContextRetentionReport {
+  projectId: string;
+  totalTicketsAnalyzed: number;
+  avgRetentionScore: number;
+  topPerformer: string | null;
+  needsAttention: string[];
+  agentScores: AgentContextScore[];
+  aiRecommendation: string;
+  analyzedAt: string;
+}
+
+export function useAgentContextRetention(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ContextRetentionReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<ContextRetentionReport>(`/projects/${projectId}/agent-context-retention`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

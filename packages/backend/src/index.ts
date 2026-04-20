@@ -47,6 +47,7 @@ import { agentLoadPredictorRoutes } from './routes/agent-load-predictor.js';
 import { agentVelocityForecasterRoutes } from './routes/agent-velocity-forecaster.js';
 import { agentSprintCommitmentRoutes } from './routes/agent-sprint-commitment.js';
 import { agentCollaborationNetworkRoutes } from './routes/agent-collaboration-network.js';
+import { agentContextRetentionRoutes } from './routes/agent-context-retention.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -128,6 +129,7 @@ async function main() {
   await fastify.register(agentVelocityForecasterRoutes);
   await fastify.register(agentSprintCommitmentRoutes);
   await fastify.register(agentCollaborationNetworkRoutes);
+  await fastify.register(agentContextRetentionRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

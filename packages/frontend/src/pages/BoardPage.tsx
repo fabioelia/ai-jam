@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -40,6 +40,7 @@ import AgentLoadPredictorModal from '../components/board/AgentLoadPredictorModal
 import AgentVelocityForecastModal from '../components/board/AgentVelocityForecastModal.js';
 import AgentSprintCommitmentModal from '../components/board/AgentSprintCommitmentModal.js';
 import AgentCollaborationNetworkModal from '../components/board/AgentCollaborationNetworkModal.js';
+import AgentContextRetentionModal from '../components/board/AgentContextRetentionModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -200,6 +201,8 @@ export default function BoardPage() {
   const [showAgentSprintCommitment, setShowAgentSprintCommitment] = useState(false);
   const collaborationNetwork = useAgentCollaborationNetwork(projectId!);
   const [showCollaborationNetwork, setShowCollaborationNetwork] = useState(false);
+  const contextRetention = useAgentContextRetention(projectId!);
+  const [showContextRetention, setShowContextRetention] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -945,6 +948,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Context Scores Button */}
+        <button
+          onClick={async () => {
+            setShowContextRetention(true);
+            try {
+              await contextRetention.analyze();
+            } catch (error) {
+              toast.error(`Context retention analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={contextRetention.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+        >
+          {contextRetention.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' /></svg> Context Scores</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1399,6 +1422,10 @@ export default function BoardPage() {
 
       {showCollaborationNetwork && (
         <AgentCollaborationNetworkModal result={collaborationNetwork.result} isOpen={showCollaborationNetwork} loading={collaborationNetwork.loading} onClose={() => { collaborationNetwork.setResult(null); setShowCollaborationNetwork(false); }} />
+      )}
+
+      {showContextRetention && (
+        <AgentContextRetentionModal result={contextRetention.result} isOpen={showContextRetention} loading={contextRetention.loading} onClose={() => { contextRetention.setResult(null); setShowContextRetention(false); }} />
       )}
     </div>
   );
