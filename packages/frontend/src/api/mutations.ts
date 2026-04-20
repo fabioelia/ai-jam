@@ -1440,25 +1440,24 @@ export function useAgentCollaborationNetwork(projectId: string) {
   return { analyze, loading, result, setResult };
 }
 
-export interface AgentContextScore {
-  agentType: string;
-  ticketsHandled: number;
-  midFlowPickups: number;
-  escalationRate: number;
-  contextRetentionScore: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  gradeExplanation: string;
+export interface AgentContextRetentionProfile {
+  personaId: string;
+  avgContextUtilizationRate: number;
+  contextLossCount: number;
+  redundantWorkCount: number;
+  avgNoteReadDepth: number;
+  retentionScore: number;
+  retentionCategory: 'excellent' | 'good' | 'fair' | 'poor';
 }
 
 export interface ContextRetentionReport {
-  projectId: string;
-  totalTicketsAnalyzed: number;
+  agents: AgentContextRetentionProfile[];
   avgRetentionScore: number;
-  topPerformer: string | null;
-  needsAttention: string[];
-  agentScores: AgentContextScore[];
-  aiRecommendation: string;
-  analyzedAt: string;
+  bestRetainer: string | null;
+  worstRetainer: string | null;
+  systemContextLossRate: number;
+  aiSummary: string;
+  aiRecommendations: string[];
 }
 
 export function useAgentContextRetention(projectId: string) {

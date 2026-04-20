@@ -1,4 +1,4 @@
-import type { ContextRetentionReport, AgentContextScore } from '../../api/mutations.js';
+import type { ContextRetentionReport, AgentContextRetentionProfile } from '../../api/mutations.js';
 
 interface AgentContextRetentionModalProps {
   result: ContextRetentionReport | null;
@@ -7,23 +7,21 @@ interface AgentContextRetentionModalProps {
   onClose: () => void;
 }
 
-function gradeBadgeClass(grade: AgentContextScore['grade']): string {
-  switch (grade) {
-    case 'A': return 'bg-green-500/20 text-green-300 border-green-500/40';
-    case 'B': return 'bg-teal-500/20 text-teal-300 border-teal-500/40';
-    case 'C': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
-    case 'D': return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
-    default:  return 'bg-red-500/20 text-red-300 border-red-500/40';
+function categoryBadgeClass(cat: AgentContextRetentionProfile['retentionCategory']): string {
+  switch (cat) {
+    case 'excellent': return 'bg-green-500/20 text-green-300 border-green-500/40';
+    case 'good': return 'bg-teal-500/20 text-teal-300 border-teal-500/40';
+    case 'fair': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
+    default: return 'bg-red-500/20 text-red-300 border-red-500/40';
   }
 }
 
-function scoreBarClass(grade: AgentContextScore['grade']): string {
-  switch (grade) {
-    case 'A': return 'bg-green-500';
-    case 'B': return 'bg-teal-500';
-    case 'C': return 'bg-yellow-500';
-    case 'D': return 'bg-orange-500';
-    default:  return 'bg-red-500';
+function scoreBarClass(cat: AgentContextRetentionProfile['retentionCategory']): string {
+  switch (cat) {
+    case 'excellent': return 'bg-green-500';
+    case 'good': return 'bg-teal-500';
+    case 'fair': return 'bg-yellow-500';
+    default: return 'bg-red-500';
   }
 }
 
@@ -41,19 +39,19 @@ export default function AgentContextRetentionModal({
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
           <h2 className="text-white font-semibold text-lg flex items-center gap-3">
-            <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Agent Context Retention Scores
+            Agent Context Retention Analyzer
             {result && (
-              <span className="text-sm font-normal text-purple-400/80 border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 rounded-full">
-                avg {result.avgRetentionScore.toFixed(0)}
+              <span className="text-sm font-normal text-amber-400/80 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                avg {result.avgRetentionScore}
               </span>
             )}
           </h2>
@@ -73,82 +71,99 @@ export default function AgentContextRetentionModal({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span className="text-sm">Scoring context retention...</span>
+                <span className="text-sm">Analyzing context retention...</span>
               </div>
             </div>
-          ) : !result || result.agentScores.length === 0 ? (
+          ) : !result || result.agents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <svg className="w-10 h-10 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-10 h-10 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-gray-400 text-sm">No agent data found for context retention analysis.</p>
+              <p className="text-gray-400 text-sm">No agent handoff data found for context retention analysis.</p>
             </div>
           ) : (
             <>
-              {/* Top performer banner */}
-              {result.topPerformer && (
-                <div className="bg-green-900/20 border border-green-500/30 rounded-lg px-4 py-3">
-                  <p className="text-green-300 text-sm font-medium flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z" />
-                    </svg>
-                    Top: {result.topPerformer}
-                  </p>
-                </div>
-              )}
-
-              {/* Needs attention */}
-              {result.needsAttention.length > 0 && (
-                <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3">
-                  <p className="text-red-300 text-sm font-medium flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    Needs attention: {result.needsAttention.join(', ')}
-                  </p>
-                </div>
-              )}
-
-              {/* Agent score cards */}
-              <div className="space-y-3">
-                <h3 className="text-gray-300 font-medium text-sm">Agent Scores</h3>
-                {result.agentScores.map((score, i) => (
-                  <div
-                    key={i}
-                    className="bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 space-y-2"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-white text-sm font-medium">{score.agentType}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border font-bold ${gradeBadgeClass(score.grade)}`}>
-                        {score.grade}
-                      </span>
-                    </div>
-                    {/* Score bar */}
-                    <div className="w-full bg-gray-700 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full ${scoreBarClass(score.grade)}`}
-                        style={{ width: `${score.contextRetentionScore}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-400">
-                      <span>Mid-flow pickups: <span className="text-gray-200">{score.midFlowPickups}</span></span>
-                      <span>Escalation rate: <span className="text-gray-200">{(score.escalationRate * 100).toFixed(0)}%</span></span>
-                      <span className="ml-auto font-mono text-gray-300">{score.contextRetentionScore.toFixed(0)}/100</span>
-                    </div>
-                    <p className="text-xs text-gray-500 italic">{score.gradeExplanation}</p>
+              {/* Summary row */}
+              <div className="grid grid-cols-3 gap-3">
+                {result.bestRetainer && (
+                  <div className="bg-green-900/20 border border-green-500/30 rounded-lg px-4 py-3">
+                    <p className="text-green-400 text-xs font-medium uppercase tracking-wide mb-1">Best Retainer</p>
+                    <p className="text-green-200 text-sm font-semibold">{result.bestRetainer}</p>
                   </div>
-                ))}
+                )}
+                {result.worstRetainer && (
+                  <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3">
+                    <p className="text-red-400 text-xs font-medium uppercase tracking-wide mb-1">Worst Retainer</p>
+                    <p className="text-red-200 text-sm font-semibold">{result.worstRetainer}</p>
+                  </div>
+                )}
+                <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg px-4 py-3">
+                  <p className="text-amber-400 text-xs font-medium uppercase tracking-wide mb-1">System Context Loss</p>
+                  <p className="text-amber-200 text-sm font-semibold">{result.systemContextLossRate}%</p>
+                </div>
               </div>
 
-              {/* AI recommendation */}
-              <div className="bg-gradient-to-br from-purple-900/20 to-violet-900/20 border border-purple-500/30 rounded-lg p-4 space-y-2">
-                <h3 className="text-purple-300 font-semibold text-sm flex items-center gap-2">
+              {/* Agent table */}
+              <div className="overflow-x-auto rounded-lg border border-gray-700">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-800/60 text-gray-400 text-xs uppercase tracking-wide">
+                      <th className="px-4 py-3 text-left">Agent</th>
+                      <th className="px-4 py-3 text-center">Retention Score</th>
+                      <th className="px-4 py-3 text-center">Utilization %</th>
+                      <th className="px-4 py-3 text-center">Context Loss</th>
+                      <th className="px-4 py-3 text-center">Redundant Work</th>
+                      <th className="px-4 py-3 text-center">Category</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {result.agents.map((agent, i) => (
+                      <tr key={i} className="hover:bg-gray-800/30 transition-colors">
+                        <td className="px-4 py-3 text-white font-medium">{agent.personaId}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2 justify-center">
+                            <div className="w-20 bg-gray-700 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${scoreBarClass(agent.retentionCategory)}`}
+                                style={{ width: `${agent.retentionScore}%` }}
+                              />
+                            </div>
+                            <span className="text-gray-200 font-mono text-xs">{agent.retentionScore}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center text-gray-300">{agent.avgContextUtilizationRate}%</td>
+                        <td className="px-4 py-3 text-center text-gray-300">{agent.contextLossCount}</td>
+                        <td className="px-4 py-3 text-center text-gray-300">{agent.redundantWorkCount}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${categoryBadgeClass(agent.retentionCategory)}`}>
+                            {agent.retentionCategory}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* AI summary + recommendations */}
+              <div className="bg-gradient-to-br from-amber-900/20 to-orange-900/20 border border-amber-500/30 rounded-lg p-4 space-y-3">
+                <h3 className="text-amber-300 font-semibold text-sm flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                  AI Recommendation
+                  AI Analysis
                 </h3>
-                <p className="text-purple-100/80 text-sm leading-relaxed">{result.aiRecommendation}</p>
+                <p className="text-amber-100/80 text-sm leading-relaxed">{result.aiSummary}</p>
+                {result.aiRecommendations.length > 0 && (
+                  <ul className="space-y-1">
+                    {result.aiRecommendations.map((rec, i) => (
+                      <li key={i} className="text-amber-100/70 text-sm flex items-start gap-2">
+                        <span className="text-amber-400 mt-0.5">•</span>
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </>
           )}

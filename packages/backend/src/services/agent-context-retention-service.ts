@@ -1,199 +1,288 @@
 import { db } from '../db/connection.js';
 import { tickets, ticketNotes } from '../db/schema.js';
-import { eq, isNotNull } from 'drizzle-orm';
+import { eq, inArray, isNotNull } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
-export interface AgentContextScore {
-  agentType: string;
-  ticketsHandled: number;
-  midFlowPickups: number;
-  escalationRate: number;
-  contextRetentionScore: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  gradeExplanation: string;
+export interface AgentContextRetentionProfile {
+  personaId: string;
+  avgContextUtilizationRate: number;
+  contextLossCount: number;
+  redundantWorkCount: number;
+  avgNoteReadDepth: number;
+  retentionScore: number;
+  retentionCategory: 'excellent' | 'good' | 'fair' | 'poor';
 }
 
 export interface ContextRetentionReport {
-  projectId: string;
-  totalTicketsAnalyzed: number;
+  agents: AgentContextRetentionProfile[];
   avgRetentionScore: number;
-  topPerformer: string | null;
-  needsAttention: string[];
-  agentScores: AgentContextScore[];
-  aiRecommendation: string;
-  analyzedAt: string;
+  bestRetainer: string | null;
+  worstRetainer: string | null;
+  systemContextLossRate: number;
+  aiSummary: string;
+  aiRecommendations: string[];
 }
 
-export const FALLBACK_RECOMMENDATION =
-  'Improve agent context handoffs by including richer ticket state documentation.';
+export const FALLBACK_SUMMARY = 'Context retention analysis complete.';
+export const FALLBACK_RECOMMENDATIONS = ['Ensure agents read prior notes before acting.'];
 
-export function computeGrade(score: number): AgentContextScore['grade'] {
-  if (score >= 90) return 'A';
-  if (score >= 75) return 'B';
-  if (score >= 60) return 'C';
-  if (score >= 40) return 'D';
-  return 'F';
-}
-
-export function computeRetentionScore(midFlowPickups: number, escalationRate: number): number {
-  return Math.max(0, Math.min(100, 100 - midFlowPickups * 10 - escalationRate * 50));
-}
-
-export function computeGradeExplanation(
-  grade: AgentContextScore['grade'],
-  agentType: string,
-  score: number,
-): string {
-  switch (grade) {
-    case 'A':
-      return `${agentType} excels at context retention (score: ${score.toFixed(0)}) — minimal mid-flow disruptions and low escalation rate.`;
-    case 'B':
-      return `${agentType} has good context retention (score: ${score.toFixed(0)}) — occasional pickups but generally reliable.`;
-    case 'C':
-      return `${agentType} has moderate context retention (score: ${score.toFixed(0)}) — some mid-flow disruptions impacting continuity.`;
-    case 'D':
-      return `${agentType} has poor context retention (score: ${score.toFixed(0)}) — frequent escalations or mid-flow pickups detected.`;
-    default:
-      return `${agentType} has critical context retention issues (score: ${score.toFixed(0)}) — high disruption and escalation patterns.`;
-  }
-}
-
-export interface TicketRecord {
+export type NoteRow = {
   id: string;
-  assignedPersona: string | null;
-}
-
-export interface HandoffRecord {
   ticketId: string;
+  authorId: string;
+  content: string;
   handoffFrom: string | null;
   handoffTo: string | null;
+  createdAt: Date;
+};
+
+type TicketRow = { id: string; assignedPersona: string | null };
+
+function keywordOverlap(priorContent: string, agentNote: string): number {
+  const keywords = priorContent.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+  if (keywords.length === 0) return 0;
+  const agentWords = new Set(agentNote.toLowerCase().split(/\s+/));
+  const matched = keywords.filter(w => agentWords.has(w)).length;
+  return matched / keywords.length;
 }
 
-export function computeAgentScores(
-  projectTickets: TicketRecord[],
-  handoffNotes: HandoffRecord[],
-): AgentContextScore[] {
-  const validHandoffs = handoffNotes.filter((n) => n.handoffFrom != null);
+function isDuplicate(prior: string, agentNote: string): boolean {
+  const priorWords = new Set(prior.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+  if (priorWords.size === 0) return false;
+  const agentWords = agentNote.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  if (agentWords.length === 0) return false;
+  const overlap = agentWords.filter(w => priorWords.has(w)).length;
+  return overlap / agentWords.length > 0.6;
+}
 
-  // Count tickets per agent
-  const ticketsByAgent = new Map<string, number>();
-  for (const t of projectTickets) {
-    if (t.assignedPersona) {
-      ticketsByAgent.set(t.assignedPersona, (ticketsByAgent.get(t.assignedPersona) ?? 0) + 1);
+export function retentionCategory(score: number): AgentContextRetentionProfile['retentionCategory'] {
+  if (score >= 80) return 'excellent';
+  if (score >= 60) return 'good';
+  if (score >= 40) return 'fair';
+  return 'poor';
+}
+
+export function computeRetentionScore(
+  utilizationRate: number,
+  lossRate: number,
+  redundancyRate: number,
+): number {
+  return Math.max(0, Math.min(100,
+    utilizationRate * 50 + (1 - lossRate) * 30 + (1 - redundancyRate) * 20,
+  ));
+}
+
+export function buildProfiles(notes: NoteRow[]): {
+  profiles: AgentContextRetentionProfile[];
+  totalHandoffs: number;
+  totalLosses: number;
+} {
+  // Group notes by ticket, sorted by createdAt
+  const notesByTicket = new Map<string, NoteRow[]>();
+  for (const n of notes) {
+    const list = notesByTicket.get(n.ticketId) ?? [];
+    list.push(n);
+    notesByTicket.set(n.ticketId, list);
+  }
+  for (const list of notesByTicket.values()) {
+    list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+
+  // Find all handoff events
+  interface HandoffEvent {
+    ticketId: string;
+    handoffTo: string;
+    priorNotes: NoteRow[];
+    handoffIndex: number;
+  }
+  const handoffEvents: HandoffEvent[] = [];
+  for (const [ticketId, ticketNoteList] of notesByTicket.entries()) {
+    for (let i = 0; i < ticketNoteList.length; i++) {
+      const n = ticketNoteList[i];
+      if (n.handoffTo) {
+        handoffEvents.push({
+          ticketId,
+          handoffTo: n.handoffTo,
+          priorNotes: ticketNoteList.slice(0, i + 1),
+          handoffIndex: i,
+        });
+      }
     }
   }
 
-  if (ticketsByAgent.size === 0) return [];
+  // Per-agent stats
+  interface AgentStats {
+    handoffsReceived: number;
+    utilizationSum: number;
+    contextLossCount: number;
+    redundantWorkCount: number;
+    noteReadDepthSum: number;
+  }
+  const agentStats = new Map<string, AgentStats>();
 
-  // midFlowPickups: handoffs WHERE handoffTo = agentType
-  const midFlowByAgent = new Map<string, number>();
-  for (const n of validHandoffs) {
-    if (n.handoffTo) {
-      midFlowByAgent.set(n.handoffTo, (midFlowByAgent.get(n.handoffTo) ?? 0) + 1);
+  const getStats = (agentId: string): AgentStats => {
+    if (!agentStats.has(agentId)) {
+      agentStats.set(agentId, {
+        handoffsReceived: 0,
+        utilizationSum: 0,
+        contextLossCount: 0,
+        redundantWorkCount: 0,
+        noteReadDepthSum: 0,
+      });
+    }
+    return agentStats.get(agentId)!;
+  };
+
+  let totalLosses = 0;
+  const handoffCountByTicketAgent = new Map<string, boolean>();
+
+  for (const evt of handoffEvents) {
+    const agent = evt.handoffTo;
+    const stats = getStats(agent);
+    stats.handoffsReceived++;
+
+    // Prior notes content (combined)
+    const priorContent = evt.priorNotes.map(n => n.content).join(' ');
+    const noteReadDepth = evt.priorNotes.length;
+    stats.noteReadDepthSum += noteReadDepth;
+
+    // Find agent's first note after this handoff
+    const ticketNoteList = notesByTicket.get(evt.ticketId) ?? [];
+    const agentFirstNote = ticketNoteList
+      .slice(evt.handoffIndex + 1)
+      .find(n => n.authorId === agent || n.authorId.toLowerCase() === agent.toLowerCase());
+
+    if (agentFirstNote) {
+      // Utilization: keyword overlap with prior notes
+      const overlap = keywordOverlap(priorContent, agentFirstNote.content);
+      stats.utilizationSum += overlap;
+
+      // Context loss: agent first note duplicates prior note
+      const isLoss = evt.priorNotes.some(p => isDuplicate(p.content, agentFirstNote.content));
+      if (isLoss) {
+        stats.contextLossCount++;
+        totalLosses++;
+      }
+    } else {
+      // No response note — counts as no utilization
+      stats.utilizationSum += 0;
+    }
+
+    // Redundant work: this ticket+agent was already handed off before (re-handoff = backward regression)
+    const key = `${evt.ticketId}:${agent}`;
+    if (handoffCountByTicketAgent.has(key)) {
+      stats.redundantWorkCount++;
+    } else {
+      handoffCountByTicketAgent.set(key, true);
     }
   }
 
-  // escalations FROM agent: handoffs WHERE handoffFrom = agentType
-  const escalationsByAgent = new Map<string, number>();
-  for (const n of validHandoffs) {
-    if (n.handoffFrom) {
-      escalationsByAgent.set(n.handoffFrom, (escalationsByAgent.get(n.handoffFrom) ?? 0) + 1);
-    }
-  }
-
-  const scores: AgentContextScore[] = [];
-  for (const [agentType, ticketsHandled] of ticketsByAgent.entries()) {
-    const midFlowPickups = midFlowByAgent.get(agentType) ?? 0;
-    const escalationsFromAgent = escalationsByAgent.get(agentType) ?? 0;
-    const escalationRate = ticketsHandled > 0 ? escalationsFromAgent / ticketsHandled : 0;
-    const contextRetentionScore = computeRetentionScore(midFlowPickups, escalationRate);
-    const grade = computeGrade(contextRetentionScore);
-    scores.push({
-      agentType,
-      ticketsHandled,
-      midFlowPickups,
-      escalationRate,
-      contextRetentionScore,
-      grade,
-      gradeExplanation: computeGradeExplanation(grade, agentType, contextRetentionScore),
+  const profiles: AgentContextRetentionProfile[] = [];
+  for (const [personaId, stats] of agentStats.entries()) {
+    const h = stats.handoffsReceived;
+    const avgContextUtilizationRate = h > 0 ? stats.utilizationSum / h : 0;
+    const lossRate = h > 0 ? stats.contextLossCount / h : 0;
+    const redundancyRate = h > 0 ? stats.redundantWorkCount / h : 0;
+    const avgNoteReadDepth = h > 0 ? stats.noteReadDepthSum / h : 0;
+    const score = computeRetentionScore(avgContextUtilizationRate, lossRate, redundancyRate);
+    profiles.push({
+      personaId,
+      avgContextUtilizationRate: Math.round(avgContextUtilizationRate * 100),
+      contextLossCount: stats.contextLossCount,
+      redundantWorkCount: stats.redundantWorkCount,
+      avgNoteReadDepth: Math.round(avgNoteReadDepth * 10) / 10,
+      retentionScore: Math.round(score),
+      retentionCategory: retentionCategory(score),
     });
   }
 
-  scores.sort((a, b) => b.contextRetentionScore - a.contextRetentionScore);
-  return scores;
+  profiles.sort((a, b) => b.retentionScore - a.retentionScore);
+  return { profiles, totalHandoffs: handoffEvents.length, totalLosses };
 }
 
 export async function analyzeContextRetention(projectId: string): Promise<ContextRetentionReport> {
-  const projectTickets = await db
+  const projectTickets: TicketRow[] = await db
     .select({ id: tickets.id, assignedPersona: tickets.assignedPersona })
     .from(tickets)
     .where(eq(tickets.projectId, projectId));
 
-  const ticketIds = projectTickets.map((t) => t.id);
-  let handoffNotes: HandoffRecord[] = [];
+  const ticketIds = projectTickets.map(t => t.id);
+  let allNotes: NoteRow[] = [];
 
   if (ticketIds.length > 0) {
-    const allNotes = await db
+    const rawNotes = await db
       .select({
+        id: ticketNotes.id,
         ticketId: ticketNotes.ticketId,
+        authorId: ticketNotes.authorId,
+        content: ticketNotes.content,
         handoffFrom: ticketNotes.handoffFrom,
         handoffTo: ticketNotes.handoffTo,
+        createdAt: ticketNotes.createdAt,
       })
       .from(ticketNotes)
-      .where(isNotNull(ticketNotes.handoffFrom));
+      .where(inArray(ticketNotes.ticketId, ticketIds));
 
-    const ticketIdSet = new Set(ticketIds);
-    handoffNotes = allNotes.filter((n) => ticketIdSet.has(n.ticketId));
+    allNotes = rawNotes;
   }
 
-  const agentScores = computeAgentScores(projectTickets, handoffNotes);
+  const { profiles, totalHandoffs, totalLosses } = buildProfiles(allNotes);
 
-  const totalTicketsAnalyzed = projectTickets.filter((t) => t.assignedPersona != null).length;
   const avgRetentionScore =
-    agentScores.length > 0
-      ? agentScores.reduce((sum, s) => sum + s.contextRetentionScore, 0) / agentScores.length
+    profiles.length > 0
+      ? Math.round(profiles.reduce((s, p) => s + p.retentionScore, 0) / profiles.length)
       : 0;
-  const topPerformer = agentScores.length > 0 ? agentScores[0].agentType : null;
-  const needsAttention = agentScores
-    .filter((s) => s.grade === 'D' || s.grade === 'F')
-    .map((s) => s.agentType);
+  const bestRetainer = profiles.length > 0 ? profiles[0].personaId : null;
+  const worstRetainer = profiles.length > 1 ? profiles[profiles.length - 1].personaId : null;
+  const systemContextLossRate =
+    totalHandoffs > 0 ? Math.round((totalLosses / totalHandoffs) * 100) : 0;
 
-  let aiRecommendation = FALLBACK_RECOMMENDATION;
+  let aiSummary = FALLBACK_SUMMARY;
+  let aiRecommendations = FALLBACK_RECOMMENDATIONS;
+
   try {
     const client = new Anthropic({
       apiKey: process.env.OPENROUTER_API_KEY,
       baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
     });
 
-    const summary = agentScores
-      .map(
-        (s) =>
-          `Agent: ${s.agentType}, Score: ${s.contextRetentionScore.toFixed(0)}, Grade: ${s.grade}, MidFlowPickups: ${s.midFlowPickups}, EscalationRate: ${(s.escalationRate * 100).toFixed(0)}%`,
+    const summary = profiles
+      .map(p =>
+        `${p.personaId}: score=${p.retentionScore}, utilization=${p.avgContextUtilizationRate}%, lossCount=${p.contextLossCount}, redundant=${p.redundantWorkCount}, category=${p.retentionCategory}`,
       )
       .join('\n');
 
-    const prompt = `Analyze this agent context retention data and write a single paragraph recommendation about improving context retention across agents. Be concise and actionable.\n\n${summary}`;
+    const prompt = `Analyze this agent context retention data:\n${summary}\n\nReturn JSON with:\n- summary: one paragraph describing overall context retention health\n- recommendations: array of 2-3 actionable recommendations (for agents scoring below 60)\n\nRespond ONLY with valid JSON.`;
 
     const response = await client.messages.create({
       model: process.env.AI_MODEL || 'qwen/qwen3-6b',
-      max_tokens: 200,
+      max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    if (content) aiRecommendation = content;
+    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.summary) aiSummary = parsed.summary;
+        if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
+          aiRecommendations = parsed.recommendations;
+        }
+      } catch {
+        aiSummary = raw;
+      }
+    }
   } catch (e) {
-    console.warn('Agent context retention AI recommendation failed, using fallback:', e);
+    console.warn('Context retention AI analysis failed, using fallback:', e);
   }
 
   return {
-    projectId,
-    totalTicketsAnalyzed,
+    agents: profiles,
     avgRetentionScore,
-    topPerformer,
-    needsAttention,
-    agentScores,
-    aiRecommendation,
-    analyzedAt: new Date().toISOString(),
+    bestRetainer,
+    worstRetainer,
+    systemContextLossRate,
+    aiSummary,
+    aiRecommendations,
   };
 }
