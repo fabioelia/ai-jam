@@ -37,6 +37,7 @@ import { workloadBalancerRoutes } from './routes/workload-balancer.js';
 import { agentPerformanceRoutes } from './routes/agent-performance.js';
 import { agentRoutingRoutes } from './routes/agent-routing.js';
 import { escalationDetectorRoutes } from './routes/escalation-detector.js';
+import { agentSkillProfilerRoutes } from './routes/agent-skill-profiler.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -108,6 +109,7 @@ async function main() {
   await fastify.register(agentPerformanceRoutes);
   await fastify.register(agentRoutingRoutes);
   await fastify.register(escalationDetectorRoutes);
+  await fastify.register(agentSkillProfilerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

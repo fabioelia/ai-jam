@@ -1038,6 +1038,45 @@ export function useEscalationDetect() {
   return { detect, loading, result, setResult };
 }
 
+export interface AgentSkillProfile {
+  agentName: string;
+  totalAssigned: number;
+  completedCount: number;
+  completionRate: number;
+  avgStoryPoints: number;
+  complexityScore: number;
+  specialization: string | null;
+  proficiencyTier: 'expert' | 'proficient' | 'developing';
+  priorityBreakdown: { critical: number; high: number; medium: number; low: number };
+}
+
+export interface SkillProfileReport {
+  projectId: string;
+  profiles: AgentSkillProfile[];
+  topExpert: string | null;
+  insight: string;
+  analyzedAt: string;
+}
+
+export function useAgentSkillProfiles() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SkillProfileReport | null>(null);
+
+  const profile = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<SkillProfileReport>(`/projects/${projectId}/agent-skill-profiles`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { profile, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);
