@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -41,6 +41,7 @@ import AgentVelocityForecastModal from '../components/board/AgentVelocityForecas
 import AgentSprintCommitmentModal from '../components/board/AgentSprintCommitmentModal.js';
 import AgentCollaborationNetworkModal from '../components/board/AgentCollaborationNetworkModal.js';
 import AgentContextRetentionModal from '../components/board/AgentContextRetentionModal.js';
+import AgentFocusAdvisorModal from '../components/board/AgentFocusAdvisorModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -203,6 +204,8 @@ export default function BoardPage() {
   const [showCollaborationNetwork, setShowCollaborationNetwork] = useState(false);
   const contextRetention = useAgentContextRetention(projectId!);
   const [showContextRetention, setShowContextRetention] = useState(false);
+  const agentFocusAdvisor = useAgentFocusAdvisor();
+  const [showAgentFocusAdvisor, setShowAgentFocusAdvisor] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -968,6 +971,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Focus Advisor Button */}
+        <button
+          onClick={async () => {
+            setShowAgentFocusAdvisor(true);
+            try {
+              await agentFocusAdvisor.advise(projectId!);
+            } catch (error) {
+              toast.error(`Focus advisor failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentFocusAdvisor.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {agentFocusAdvisor.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Focus Advisor</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1426,6 +1449,10 @@ export default function BoardPage() {
 
       {showContextRetention && (
         <AgentContextRetentionModal result={contextRetention.result} isOpen={showContextRetention} loading={contextRetention.loading} onClose={() => { contextRetention.setResult(null); setShowContextRetention(false); }} />
+      )}
+
+      {showAgentFocusAdvisor && (
+        <AgentFocusAdvisorModal result={agentFocusAdvisor.result} isOpen={showAgentFocusAdvisor} loading={agentFocusAdvisor.loading} onClose={() => { agentFocusAdvisor.setResult(null); setShowAgentFocusAdvisor(false); }} />
       )}
     </div>
   );

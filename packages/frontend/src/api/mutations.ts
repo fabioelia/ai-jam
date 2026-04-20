@@ -1479,3 +1479,41 @@ export function useAgentContextRetention(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentFocusAdvice {
+  agentName: string;
+  inProgressCount: number;
+  staleCount: number;
+  focusRisk: 'overloaded' | 'stale' | 'idle' | 'balanced';
+  topStaleTicket: { id: string; title: string } | null;
+  recommendation: string;
+}
+
+export interface FocusAdvisorReport {
+  projectId: string;
+  agentAdvice: AgentFocusAdvice[];
+  totalAgents: number;
+  overloadedAgents: number;
+  idleAgents: number;
+  staleAgents: number;
+  generatedAt: string;
+}
+
+export function useAgentFocusAdvisor() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<FocusAdvisorReport | null>(null);
+
+  const advise = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<FocusAdvisorReport>(`/projects/${projectId}/agent-focus-advisor`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { advise, loading, result, setResult };
+}
