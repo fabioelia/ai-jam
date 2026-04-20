@@ -3548,3 +3548,46 @@ export function useAgentErrorRecovery(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentConfidenceCalibration {
+  personaId: string;
+  totalAssessments: number;
+  calibrationScore: number;
+  overconfidenceRate: number;
+  underconfidenceRate: number;
+  avgConfidenceLevel: number;
+  avgOutcomeSuccessRate: number;
+  calibrationGap: number;
+  calibrationLevel: 'excellent' | 'good' | 'fair' | 'poor';
+}
+
+export interface AgentConfidenceCalibrationReport {
+  agents: AgentConfidenceCalibration[];
+  avgCalibrationScore: number;
+  bestCalibratedAgent: string | null;
+  mostOverconfidentAgent: string | null;
+  mostUnderconfidentAgent: string | null;
+  systemCalibrationGap: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAnalyzeAgentConfidenceCalibration() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentConfidenceCalibrationReport | null>(null);
+
+  async function analyze(projectId: string): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentConfidenceCalibrationReport>(
+        `/projects/${projectId}/agent-confidence-calibration`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
