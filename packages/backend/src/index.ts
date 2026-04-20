@@ -125,6 +125,8 @@ import { agentInstructionComplianceRoutes } from './routes/agent-instruction-com
 import { agentKnowledgeGapAnalyzerRoutes } from './routes/agent-knowledge-gap-route.js';
 import { agentEscalationPatternAnalyzerRoutes } from './routes/agent-escalation-pattern-route.js';
 import { agentFeedbackIntegrationRoutes } from './routes/agent-feedback-integration.js';
+import { agentProactivityRoutes } from './routes/agent-proactivity-route.js';
+import { agentDecisionLatencyRoutes } from './routes/agent-decision-latency-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -284,6 +286,8 @@ async function main() {
   await fastify.register(agentKnowledgeGapAnalyzerRoutes);
   await fastify.register(agentEscalationPatternAnalyzerRoutes);
   await fastify.register(agentFeedbackIntegrationRoutes);
+  await fastify.register(agentProactivityRoutes);
+  await fastify.register(agentDecisionLatencyRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

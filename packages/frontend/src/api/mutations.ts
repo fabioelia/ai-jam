@@ -4804,3 +4804,100 @@ export function useAgentFeedbackIntegration(projectId: string) {
 
   return { analyze, loading, data, setData };
 }
+
+// FEAT-122: Agent Proactivity Analyzer
+export interface AgentProactivityMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  unpromptedNoteCount: number;
+  blockerFlagCount: number;
+  suggestionCount: number;
+  earlyWarningCount: number;
+  proactivityScore: number;
+  proactivityTier: 'proactive' | 'engaged' | 'reactive' | 'passive';
+}
+
+export interface AgentProactivityReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgProactivityScore: number;
+    mostProactive: string | null;
+    leastProactive: string | null;
+    proactiveAgents: number;
+  };
+  agents: AgentProactivityMetrics[];
+  insights: string[];
+  recommendations: string[];
+  aiSummary?: string;
+  aiRecommendations?: string[];
+}
+
+export function useAgentProactivity(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentProactivityReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentProactivityReport>(
+        `/projects/${projectId}/agent-proactivity`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
+
+// FEAT-123: Agent Decision Latency Analyzer
+export interface AgentDecisionLatencyMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasksAnalyzed: number;
+  avgDecisionLatency: number;
+  minLatency: number;
+  maxLatency: number;
+  latencyScore: number;
+  latencyTier: 'swift' | 'prompt' | 'deliberate' | 'sluggish';
+}
+
+export interface AgentDecisionLatencyReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgDecisionLatency: number;
+    fastestAgent: string | null;
+    slowestAgent: string | null;
+    swiftAgentCount: number;
+  };
+  agents: AgentDecisionLatencyMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentDecisionLatency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentDecisionLatencyReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentDecisionLatencyReport>(
+        `/projects/${projectId}/agent-decision-latency`,
+        { method: 'POST' },
+      );
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, data, setData };
+}
