@@ -47,7 +47,7 @@ function getRecommendation(riskLevel: AgentAbandonmentMetrics['riskLevel']): str
   }
 }
 
-export async function analyzeTaskAbandonment(projectId: string): Promise<AgentAbandonmentReport> {
+export async function analyzeAgentTaskAbandonment(projectId: string): Promise<AgentAbandonmentReport> {
   const now = new Date();
 
   const allTickets = await db

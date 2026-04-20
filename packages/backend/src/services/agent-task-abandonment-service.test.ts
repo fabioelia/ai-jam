@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzeTaskAbandonment } from './agent-task-abandonment-service.js';
+import { analyzeAgentTaskAbandonment } from './agent-task-abandonment-service.js';
 
 vi.mock('../db/connection.js', () => ({
   db: { select: vi.fn() },
@@ -38,14 +38,14 @@ function setupDb(rows: unknown[]) {
   (db.select as ReturnType<typeof vi.fn>).mockReturnValue(chain);
 }
 
-describe('analyzeTaskAbandonment', () => {
+describe('analyzeAgentTaskAbandonment', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('returns empty agents when no tickets', async () => {
     setupDb([]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     expect(report.agents).toEqual([]);
     expect(report.summary.totalAgents).toBe(0);
     expect(report.summary.mostReliableAgent).toBeNull();
@@ -56,7 +56,7 @@ describe('analyzeTaskAbandonment', () => {
       makeTicket(null, 'in_progress', THREE_HRS_AGO, NOW),
       makeTicket(null, 'done', THREE_HRS_AGO, NOW),
     ]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     expect(report.agents).toEqual([]);
     expect(report.summary.totalAgents).toBe(0);
   });
@@ -65,7 +65,7 @@ describe('analyzeTaskAbandonment', () => {
     setupDb([
       makeTicket('AgentA', 'in_progress', THREE_HRS_AGO, NOW),
     ]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     const agent = report.agents.find((a) => a.agentPersona === 'AgentA')!;
     expect(agent.abandonedTasks).toBe(1);
     expect(agent.abandonmentRate).toBe(1);
@@ -75,7 +75,7 @@ describe('analyzeTaskAbandonment', () => {
     setupDb([
       makeTicket('AgentB', 'in_progress', NINETY_MIN_AGO, NOW),
     ]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     const agent = report.agents.find((a) => a.agentPersona === 'AgentB')!;
     expect(agent.abandonedTasks).toBe(0);
     expect(agent.abandonmentRate).toBe(0);
@@ -104,7 +104,7 @@ describe('analyzeTaskAbandonment', () => {
       makeTicket('AgentLow', 'done', THREE_HRS_AGO, NOW),
       makeTicket('AgentLow', 'done', THREE_HRS_AGO, NOW),
     ]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     expect(report.agents.find((a) => a.agentPersona === 'AgentCritical')!.riskLevel).toBe('critical');
     expect(report.agents.find((a) => a.agentPersona === 'AgentHigh')!.riskLevel).toBe('high');
     expect(report.agents.find((a) => a.agentPersona === 'AgentModerate')!.riskLevel).toBe('moderate');
@@ -121,7 +121,7 @@ describe('analyzeTaskAbandonment', () => {
       // AgentC: rate 1.0 (1 abandoned), total 1
       makeTicket('AgentC', 'in_progress', THREE_HRS_AGO, NOW),
     ]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     // AgentC first (rate 1.0), then AgentB (rate 0, total 2), then AgentA (rate 0, total 1)
     expect(report.agents[0].agentPersona).toBe('AgentC');
     expect(report.agents[1].agentPersona).toBe('AgentB');
@@ -137,7 +137,7 @@ describe('analyzeTaskAbandonment', () => {
       // AgentY: rate 0.0 → not high risk
       makeTicket('AgentY', 'done', THREE_HRS_AGO, NOW),
     ]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     expect(report.summary.highRiskAgents).toBe(1);
   });
 
@@ -152,7 +152,7 @@ describe('analyzeTaskAbandonment', () => {
       makeTicket('AgentBad', 'in_progress', THREE_HRS_AGO, NOW),
       makeTicket('AgentBad', 'done', THREE_HRS_AGO, NOW),
     ]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     expect(report.summary.mostReliableAgent).toBe('AgentGood');
   });
 
@@ -164,7 +164,7 @@ describe('analyzeTaskAbandonment', () => {
       makeTicket('AgentEdge', 'done', THREE_HRS_AGO, NOW),
       makeTicket('AgentEdge', 'done', THREE_HRS_AGO, NOW),
     ]);
-    const report = await analyzeTaskAbandonment('proj-1');
+    const report = await analyzeAgentTaskAbandonment('proj-1');
     const agent = report.agents.find((a) => a.agentPersona === 'AgentEdge')!;
     expect(agent.abandonmentRate).toBe(0.25);
     expect(agent.riskLevel).toBe('high');
