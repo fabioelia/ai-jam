@@ -66,6 +66,7 @@ import { agentHandoffSuccessRoutes } from './routes/agent-handoff-success.js';
 import { agentIdleTimeRoutes } from './routes/agent-idle-time.js';
 import { agentThroughputEfficiencyRoutes } from './routes/agent-throughput-efficiency.js';
 import { agentWorkloadFairnessRoutes } from './routes/agent-workload-fairness.js';
+import { agentErrorRatesRoutes } from './routes/agent-error-rates.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -166,6 +167,7 @@ async function main() {
   await fastify.register(agentIdleTimeRoutes);
   await fastify.register(agentThroughputEfficiencyRoutes);
   await fastify.register(agentWorkloadFairnessRoutes);
+  await fastify.register(agentErrorRatesRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

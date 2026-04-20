@@ -2250,3 +2250,50 @@ export function useAgentWorkloadFairness() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentErrorMetrics {
+  agentPersona: string;
+  totalTasks: number;
+  failedTasks: number;
+  retriedTasks: number;
+  errorRate: number;
+  retryRate: number;
+  reliabilityScore: number;
+  severity: 'critical' | 'high' | 'moderate' | 'low';
+  recommendedAction: string;
+}
+
+export interface ErrorRateSummary {
+  totalAgents: number;
+  avgErrorRate: number;
+  highRiskAgents: number;
+  mostReliableAgent: string | null;
+}
+
+export interface AgentErrorRateReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentErrorMetrics[];
+  summary: ErrorRateSummary;
+  aiSummary: string;
+}
+
+export function useAgentErrorRates() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentErrorRateReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentErrorRateReport>(
+        `/projects/${projectId}/agent-error-rates`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
