@@ -3,9 +3,11 @@ import { analyzeEscalationPatterns } from './agent-escalation-pattern-service.js
 
 vi.mock('../db/connection.js', () => ({ db: { select: vi.fn() } }));
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: '{"aiSummary":"ok","aiRecommendations":["improve handoffs"]}' }] }) },
-  })),
+  default: vi.fn().mockImplementation(function () {
+    return {
+      messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: '{"aiSummary":"ok","aiRecommendations":["improve handoffs"]}' }] }) },
+    };
+  }),
 }));
 
 import { db } from '../db/connection.js';
@@ -109,9 +111,11 @@ describe('analyzeEscalationPatterns', () => {
 
   it('falls back gracefully when AI fails', async () => {
     const Anthropic = (await import('@anthropic-ai/sdk')).default as any;
-    Anthropic.mockImplementationOnce(() => ({
-      messages: { create: vi.fn().mockRejectedValue(new Error('AI error')) },
-    }));
+    Anthropic.mockImplementationOnce(function () {
+      return {
+        messages: { create: vi.fn().mockRejectedValue(new Error('AI error')) },
+      };
+    });
     mockDbSequence([{ id: 't1' }], [makeNote('a', 'b')]);
     const result = await analyzeEscalationPatterns('proj-1');
     expect(result.aiSummary).toBe('Review escalation patterns to identify bottlenecks and improve agent handoff processes.');
