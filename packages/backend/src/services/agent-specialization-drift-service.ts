@@ -62,7 +62,7 @@ function classifyDriftLevel(driftScore: number): AgentSpecializationDriftMetrics
 
 const VALID_STATUSES = new Set(['backlog', 'in_progress', 'review', 'qa', 'acceptance', 'done']);
 
-export async function analyzeSpecializationDrift(projectId: string): Promise<SpecializationDriftReport> {
+export async function analyzeAgentSpecializationDrift(projectId: string): Promise<SpecializationDriftReport> {
   const allTickets = await db
     .select({
       id: tickets.id,

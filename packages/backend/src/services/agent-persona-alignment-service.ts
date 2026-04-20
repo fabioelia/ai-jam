@@ -103,7 +103,7 @@ export const FALLBACK_RECOMMENDATIONS = [
   'Review agents with low alignment scores and ensure tasks match their designated personas.',
 ];
 
-export async function analyzePersonaAlignment(projectId: string): Promise<PersonaAlignmentReport> {
+export async function analyzeAgentPersonaAlignment(projectId: string): Promise<PersonaAlignmentReport> {
   // Fetch all tickets for this project
   const allTickets = await db
     .select({

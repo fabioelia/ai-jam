@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzePersonaAlignment } from './agent-persona-alignment-service.js';
+import { analyzeAgentPersonaAlignment } from './agent-persona-alignment-service.js';
 
 // Mock DB
 vi.mock('../db/connection.js', () => ({ db: { select: vi.fn() } }));
@@ -53,10 +53,10 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('analyzePersonaAlignment', () => {
+describe('analyzeAgentPersonaAlignment', () => {
   it('returns empty report for project with no tickets', async () => {
     mockDbSelectSequence([], []);
-    const report = await analyzePersonaAlignment('proj-empty');
+    const report = await analyzeAgentPersonaAlignment('proj-empty');
     expect(report.agents).toHaveLength(0);
     expect(report.avgAlignmentScore).toBe(0);
     expect(report.mostAligned).toBeNull();
@@ -69,7 +69,7 @@ describe('analyzePersonaAlignment', () => {
     const n1 = makeNote('n1', 't1', 'developer', 'qa');
     mockDbSelectSequence([t1, t2], [n1]);
 
-    const report = await analyzePersonaAlignment('proj-1');
+    const report = await analyzeAgentPersonaAlignment('proj-1');
     const dev = report.agents.find((a) => a.personaId === 'developer');
     expect(dev).toBeDefined();
     expect(dev!.primaryTaskRate).toBeGreaterThan(50);
@@ -84,7 +84,7 @@ describe('analyzePersonaAlignment', () => {
     const n2 = makeNote('n2', 't1', 'developer', 'researcher');
     mockDbSelectSequence([t1], [n1, n2]);
 
-    const report = await analyzePersonaAlignment('proj-2');
+    const report = await analyzeAgentPersonaAlignment('proj-2');
     const dev = report.agents.find((a) => a.personaId === 'developer');
     expect(dev).toBeDefined();
     expect(dev!.crossPersonaHandoffRate).toBeGreaterThan(0);
@@ -95,7 +95,7 @@ describe('analyzePersonaAlignment', () => {
     const t1 = makeTicket('t1', 'qa', 'ui layout style component', 'in_progress', 'ux design work');
     mockDbSelectSequence([t1], []);
 
-    const report = await analyzePersonaAlignment('proj-3');
+    const report = await analyzeAgentPersonaAlignment('proj-3');
     const qa = report.agents.find((a) => a.personaId === 'qa');
     expect(qa).toBeDefined();
     expect(qa!.roleViolationCount).toBeGreaterThanOrEqual(1);
@@ -110,7 +110,7 @@ describe('analyzePersonaAlignment', () => {
     ];
     mockDbSelectSequence(tickets, []);
 
-    const report = await analyzePersonaAlignment('proj-4');
+    const report = await analyzeAgentPersonaAlignment('proj-4');
     const dev = report.agents.find((a) => a.personaId === 'developer');
     expect(dev).toBeDefined();
     expect(dev!.specializationIndex).toBe(100);
@@ -130,7 +130,7 @@ describe('analyzePersonaAlignment', () => {
     ];
     mockDbSelectSequence(tickets, notes);
 
-    const report = await analyzePersonaAlignment('proj-5');
+    const report = await analyzeAgentPersonaAlignment('proj-5');
     expect(report.agents.length).toBeGreaterThanOrEqual(2);
     // Most aligned should come first
     expect(report.agents[0].alignmentScore).toBeGreaterThanOrEqual(
@@ -153,7 +153,7 @@ describe('analyzePersonaAlignment', () => {
     const t1 = makeTicket('t1', 'developer', 'implement feature', 'done');
     mockDbSelectSequence([t1], []);
 
-    const report = await analyzePersonaAlignment('proj-6');
+    const report = await analyzeAgentPersonaAlignment('proj-6');
     expect(report.aiSummary).toBe('Agent persona alignment analysis complete.');
     expect(report.aiRecommendations.length).toBeGreaterThan(0);
   });
@@ -169,7 +169,7 @@ describe('analyzePersonaAlignment', () => {
     ];
     mockDbSelectSequence(tickets, []);
 
-    const report = await analyzePersonaAlignment('proj-7');
+    const report = await analyzeAgentPersonaAlignment('proj-7');
     const dev = report.agents.find((a) => a.personaId === 'developer');
     expect(dev).toBeDefined();
     expect(dev!.specializationIndex).toBe(0);
@@ -182,7 +182,7 @@ describe('analyzePersonaAlignment', () => {
     ];
     mockDbSelectSequence(tickets, []);
 
-    const report = await analyzePersonaAlignment('proj-8');
+    const report = await analyzeAgentPersonaAlignment('proj-8');
     const agent = report.agents.find((a) => a.personaId === 'scrum-master');
     expect(agent).toBeDefined();
     expect(agent!.primaryTaskRate).toBe(100);

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzeSpecializationDrift, inferSpecialization, inferTicketType } from './agent-specialization-drift-service.js';
+import { analyzeAgentSpecializationDrift, inferSpecialization, inferTicketType } from './agent-specialization-drift-service.js';
 
 vi.mock('../db/connection.js', () => ({ db: { select: vi.fn() } }));
 vi.mock('@anthropic-ai/sdk', () => ({
@@ -39,10 +39,10 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('analyzeSpecializationDrift', () => {
+describe('analyzeAgentSpecializationDrift', () => {
   it('returns empty report for project with no assigned tickets', async () => {
     mockDbSelect([]);
-    const report = await analyzeSpecializationDrift('proj-1');
+    const report = await analyzeAgentSpecializationDrift('proj-1');
     expect(report.agents).toHaveLength(0);
     expect(report.systemAvgAlignmentPct).toBe(0);
     expect(report.mostAlignedAgent).toBeNull();
@@ -69,7 +69,7 @@ describe('analyzeSpecializationDrift', () => {
       makeTicket('ai-jam-developer', 'done', 'Update database schema'),
       makeTicket('ai-jam-developer', 'review', 'Add new API endpoint'),
     ]);
-    const report = await analyzeSpecializationDrift('proj-1');
+    const report = await analyzeAgentSpecializationDrift('proj-1');
     const agent = report.agents.find((a) => a.personaId === 'ai-jam-developer');
     expect(agent).toBeDefined();
     expect(agent!.driftScore).toBe(0);
@@ -84,7 +84,7 @@ describe('analyzeSpecializationDrift', () => {
       makeTicket('ai-jam-developer', 'review', 'Team sync meeting'),
       makeTicket('ai-jam-developer', 'qa', 'Team sync meeting'),
     ]);
-    const report = await analyzeSpecializationDrift('proj-1');
+    const report = await analyzeAgentSpecializationDrift('proj-1');
     const agent = report.agents.find((a) => a.personaId === 'ai-jam-developer');
     expect(agent).toBeDefined();
     expect(agent!.driftScore).toBe(50);
@@ -128,7 +128,7 @@ describe('analyzeSpecializationDrift', () => {
     ];
 
     mockDbSelect([...alignedTickets, ...minorDriftTickets, ...sigDriftTickets, ...offTrackTickets]);
-    const report = await analyzeSpecializationDrift('proj-1');
+    const report = await analyzeAgentSpecializationDrift('proj-1');
 
     const aligned = report.agents.find((a) => a.personaId === 'developer-aligned');
     const minor = report.agents.find((a) => a.personaId === 'developer-minor');
@@ -152,7 +152,7 @@ describe('analyzeSpecializationDrift', () => {
       makeTicket('developer-low', 'done', 'Team sync meeting'),
       makeTicket('developer-low', 'done', 'Team sync meeting'),
     ]);
-    const report = await analyzeSpecializationDrift('proj-1');
+    const report = await analyzeAgentSpecializationDrift('proj-1');
     expect(report.mostAlignedAgent).toBe('developer-high');
     expect(report.mostDriftedAgent).toBe('developer-low');
   });
@@ -171,7 +171,7 @@ describe('analyzeSpecializationDrift', () => {
       makeTicket('ai-jam-developer', 'in_progress', 'Fix backend API endpoint'),
     ]);
 
-    const report = await analyzeSpecializationDrift('proj-fallback');
+    const report = await analyzeAgentSpecializationDrift('proj-fallback');
     expect(report.aiSummary).toBe('Unable to generate AI analysis. Review agent specialization alignment manually.');
     expect(report.aiRecommendations).toEqual([
       'Audit task assignments to ensure agents work within their specializations.',
