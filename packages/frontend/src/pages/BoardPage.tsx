@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, useAgentCostEfficiency, useAgentDeadlineAdherence, useAgentSessionDuration, useAgentRetryPattern, useAgentToolUsagePattern, useAgentPriorityAdherence, useAgentCognitiveLoad, useAgentParallelTaskEfficiency, useAgentLearningVelocity, getAgentOutputQuality, AgentOutputQualityReport, getAgentLearningCurves, LearningCurveReport, type AgentLearningVelocityReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, useAgentCostEfficiency, useAgentDeadlineAdherence, useAgentSessionDuration, useAgentRetryPattern, useAgentToolUsagePattern, useAgentPriorityAdherence, useAgentCognitiveLoad, useAgentParallelTaskEfficiency, useAgentLearningVelocity, getAgentOutputQuality, AgentOutputQualityReport, getAgentLearningCurves, LearningCurveReport, type AgentLearningVelocityReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport, useAgentGoalCompletion, useAgentCommunicationPatterns, useAgentDecisionQualityV2, useAgentSelfCorrectionRate, useAgentDependencyResolution } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -95,8 +95,6 @@ import AgentCostEfficiencyModal from '../components/board/AgentCostEfficiencyMod
 import AgentPersonaAlignmentModal from '../components/board/AgentPersonaAlignmentModal.js';
 import AgentCollaborationGraphModal from '../components/board/AgentCollaborationGraphModal.js';
 import AgentMultitaskingEfficiencyModal from '../components/board/AgentMultitaskingEfficiencyModal.js';
-import AgentResponseLatencyModal from '../components/board/AgentResponseLatencyModal.js';
-import AgentErrorRecoveryModal from '../components/board/AgentErrorRecoveryModal.js';
 import AgentSpecializationDriftModal from '../components/board/AgentSpecializationDriftModal.js';
 import AgentDeadlineAdherenceModal from '../components/board/AgentDeadlineAdherenceModal.js';
 import AgentSessionDurationModal from '../components/board/AgentSessionDurationModal.js';
@@ -106,6 +104,8 @@ import AgentPriorityAdherenceModal from '../components/board/AgentPriorityAdhere
 import AgentCognitiveLoadModal from '../components/AgentCognitiveLoadModal.js';
 import AgentParallelTaskEfficiencyModal from '../components/AgentParallelTaskEfficiencyModal.js';
 import AgentLearningVelocityModal from '../components/board/AgentLearningVelocityModal.js';
+import AgentGoalCompletionModal from '../components/board/AgentGoalCompletionModal.js';
+import AgentDecisionQualityV2Modal from '../components/board/AgentDecisionQualityV2Modal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -368,10 +368,6 @@ export default function BoardPage() {
   const agentMultitaskingEfficiencyMutation = useAgentMultitaskingEfficiency(projectId!);
   const [showAgentMultitaskingEfficiency, setShowAgentMultitaskingEfficiency] = useState(false);
   const [agentMultitaskingEfficiencyResult, setAgentMultitaskingEfficiencyResult] = useState<MultitaskingEfficiencyReport | null>(null);
-  const agentResponseLatency = useAgentResponseLatency(projectId!);
-  const [showAgentResponseLatency, setShowAgentResponseLatency] = useState(false);
-  const agentErrorRecovery = useAgentErrorRecovery(projectId!);
-  const [showAgentErrorRecovery, setShowAgentErrorRecovery] = useState(false);
   const agentConfidenceCalibration = useAnalyzeAgentConfidenceCalibration();
   const [showAgentConfidenceCalibration, setShowAgentConfidenceCalibration] = useState(false);
   const agentFeedbackIncorporation = useAgentFeedbackIncorporation(projectId!);
@@ -1460,26 +1456,6 @@ export default function BoardPage() {
           )}
         </button>
 
-        {/* Error Recovery Button */}
-        <button
-          onClick={async () => {
-            setShowAgentErrorRecovery(true);
-            try {
-              await agentErrorRecovery.analyze();
-            } catch (error) {
-              toast.error(`Error recovery analysis failed: ${getClientErrorMessage(error)}`);
-            }
-          }}
-          disabled={agentErrorRecovery.loading}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
-        >
-          {agentErrorRecovery.loading ? (
-            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-          ) : (
-            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' /></svg> Error Recovery</>
-          )}
-        </button>
-
         {/* Confidence Cal. Button */}
         <button
           onClick={async () => {
@@ -2483,6 +2459,46 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Goal Completion Button */}
+        <button
+          onClick={async () => {
+            setShowAgentGoalCompletion(true);
+            try {
+              await agentGoalCompletion.analyze();
+            } catch (error) {
+              toast.error(`Goal completion analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentGoalCompletion.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+        >
+          {agentGoalCompletion.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z' /></svg> Goal Completion</>
+          )}
+        </button>
+
+        {/* Decision Quality V2 Button */}
+        <button
+          onClick={async () => {
+            setShowAgentDecisionQualityV2(true);
+            try {
+              await agentDecisionQualityV2.analyze();
+            } catch (error) {
+              toast.error(`Decision quality analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentDecisionQualityV2.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+        >
+          {agentDecisionQualityV2.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' /></svg> Decision Quality</>
+          )}
+        </button>
+
                 {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -3132,12 +3148,6 @@ export default function BoardPage() {
       {showAgentDecisionSpeed && (
         <AgentDecisionSpeedModal result={agentDecisionSpeed.result} isOpen={showAgentDecisionSpeed} loading={agentDecisionSpeed.loading} onClose={() => { agentDecisionSpeed.setResult(null); setShowAgentDecisionSpeed(false); }} />
       )}
-      {showAgentResponseLatency && (
-        <AgentResponseLatencyModal result={agentResponseLatency.result} isOpen={showAgentResponseLatency} loading={agentResponseLatency.loading} onClose={() => { agentResponseLatency.setResult(null); setShowAgentResponseLatency(false); }} />
-      )}
-      {showAgentErrorRecovery && (
-        <AgentErrorRecoveryModal result={agentErrorRecovery.result} isOpen={showAgentErrorRecovery} loading={agentErrorRecovery.loading} onClose={() => { agentErrorRecovery.setResult(null); setShowAgentErrorRecovery(false); }} />
-      )}
       {showAgentThroughputRate && (
         <AgentThroughputRateModal result={agentThroughputRate.result} isOpen={showAgentThroughputRate} loading={agentThroughputRate.loading} onClose={() => { agentThroughputRate.setResult(null); setShowAgentThroughputRate(false); }} />
       )}
@@ -3165,6 +3175,12 @@ export default function BoardPage() {
       {showCognitiveLoad && <AgentCognitiveLoadModal report={cognitiveLoad.data} onClose={() => setShowCognitiveLoad(false)} />}
       {showLearningVelocity && <AgentLearningVelocityModal report={learningVelocity.data} onClose={() => { learningVelocity.setData(null); setShowLearningVelocity(false); }} />}
       {showParallelTaskEfficiency && <AgentParallelTaskEfficiencyModal report={parallelTaskEfficiency.data} onClose={() => { parallelTaskEfficiency.setData(null); setShowParallelTaskEfficiency(false); }} />}
+      {showAgentGoalCompletion && (
+        <AgentGoalCompletionModal result={agentGoalCompletion.result} isOpen={showAgentGoalCompletion} loading={agentGoalCompletion.loading} onClose={() => { agentGoalCompletion.setResult(null); setShowAgentGoalCompletion(false); }} />
+      )}
+      {showAgentDecisionQualityV2 && (
+        <AgentDecisionQualityV2Modal result={agentDecisionQualityV2.result} isOpen={showAgentDecisionQualityV2} loading={agentDecisionQualityV2.loading} onClose={() => { agentDecisionQualityV2.setResult(null); setShowAgentDecisionQualityV2(false); }} />
+      )}
     </div>
   );
 }

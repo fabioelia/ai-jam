@@ -4101,12 +4101,13 @@ export function useAgentParallelTaskEfficiency(projectId: string) {
 }
 
 // FEAT-102: Agent Goal Completion Analyzer
-export interface AgentGoalMetrics {
+export interface AgentGoalCompletionMetrics {
   agentId: string;
+  agentName: string;
   totalGoals: number;
-  completedGoals: number;
-  partialGoals: number;
-  failedGoals: number;
+  fullyCompleted: number;
+  partiallyCompleted: number;
+  failed: number;
   completionRate: number;
   partialRate: number;
   avgGoalsPerSession: number;
@@ -4121,10 +4122,11 @@ export interface AgentGoalCompletionReport {
     totalAgents: number;
     totalGoals: number;
     overallCompletionRate: number;
-    topPerformer: string | null;
+    topPerformer: string;
+    mostStruggling: string;
     exceptionalAgents: number;
   };
-  agents: AgentGoalMetrics[];
+  agents: AgentGoalCompletionMetrics[];
   insights: string[];
   recommendations: string[];
 }
