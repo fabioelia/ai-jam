@@ -57,7 +57,7 @@ export async function detectAgentStalls(projectId: string): Promise<StallDetecti
     .where(
       and(
         eq(tickets.projectId, projectId),
-        notInArray(tickets.status, ['done', 'cancelled']),
+        notInArray(tickets.status, ['done']),
         isNotNull(tickets.assignedPersona),
       ),
     );
