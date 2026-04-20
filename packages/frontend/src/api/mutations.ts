@@ -2836,3 +2836,32 @@ export function useAgentSessionDepth() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentFeedbackLoopMetrics {
+  personaId: string;
+  totalFeedbackEvents: number;
+  improvementRate: number;
+  averageRecoveryTime: number;
+  feedbackResponsiveness: 'high' | 'medium' | 'low' | 'none';
+  recentTrend: 'improving' | 'stable' | 'degrading';
+}
+
+export function useAgentFeedbackLoops() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentFeedbackLoopMetrics[] | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentFeedbackLoopMetrics[]>(
+        `/agent-feedback-loops/${projectId}`,
+        { method: 'GET' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
