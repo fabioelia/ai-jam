@@ -1828,3 +1828,46 @@ export function useAgentSkillGap() {
 
   return { analyze, loading, result, setResult };
 }
+
+export type ConflictSeverity = 'critical' | 'high' | 'moderate' | 'low';
+
+export interface DomainConflict {
+  domain: string;
+  domainType: 'label' | 'epic';
+  agents: string[];
+  activeTickets: number;
+  totalTickets: number;
+  conflictScore: number;
+  severity: ConflictSeverity;
+  recommendation: string;
+}
+
+export interface ConflictReport {
+  projectId: string;
+  analyzedAt: string;
+  totalConflicts: number;
+  criticalConflicts: number;
+  cleanDomains: number;
+  domainConflicts: DomainConflict[];
+  aiSummary: string;
+}
+
+export function useAgentConflictDetector() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ConflictReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<ConflictReport>(
+        `/projects/${projectId}/agent-conflict-detector`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

@@ -56,6 +56,7 @@ import { agentSpecializationMapperRoutes } from './routes/agent-specialization-m
 import { agentBottleneckAnalyzerRoutes } from './routes/agent-bottleneck-analyzer.js';
 import { agentQueueDepthRoutes } from './routes/agent-queue-depth.js';
 import { agentSkillGapRoutes } from './routes/agent-skill-gap.js';
+import { agentConflictDetectorRoutes } from './routes/agent-conflict-detector.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -146,6 +147,7 @@ async function main() {
   await fastify.register(agentBottleneckAnalyzerRoutes);
   await fastify.register(agentQueueDepthRoutes);
   await fastify.register(agentSkillGapRoutes);
+  await fastify.register(agentConflictDetectorRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
