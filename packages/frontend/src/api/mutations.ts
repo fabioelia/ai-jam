@@ -2947,3 +2947,44 @@ export async function getAgentLearningCurves(projectId: string): Promise<Learnin
   if (!response.ok) throw new Error('Failed to fetch agent learning curves');
   return response.json();
 }
+
+export interface AgentAutonomyMetrics {
+  personaId: string;
+  autonomyScore: number;
+  selfCompletionRate: number;
+  redirectionRate: number;
+  escalationCount: number;
+  avgHandoffsPerTicket: number;
+  autonomyLevel: 'high' | 'medium' | 'low' | 'dependent';
+}
+
+export interface AgentAutonomyReport {
+  agentMetrics: AgentAutonomyMetrics[];
+  summary: {
+    avgAutonomyScore: number;
+    mostAutonomous: string;
+    mostDependent: string;
+    highAutonomyCount: number;
+  };
+  aiSummary?: string;
+  recommendations?: string[];
+}
+
+export function useAgentAutonomy(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAutonomyReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentAutonomyReport>(`/projects/${projectId}/agent-autonomy`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
