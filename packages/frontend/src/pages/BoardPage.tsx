@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -78,6 +78,10 @@ import AgentReassignmentRatesModal from '../components/board/AgentReassignmentRa
 import AgentLearningCurveModal from '../components/board/AgentLearningCurveModal.js';
 import AgentAutonomyLevelModal from '../components/board/AgentAutonomyLevelModal.js';
 import AgentReworkRateModal from '../components/board/AgentReworkRateModal.js';
+import AgentDecisionSpeedModal from '../components/board/AgentDecisionSpeedModal.js';
+import AgentHandoffChainDepthModal from '../components/board/AgentHandoffChainDepthModal.js';
+import AgentInterruptionImpactModal from '../components/board/AgentInterruptionImpactModal.js';
+import AgentScopeAdherenceModal from '../components/board/AgentScopeAdherenceModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -315,6 +319,14 @@ export default function BoardPage() {
   const [showAgentAutonomy, setShowAgentAutonomy] = useState(false);
   const agentReworkRate = useAgentReworkRate(projectId!);
   const [showAgentReworkRate, setShowAgentReworkRate] = useState(false);
+  const agentDecisionSpeed = useAgentDecisionSpeed(projectId!);
+  const [showAgentDecisionSpeed, setShowAgentDecisionSpeed] = useState(false);
+  const agentHandoffChainDepth = useAgentHandoffChainDepth(projectId!);
+  const [showAgentHandoffChainDepth, setShowAgentHandoffChainDepth] = useState(false);
+  const agentScopeAdherence = useAgentScopeAdherence(projectId!);
+  const [showAgentScopeAdherence, setShowAgentScopeAdherence] = useState(false);
+  const agentInterruptionImpact = useAgentInterruptionImpact(projectId!);
+  const [showAgentInterruptionImpact, setShowAgentInterruptionImpact] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1100,6 +1112,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Agent Interruption Impact Button */}
+        <button
+          onClick={async () => {
+            setShowAgentInterruptionImpact(true);
+            try {
+              await agentInterruptionImpact.analyze();
+            } catch (error) {
+              toast.error(`Interruption impact analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentInterruptionImpact.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+        >
+          {agentInterruptionImpact.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' /></svg> Interruption Impact</>
+          )}
+        </button>
+
         {/* Agent Rework Rate Button */}
         <button
           onClick={async () => {
@@ -1117,6 +1149,26 @@ export default function BoardPage() {
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           ) : (
             <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' /></svg> Agent Rework Rate</>
+          )}
+        </button>
+
+        {/* Chain Depth Button */}
+        <button
+          onClick={async () => {
+            setShowAgentHandoffChainDepth(true);
+            try {
+              await agentHandoffChainDepth.analyze();
+            } catch (error) {
+              toast.error(`Chain depth analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentHandoffChainDepth.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {agentHandoffChainDepth.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 6h16M4 12h8m-8 6h16' /></svg> Chain Depth</>
           )}
         </button>
 
@@ -2426,6 +2478,9 @@ export default function BoardPage() {
       )}
       {showAgentReworkRate && (
         <AgentReworkRateModal result={agentReworkRate.result} isOpen={showAgentReworkRate} loading={agentReworkRate.loading} onClose={() => { agentReworkRate.setResult(null); setShowAgentReworkRate(false); }} />
+      )}
+      {showAgentInterruptionImpact && (
+        <AgentInterruptionImpactModal result={agentInterruptionImpact.result} isOpen={showAgentInterruptionImpact} loading={agentInterruptionImpact.loading} onClose={() => { setShowAgentInterruptionImpact(false); }} />
       )}
     </div>
   );
