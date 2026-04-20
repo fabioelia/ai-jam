@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -89,6 +89,7 @@ import AgentResponseLatencyModal from '../components/board/AgentResponseLatencyM
 import AgentErrorRecoveryModal from '../components/board/AgentErrorRecoveryModal.js';
 import AgentConfidenceCalibrationModal from '../components/board/AgentConfidenceCalibrationModal.js';
 import AgentFeedbackIncorporationModal from '../components/board/AgentFeedbackIncorporationModal.js';
+import AgentThroughputRateModal from '../components/board/AgentThroughputRateModal.js';
 import AgentPersonaAlignmentModal from '../components/board/AgentPersonaAlignmentModal.js';
 import AgentCollaborationGraphModal from '../components/board/AgentCollaborationGraphModal.js';
 import AgentMultitaskingEfficiencyModal from '../components/board/AgentMultitaskingEfficiencyModal.js';
@@ -369,6 +370,8 @@ export default function BoardPage() {
   const [showAgentSpecializationDrift, setShowAgentSpecializationDrift] = useState(false);
   const agentInterruptionImpact = useAgentInterruptionImpact(projectId!);
   const [showAgentInterruptionImpact, setShowAgentInterruptionImpact] = useState(false);
+  const agentThroughputRate = useAgentThroughputRate(projectId!);
+  const [showAgentThroughputRate, setShowAgentThroughputRate] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -2220,6 +2223,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Throughput Rate Button */}
+        <button
+          onClick={async () => {
+            setShowAgentThroughputRate(true);
+            try {
+              await agentThroughputRate.analyze();
+            } catch (error) {
+              toast.error(`Throughput rate analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentThroughputRate.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+        >
+          {agentThroughputRate.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Throughput Rate</>
+          )}
+        </button>
+
                 {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -2874,6 +2897,9 @@ export default function BoardPage() {
       )}
       {showAgentErrorRecovery && (
         <AgentErrorRecoveryModal result={agentErrorRecovery.result} isOpen={showAgentErrorRecovery} loading={agentErrorRecovery.loading} onClose={() => { agentErrorRecovery.setResult(null); setShowAgentErrorRecovery(false); }} />
+      )}
+      {showAgentThroughputRate && (
+        <AgentThroughputRateModal result={agentThroughputRate.result} isOpen={showAgentThroughputRate} loading={agentThroughputRate.loading} onClose={() => { agentThroughputRate.setResult(null); setShowAgentThroughputRate(false); }} />
       )}
     </div>
   );
