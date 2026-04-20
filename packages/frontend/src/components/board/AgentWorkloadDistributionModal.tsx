@@ -46,19 +46,32 @@ function AgentTable({ agents }: { agents: AgentWorkloadMetrics[] }) {
         <thead>
           <tr className="text-left text-xs text-gray-400 border-b border-gray-700">
             <th className="pb-2 pr-4 font-medium">Agent</th>
-            <th className="pb-2 pr-4 font-medium text-right">Total Sessions</th>
-            <th className="pb-2 pr-4 font-medium text-right">Total Tickets</th>
-            <th className="pb-2 pr-4 font-medium text-right">Workload Share (%)</th>
-            <th className="pb-2 font-medium">Overload Risk</th>
+            <th className="pb-2 pr-4 font-medium text-right">Sessions</th>
+            <th className="pb-2 pr-4 font-medium text-right">Tickets</th>
+            <th className="pb-2 pr-4 font-medium text-right">Avg/Session</th>
+            <th className="pb-2 pr-4 font-medium text-right">Share %</th>
+            <th className="pb-2 pr-4 font-medium">Share Bar</th>
+            <th className="pb-2 font-medium">Risk</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-800">
           {agents.map((agent) => (
             <tr key={agent.personaId} className="text-gray-300">
-              <td className="py-2 pr-4 font-medium text-white truncate max-w-[140px]">{agent.personaId}</td>
+              <td className="py-2 pr-4 font-medium text-white truncate max-w-[120px]">{agent.personaId}</td>
               <td className="py-2 pr-4 text-right font-mono">{agent.totalSessions}</td>
               <td className="py-2 pr-4 text-right font-mono">{agent.totalTickets}</td>
+              <td className="py-2 pr-4 text-right font-mono">
+                {agent.totalSessions > 0 ? (agent.totalTickets / agent.totalSessions).toFixed(1) : '—'}
+              </td>
               <td className="py-2 pr-4 text-right font-mono">{agent.workloadShare.toFixed(1)}</td>
+              <td className="py-2 pr-4">
+                <div className="w-24 bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-violet-500 h-2 rounded-full"
+                    style={{ width: `${Math.min(agent.workloadShare, 100)}%` }}
+                  />
+                </div>
+              </td>
               <td className="py-2">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${RISK_BADGE_STYLES[agent.overloadRisk]}`}>
                   {agent.overloadRisk}
@@ -74,8 +87,8 @@ function AgentTable({ agents }: { agents: AgentWorkloadMetrics[] }) {
 
 function AIAnalysis({ aiSummary, aiRecommendations }: { aiSummary: string; aiRecommendations: string[] }) {
   return (
-    <div className="bg-gray-800 rounded-lg p-4 space-y-3">
-      <h3 className="text-sm font-medium text-gray-300">AI Analysis</h3>
+    <div className="bg-gradient-to-br from-violet-900/30 to-gray-800 rounded-lg p-4 space-y-3 border border-violet-700/30">
+      <h3 className="text-sm font-medium text-violet-300">AI Analysis</h3>
       <p className="text-sm text-gray-300">{aiSummary}</p>
       {aiRecommendations.length > 0 && (
         <ul className="space-y-1 list-disc list-inside text-sm text-gray-400">
