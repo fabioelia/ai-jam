@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, useAgentCostEfficiency, useAgentDeadlineAdherence, useAgentSessionDuration, useAgentRetryPattern, useAgentToolUsagePattern, useAgentPriorityAdherence, useAgentCognitiveLoad, useAgentParallelTaskEfficiency, useAgentLearningVelocity, getAgentOutputQuality, AgentOutputQualityReport, getAgentLearningCurves, LearningCurveReport, type AgentLearningVelocityReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport, useAgentGoalCompletion, useAgentCommunicationPatterns, useAgentDecisionQualityV2, useAgentSelfCorrectionRate, useAgentDependencyResolution } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, useAgentCostEfficiency, useAgentDeadlineAdherence, useAgentSessionDuration, useAgentRetryPattern, useAgentToolUsagePattern, useAgentPriorityAdherence, useAgentCognitiveLoad, useAgentParallelTaskEfficiency, useAgentLearningVelocity, getAgentOutputQuality, AgentOutputQualityReport, getAgentLearningCurves, LearningCurveReport, type AgentLearningVelocityReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport, useAgentGoalCompletion, useAgentCommunicationPatterns, useAgentDecisionQualityV2, useAgentSelfCorrectionRate, useAgentDependencyResolution, useAgentContextWindow, useAgentOutputConsistency, useAgentCollaborationEfficiency, type AgentCollaborationEfficiencyReport, type AgentCollaborationMetrics, useAgentAdaptationSpeed, type AgentAdaptationSpeedReport, type AgentAdaptationMetrics, useAgentScopeDrift, type AgentScopeDriftReport, type AgentScopeDriftMetrics } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -109,6 +109,11 @@ import AgentDecisionQualityV2Modal from '../components/board/AgentDecisionQualit
 import AgentCommunicationPatternModal from '../components/board/AgentCommunicationPatternModal.js';
 import AgentSelfCorrectionRateModal from '../components/board/AgentSelfCorrectionRateModal.js';
 import AgentDependencyResolutionModal from '../components/board/AgentDependencyResolutionModal.js';
+import AgentContextWindowModal from '../components/board/AgentContextWindowModal.js';
+import AgentOutputConsistencyModal from '../components/board/AgentOutputConsistencyModal.js';
+import AgentCollaborationEfficiencyModal from '../components/AgentCollaborationEfficiencyModal.js';
+import AgentAdaptationSpeedModal from '../components/board/AgentAdaptationSpeedModal.js';
+import AgentScopeDriftModal from '../components/board/AgentScopeDriftModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -411,6 +416,16 @@ export default function BoardPage() {
   const [showAgentSelfCorrectionRate, setShowAgentSelfCorrectionRate] = useState(false);
   const agentDependencyResolution = useAgentDependencyResolution(projectId!);
   const [showAgentDependencyResolution, setShowAgentDependencyResolution] = useState(false);
+  const contextWindow = useAgentContextWindow(projectId!);
+  const [showContextWindow, setShowContextWindow] = useState(false);
+  const agentOutputConsistency = useAgentOutputConsistency(projectId!);
+  const [showAgentOutputConsistency, setShowAgentOutputConsistency] = useState(false);
+  const agentCollaborationEfficiency = useAgentCollaborationEfficiency(projectId!);
+  const [showAgentCollaborationEfficiency, setShowAgentCollaborationEfficiency] = useState(false);
+  const agentAdaptationSpeed = useAgentAdaptationSpeed(projectId!);
+  const [showAgentAdaptationSpeed, setShowAgentAdaptationSpeed] = useState(false);
+  const agentScopeDrift = useAgentScopeDrift(projectId!);
+  const [showAgentScopeDrift, setShowAgentScopeDrift] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -2562,6 +2577,106 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Context Window Button */}
+        <button
+          onClick={async () => {
+            setShowContextWindow(true);
+            try {
+              await contextWindow.analyze();
+            } catch (error) {
+              toast.error(`Context window analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={contextWindow.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+        >
+          {contextWindow.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Context Window</>
+          )}
+        </button>
+
+        {/* Output Consistency Button */}
+        <button
+          onClick={async () => {
+            setShowAgentOutputConsistency(true);
+            try {
+              await agentOutputConsistency.analyze();
+            } catch (error) {
+              toast.error(`Output consistency analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentOutputConsistency.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+        >
+          {agentOutputConsistency.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Output Consistency</>
+          )}
+        </button>
+
+        {/* Collaboration Efficiency Button */}
+        <button
+          onClick={async () => {
+            setShowAgentCollaborationEfficiency(true);
+            try {
+              await agentCollaborationEfficiency.analyze();
+            } catch (error) {
+              toast.error(`Collaboration efficiency analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentCollaborationEfficiency.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {agentCollaborationEfficiency.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Collaboration Efficiency</>
+          )}
+        </button>
+
+        {/* Adaptation Speed Button */}
+        <button
+          onClick={async () => {
+            setShowAgentAdaptationSpeed(true);
+            try {
+              await agentAdaptationSpeed.analyze();
+            } catch (error) {
+              toast.error(`Adaptation speed analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentAdaptationSpeed.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-cyan-600 hover:bg-cyan-700 text-white disabled:opacity-50"
+        >
+          {agentAdaptationSpeed.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Adaptation Speed</>
+          )}
+        </button>
+
+        {/* Scope Drift Button */}
+        <button
+          onClick={async () => {
+            setShowAgentScopeDrift(true);
+            try {
+              await agentScopeDrift.analyze();
+            } catch (error) {
+              toast.error(`Scope drift analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentScopeDrift.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-lime-600 hover:bg-lime-700 text-white disabled:opacity-50"
+        >
+          {agentScopeDrift.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <>Scope Drift</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -3252,6 +3367,15 @@ export default function BoardPage() {
       )}
       {showAgentDependencyResolution && (
         <AgentDependencyResolutionModal result={agentDependencyResolution.result} isOpen={showAgentDependencyResolution} loading={agentDependencyResolution.loading} onClose={() => { agentDependencyResolution.setResult(null); setShowAgentDependencyResolution(false); }} />
+      )}
+      {showAgentCollaborationEfficiency && (
+        <AgentCollaborationEfficiencyModal report={agentCollaborationEfficiency.result} onClose={() => { agentCollaborationEfficiency.setResult(null); setShowAgentCollaborationEfficiency(false); }} />
+      )}
+      {showAgentAdaptationSpeed && (
+        <AgentAdaptationSpeedModal report={agentAdaptationSpeed.result} onClose={() => { agentAdaptationSpeed.setResult(null); setShowAgentAdaptationSpeed(false); }} />
+      )}
+      {showAgentScopeDrift && (
+        <AgentScopeDriftModal report={agentScopeDrift.result} onClose={() => { agentScopeDrift.setResult(null); setShowAgentScopeDrift(false); }} />
       )}
     </div>
   );

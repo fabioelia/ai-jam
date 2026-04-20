@@ -4383,3 +4383,226 @@ export function useAgentLearningVelocity(projectId: string) {
 
   return { analyze, loading, data, setData };
 }
+
+// FEAT-111: Agent Context Window Utilization
+export interface AgentContextWindowMetrics {
+  agentId: string;
+  agentName: string;
+  avgWindowUsage: number;
+  peakUsage: number;
+  windowOverflows: number;
+  contextEfficiencyScore: number;
+  utilizationTier: 'optimal' | 'efficient' | 'wasteful' | 'overloaded';
+}
+
+export interface AgentContextWindowReport {
+  projectId: string;
+  agents: AgentContextWindowMetrics[];
+  avgWindowUsage: number;
+  totalOverflows: number;
+  optimalAgents: number;
+  overloadedAgents: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentContextWindow(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextWindowReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentContextWindowReport>(
+        `/projects/${projectId}/agent-context-window`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-113: Agent Output Consistency Analyzer
+export interface AgentOutputConsistencyMetrics {
+  agentId: string;
+  agentName: string;
+  totalOutputs: number;
+  consistentOutputs: number;
+  consistencyRate: number;
+  formatAdherenceRate: number;
+  outputConsistencyScore: number;
+  consistencyTier: 'consistent' | 'reliable' | 'variable' | 'erratic';
+}
+
+export interface AgentOutputConsistencyReport {
+  projectId: string;
+  agents: AgentOutputConsistencyMetrics[];
+  avgConsistencyScore: number;
+  mostConsistentAgent: string | null;
+  leastConsistentAgent: string | null;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentOutputConsistency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentOutputConsistencyReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentOutputConsistencyReport>(
+        `/projects/${projectId}/agent-output-consistency`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-116: Agent Collaboration Efficiency Analyzer
+export interface AgentCollaborationMetrics {
+  agentId: string;
+  agentName: string;
+  handoffsSent: number;
+  handoffsReceived: number;
+  continuationRate: number;
+  contextUtilizationRate: number;
+  collaborationScore: number;
+  collaborationTier: 'synergistic' | 'cooperative' | 'independent' | 'isolated';
+}
+
+export interface AgentCollaborationEfficiencyReport {
+  projectId: string;
+  generatedAt: string;
+  totalHandoffs: number;
+  avgCollaborationScore: number;
+  topCollaborator: string;
+  collaborationNetworkDensity: number;
+  agentMetrics: AgentCollaborationMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentCollaborationEfficiency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCollaborationEfficiencyReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentCollaborationEfficiencyReport>(
+        `/projects/${projectId}/agent-collaboration-efficiency`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-117: Agent Adaptation Speed Analyzer
+export interface AgentAdaptationMetrics {
+  agentId: string;
+  agentName: string;
+  totalHandoffs: number;
+  feedbackIncorporationRate: number;
+  avgIterationsToSuccess: number;
+  requirementChangeCount: number;
+  adaptationScore: number;
+  adaptationTier: 'rapid' | 'responsive' | 'gradual' | 'resistant';
+}
+
+export interface AgentAdaptationSpeedReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgAdaptationScore: number;
+    fastestAdapter: string;
+    slowestAdapter: string;
+    rapidAdapters: number;
+  };
+  agents: AgentAdaptationMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentAdaptationSpeed(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAdaptationSpeedReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentAdaptationSpeedReport>(
+        `/projects/${projectId}/agent-adaptation-speed`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-118: Agent Scope Drift Detector
+export interface AgentScopeDriftMetrics {
+  agentId: string;
+  agentName: string;
+  totalTasks: number;
+  outOfScopeTaskCount: number;
+  scopeAdherenceRate: number;
+  driftIncidents: number;
+  avgDriftSeverity: 'minimal' | 'moderate' | 'significant' | 'critical';
+  adherenceScore: number;
+  adherenceTier: 'focused' | 'contained' | 'expanding' | 'unconstrained';
+}
+
+export interface AgentScopeDriftReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgAdherenceScore: number;
+    mostFocused: string;
+    mostDrifting: string;
+    focusedAgents: number;
+  };
+  agents: AgentScopeDriftMetrics[];
+  insights: string[];
+  recommendations: string[];
+}
+
+export function useAgentScopeDrift(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentScopeDriftReport | null>(null);
+
+  async function analyze(): Promise<void> {
+    setLoading(true);
+    try {
+      const r = await apiFetch<AgentScopeDriftReport>(
+        `/projects/${projectId}/agent-scope-drift`,
+        { method: 'POST' },
+      );
+      setResult(r);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { analyze, loading, result, setResult };
+}

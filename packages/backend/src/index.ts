@@ -118,6 +118,9 @@ import { agentSelfCorrectionRateRoutes } from './routes/agent-self-correction-ra
 import { agentDependencyResolutionRoutes } from './routes/agent-dependency-resolution.js';
 import { agentContextWindowRoutes } from './routes/agent-context-window.js';
 import { agentOutputConsistencyRoutes } from './routes/agent-output-consistency-route.js';
+import { agentCollaborationEfficiencyRoutes } from './routes/agent-collaboration-efficiency.js';
+import { agentAdaptationSpeedRoutes } from './routes/agent-adaptation-speed-route.js';
+import { agentScopeDriftRoutes } from './routes/agent-scope-drift-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -270,6 +273,9 @@ async function main() {
   await fastify.register(agentDependencyResolutionRoutes);
   await fastify.register(agentContextWindowRoutes);
   await fastify.register(agentOutputConsistencyRoutes);
+  await fastify.register(agentCollaborationEfficiencyRoutes);
+  await fastify.register(agentAdaptationSpeedRoutes);
+  await fastify.register(agentScopeDriftRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
