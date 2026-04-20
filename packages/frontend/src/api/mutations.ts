@@ -3230,3 +3230,45 @@ export function useAgentBlockerFrequency(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentTokenBudgetMetrics {
+  personaId: string;
+  sessionCount: number;
+  handoffsInitiated: number;
+  ticketsCompleted: number;
+  ticketNoteAvgLength: number;
+  handoffNoteAvgLength: number;
+  estimatedTokens: number;
+  tokensPerTicket: number;
+  efficiencyScore: number;
+  efficiencyTier: 'optimal' | 'efficient' | 'moderate' | 'expensive';
+}
+
+export interface AgentTokenBudgetReport {
+  agents: AgentTokenBudgetMetrics[];
+  totalEstimatedTokens: number;
+  avgTokensPerTicket: number;
+  mostEfficientAgent: string | null;
+  leastEfficientAgent: string | null;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentTokenBudget(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTokenBudgetReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentTokenBudgetReport>(`/projects/${projectId}/agent-token-budget`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
