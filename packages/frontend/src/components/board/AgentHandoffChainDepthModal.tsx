@@ -93,6 +93,36 @@ export default function AgentHandoffChainDepthModal({
                 </div>
               )}
 
+              {/* Depth distribution */}
+              {result!.deepChainTickets.length > 0 && (() => {
+                const dist: Record<number, number> = {};
+                for (const t of result!.deepChainTickets) {
+                  dist[t.chainDepth] = (dist[t.chainDepth] ?? 0) + 1;
+                }
+                const maxCount = Math.max(...Object.values(dist));
+                return (
+                  <div>
+                    <h3 className="text-slate-300 font-semibold text-sm mb-2">Depth Distribution</h3>
+                    <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4 space-y-2">
+                      {Object.entries(dist).sort(([a], [b]) => Number(a) - Number(b)).map(([depth, count]) => (
+                        <div key={depth} className="flex items-center gap-3">
+                          <span className="text-gray-400 text-xs font-mono w-16">Depth {depth}</span>
+                          <div className="flex-1 bg-gray-700 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full ${
+                                Number(depth) >= 4 ? 'bg-red-500' : Number(depth) >= 2 ? 'bg-yellow-500' : 'bg-indigo-500'
+                              }`}
+                              style={{ width: `${(count / maxCount) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-gray-300 text-xs font-mono w-8 text-right">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Deep chain tickets table */}
               {result!.deepChainTickets.length > 0 && (
                 <div>
