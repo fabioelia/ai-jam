@@ -159,7 +159,7 @@ it('identifies fastestAgent and slowestAgent by avgHandoffLatencyMs', async () =
 // Test 8: AI fallback on error
 it('uses fallback aiSummary and aiRecommendations when AI call fails', async () => {
   const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  (Anthropic as ReturnType<typeof vi.fn>).mockImplementationOnce(() => ({
+  (Anthropic as unknown as ReturnType<typeof vi.fn>).mockImplementationOnce(() => ({
     messages: {
       create: vi.fn().mockRejectedValue(new Error('AI error')),
     },
