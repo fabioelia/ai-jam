@@ -2710,3 +2710,88 @@ export function useAgentTaskAbandonment() {
 
   return { analyze, loading, result, setResult };
 }
+
+
+export interface AgentWorkloadDistribution {
+  agentPersona: string;
+  totalActivity: number;
+  peakHour: number;
+  quietHour: number | null;
+  burstScore: number;
+  workPattern: 'burst' | 'steady' | 'mixed';
+  hourlyBuckets: number[];
+}
+
+export interface WorkloadDistributionReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentWorkloadDistribution[];
+  summary: {
+    totalAgents: number;
+    peakSystemHour: number;
+    burstiestAgent: string | null;
+    steadiestAgent: string | null;
+  };
+  aiSummary: string;
+}
+
+export function useAgentWorkloadDistribution() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<WorkloadDistributionReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<WorkloadDistributionReport>(
+        `/projects/${projectId}/agent-workload-distribution`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentTaskComplexity {
+  personaId: string;
+  totalTickets: number;
+  avgTransitionsPerTicket: number;
+  avgHandoffChainDepth: number;
+  reworkRate: number;
+  epicLinkRate: number;
+  complexityScore: number;
+  complexityTier: 'very-high' | 'high' | 'medium' | 'low';
+}
+
+export interface TaskComplexityReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentTaskComplexity[];
+  summary: {
+    totalAgentsAnalyzed: number;
+    avgComplexityScore: number;
+    highestComplexityAgent: string | null;
+    lowestComplexityAgent: string | null;
+  };
+}
+
+export function useAgentTaskComplexity() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<TaskComplexityReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/agent-task-complexity`, { method: 'POST' });
+      const data = await res.json();
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

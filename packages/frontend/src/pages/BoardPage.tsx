@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, getAgentOutputQuality, AgentOutputQualityScore } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -69,6 +69,9 @@ import AgentParallelCapacityModal from '../components/board/AgentParallelCapacit
 import AgentEstimationAccuracyModal from '../components/board/AgentEstimationAccuracyModal.js';
 import AgentTaskAbandonmentModal from '../components/board/AgentTaskAbandonmentModal.js';
 import AgentOutputQualityModal from '../components/board/AgentOutputQualityModal.js';
+import AgentTaskComplexityModal from '../components/board/AgentTaskComplexityModal.js';
+import AgentCommunicationQualityModal from '../components/board/AgentCommunicationQualityModal.js';
+import AgentWorkloadDistributionModal from '../components/board/AgentWorkloadDistributionModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -285,9 +288,15 @@ export default function BoardPage() {
   const [showAgentEstimationAccuracy, setShowAgentEstimationAccuracy] = useState(false);
   const agentTaskAbandonment = useAgentTaskAbandonment();
   const [showAgentTaskAbandonment, setShowAgentTaskAbandonment] = useState(false);
+  const agentCommunicationQuality = useAgentCommunicationQuality();
+  const [showAgentCommunicationQuality, setShowAgentCommunicationQuality] = useState(false);
+  const agentWorkloadDistribution = useAgentWorkloadDistribution();
+  const [showAgentWorkloadDistribution, setShowAgentWorkloadDistribution] = useState(false);
   const [agentOutputQualityScores, setAgentOutputQualityScores] = useState<AgentOutputQualityScore[] | null>(null);
   const [agentOutputQualityLoading, setAgentOutputQualityLoading] = useState(false);
   const [showAgentOutputQuality, setShowAgentOutputQuality] = useState(false);
+  const agentTaskComplexity = useAgentTaskComplexity();
+  const [showAgentTaskComplexity, setShowAgentTaskComplexity] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1593,6 +1602,46 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Comm Quality Button */}
+        <button
+          onClick={async () => {
+            setShowAgentCommunicationQuality(true);
+            try {
+              await agentCommunicationQuality.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Communication quality analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentCommunicationQuality.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {agentCommunicationQuality.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' /></svg> Comm Quality</>
+          )}
+        </button>
+
+        {/* Workload Heatmap Button */}
+        <button
+          onClick={async () => {
+            setShowAgentWorkloadDistribution(true);
+            try {
+              await agentWorkloadDistribution.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Workload distribution analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentWorkloadDistribution.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+        >
+          {agentWorkloadDistribution.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z' /></svg> Workload Heatmap</>
+          )}
+        </button>
+
         {/* Agent Output Quality Button */}
         <button
           onClick={async () => {
@@ -1617,7 +1666,27 @@ export default function BoardPage() {
           )}
         </button>
 
-        {/* Deadline Risk Button */}
+        {/* Task Complexity Button */}
+        <button
+          onClick={async () => {
+            setShowAgentTaskComplexity(true);
+            try {
+              await agentTaskComplexity.analyze(projectId!);
+            } catch (error) {
+              toast.error(`Task complexity analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentTaskComplexity.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+        >
+          {agentTaskComplexity.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" /></svg> Task Complexity</>
+          )}
+        </button>
+
+                {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
             type="date"
@@ -2187,6 +2256,18 @@ export default function BoardPage() {
 
       {showAgentOutputQuality && (
         <AgentOutputQualityModal scores={agentOutputQualityScores} isOpen={showAgentOutputQuality} loading={agentOutputQualityLoading} onClose={() => { setAgentOutputQualityScores(null); setShowAgentOutputQuality(false); }} />
+      )}
+
+      {showAgentCommunicationQuality && (
+        <AgentCommunicationQualityModal result={agentCommunicationQuality.result} isOpen={showAgentCommunicationQuality} loading={agentCommunicationQuality.loading} onClose={() => { agentCommunicationQuality.setResult(null); setShowAgentCommunicationQuality(false); }} />
+      )}
+
+      {showAgentWorkloadDistribution && (
+        <AgentWorkloadDistributionModal result={agentWorkloadDistribution.result} isOpen={showAgentWorkloadDistribution} loading={agentWorkloadDistribution.loading} onClose={() => { agentWorkloadDistribution.setResult(null); setShowAgentWorkloadDistribution(false); }} />
+      )}
+
+      {showAgentTaskComplexity && (
+        <AgentTaskComplexityModal result={agentTaskComplexity.result} isOpen={showAgentTaskComplexity} loading={agentTaskComplexity.loading} onClose={() => { agentTaskComplexity.setResult(null); setShowAgentTaskComplexity(false); }} />
       )}
     </div>
   );
