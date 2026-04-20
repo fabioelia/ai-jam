@@ -3,9 +3,11 @@ import { analyzeParallelCapacity } from './agent-parallel-capacity-service.js';
 
 vi.mock('../db/connection.js', () => ({ db: { select: vi.fn() } }));
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: '{"aiSummary":"ok","recommendations":["reduce load"]}' }] }) },
-  })),
+  default: vi.fn().mockImplementation(function () {
+    return {
+      messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: '{"aiSummary":"ok","recommendations":["reduce load"]}' }] }) },
+    };
+  }),
 }));
 
 import { db } from '../db/connection.js';
@@ -112,9 +114,11 @@ describe('analyzeParallelCapacity', () => {
 
   it('falls back gracefully when AI fails', async () => {
     const Anthropic = (await import('@anthropic-ai/sdk')).default as any;
-    Anthropic.mockImplementationOnce(() => ({
-      messages: { create: vi.fn().mockRejectedValue(new Error('AI error')) },
-    }));
+    Anthropic.mockImplementationOnce(function () {
+      return {
+        messages: { create: vi.fn().mockRejectedValue(new Error('AI error')) },
+      };
+    });
     mockDb([makeTicket('t1', 'alice', 'in_progress')]);
     const result = await analyzeParallelCapacity('proj-1');
     expect(result.aiSummary).toBe('Review parallel task load to identify overloaded agents and optimize concurrent task distribution.');
