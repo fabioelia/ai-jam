@@ -124,9 +124,8 @@ it('bonus of +10 applied when avgConcurrentTasks >= 3 AND parallelCompletionRate
 // Test 6: penalty applied when parallelCompletionRate < 50
 it('penalty of -15 applied when parallelCompletionRate < 50', () => {
   const withPenalty = computeEfficiencyScore(49, 1);
-  const withoutPenalty = computeEfficiencyScore(50, 1);
-  // withoutPenalty = 50, withPenalty = 49 - 15 = 34
-  expect(withPenalty).toBe(withoutPenalty - 15);
+  // 49 - 15 = 34
+  expect(withPenalty).toBe(34);
 });
 
 // Test 7: mostEfficientAgent correctly identified
