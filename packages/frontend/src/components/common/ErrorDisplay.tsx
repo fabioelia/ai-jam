@@ -1,4 +1,4 @@
-import { Button } from './Button.js';
+import Button from './Button.js';
 import { isNetworkError, isServerError, getClientErrorMessage } from '../../api/client.js';
 
 interface ErrorDisplayProps {

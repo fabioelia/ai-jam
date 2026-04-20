@@ -35,6 +35,21 @@ export const createTicketSchema = z.object({
   epicId: z.string().uuid().optional(),
   priority: z.enum(['critical', 'high', 'medium', 'low']).optional().default('medium'),
   storyPoints: z.number().int().positive().optional(),
+  dependencies: z.array(z.string().uuid()).optional(),
+});
+
+export const createClaudeTicketSchema = z.object({
+  featureId: z.string().uuid(),
+  userPrompt: z.string().min(1),
+  attachments: z.array(z.unknown()).optional(),
+  codebaseContext: z.unknown().optional(),
+});
+
+export const categorizeTicketSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().optional(),
+  featureId: z.string().uuid().optional(),
+  includeBoardContext: z.boolean().optional(),
 });
 
 export const moveTicketSchema = z.object({
@@ -52,6 +67,7 @@ export const updateTicketSchema = z.object({
   assignedUserId: z.string().uuid().nullable().optional(),
   acceptanceCriteria: z.array(z.string()).nullable().optional(),
   parentTicketId: z.string().uuid().nullable().optional(),
+  dependencies: z.array(z.string().uuid()).optional(),
   subtasks: z.array(z.object({
     title: z.string(),
     description: z.string(),

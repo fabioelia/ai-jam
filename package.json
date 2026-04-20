@@ -2,7 +2,7 @@
   "name": "ai-jam",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter @ai-jam/backend dev & pnpm --filter @ai-jam/frontend dev",
+    "dev": "concurrently -k -n backend,frontend -c cyan,green \"pnpm --filter @ai-jam/backend dev\" \"pnpm --filter @ai-jam/frontend dev\"",
     "dev:backend": "pnpm --filter @ai-jam/backend dev",
     "dev:frontend": "pnpm --filter @ai-jam/frontend dev",
     "dev:pty": "pnpm --filter @ai-jam/agent-runtime dev:pty",
@@ -20,5 +20,8 @@
       "sharp"
     ]
   },
-  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
+  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

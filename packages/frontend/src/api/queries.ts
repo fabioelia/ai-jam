@@ -257,6 +257,22 @@ export function useAgentSessions(ticketId: string) {
   });
 }
 
+export interface DependencyChainNode {
+  ticketId: string;
+  title: string;
+  status: string;
+  depth: number;
+  dependencies: DependencyChainNode[];
+}
+
+export function useDependencyChain(ticketId: string, maxDepth: number = 5) {
+  return useQuery({
+    queryKey: ['dependency-chain', ticketId, maxDepth],
+    queryFn: () => apiFetch<DependencyChainNode[]>(`/tickets/${ticketId}/dependency-chain?maxDepth=${maxDepth}`),
+    enabled: !!ticketId,
+  });
+}
+
 // -- Project Sessions (combined planning + execution + scans) --
 
 export interface PlanningSession {
