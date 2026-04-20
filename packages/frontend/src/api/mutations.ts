@@ -2211,3 +2211,42 @@ export function useAgentDependencyMapper() {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentFairnessMetrics {
+  agentPersona: string;
+  activeTickets: number;
+  completedLast7d: number;
+  workloadShare: number;
+  idealShare: number;
+  deviation: number;
+  status: 'overloaded' | 'balanced' | 'underloaded';
+}
+
+export interface WorkloadFairnessReport {
+  projectId: string;
+  analyzedAt: string;
+  agents: AgentFairnessMetrics[];
+  fairnessScore: number;
+  totalActiveTickets: number;
+  summary: string;
+}
+
+export function useAgentWorkloadFairness() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<WorkloadFairnessReport | null>(null);
+
+  const analyze = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<WorkloadFairnessReport>(
+        `/projects/${projectId}/agent-workload-fairness`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
