@@ -1401,3 +1401,41 @@ export function useAgentLoadPredictor() {
 
   return { predict, loading, result, setResult };
 }
+
+export interface CollaborationLink {
+  fromAgent: string;
+  toAgent: string;
+  handoffCount: number;
+  collaborationStrength: 'strong' | 'moderate' | 'weak';
+}
+
+export interface CollaborationNetworkReport {
+  projectId: string;
+  totalHandoffsAnalyzed: number;
+  totalAgentsInNetwork: number;
+  mostCollaborativeAgent: string | null;
+  isolatedAgents: string[];
+  strongLinks: CollaborationLink[];
+  allLinks: CollaborationLink[];
+  networkInsight: string;
+  analyzedAt: string;
+}
+
+export function useAgentCollaborationNetwork(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CollaborationNetworkReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<CollaborationNetworkReport>(`/projects/${projectId}/agent-collaboration-network`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
