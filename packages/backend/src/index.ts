@@ -91,6 +91,11 @@ import { agentScopeAdherenceRoutes } from './routes/agent-scope-adherence.js';
 import { agentInterruptionImpactRoutes } from './routes/agent-interruption-impact.js';
 import { agentBlockerFrequencyRoutes } from './routes/agent-blocker-frequency.js';
 import { agentTokenBudgetRoutes } from './routes/agent-token-budget.js';
+import { agentSpecializationDriftRoutes } from './routes/agent-specialization-drift.js';
+import { agentCollaborationGraphRoutes } from './routes/agent-collaboration-graph.js';
+import { agentMultitaskingEfficiencyRoutes } from './routes/agent-multitasking-efficiency.js';
+import { agentPersonaAlignmentRoutes } from './routes/agent-persona-alignment.js';
+import { agentKnowledgeFreshnessRoutes } from './routes/agent-knowledge-freshness.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -216,6 +221,11 @@ async function main() {
   await fastify.register(agentInterruptionImpactRoutes);
   await fastify.register(agentBlockerFrequencyRoutes);
   await fastify.register(agentTokenBudgetRoutes);
+  await fastify.register(agentSpecializationDriftRoutes);
+  await fastify.register(agentMultitaskingEfficiencyRoutes);
+  await fastify.register(agentCollaborationGraphRoutes);
+  await fastify.register(agentPersonaAlignmentRoutes);
+  await fastify.register(agentKnowledgeFreshnessRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

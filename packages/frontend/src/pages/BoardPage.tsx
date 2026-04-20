@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, getAgentOutputQuality, AgentOutputQualityScore, getAgentLearningCurves, LearningCurveReport } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -84,6 +84,8 @@ import AgentInterruptionImpactModal from '../components/board/AgentInterruptionI
 import AgentScopeAdherenceModal from '../components/board/AgentScopeAdherenceModal.js';
 import AgentBlockerFrequencyModal from '../components/board/AgentBlockerFrequencyModal.js';
 import AgentTokenBudgetModal from '../components/board/AgentTokenBudgetModal.js';
+import AgentKnowledgeFreshnessModal from '../components/board/AgentKnowledgeFreshnessModal.js';
+import AgentSpecializationDriftModal from '../components/board/AgentSpecializationDriftModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -331,6 +333,10 @@ export default function BoardPage() {
   const [showAgentBlockerFrequency, setShowAgentBlockerFrequency] = useState(false);
   const agentTokenBudget = useAgentTokenBudget(projectId!);
   const [showAgentTokenBudget, setShowAgentTokenBudget] = useState(false);
+  const agentKnowledgeFreshness = useAgentKnowledgeFreshness(projectId!);
+  const [showAgentKnowledgeFreshness, setShowAgentKnowledgeFreshness] = useState(false);
+  const agentSpecializationDrift = useAgentSpecializationDrift(projectId!);
+  const [showAgentSpecializationDrift, setShowAgentSpecializationDrift] = useState(false);
   const agentInterruptionImpact = useAgentInterruptionImpact(projectId!);
   const [showAgentInterruptionImpact, setShowAgentInterruptionImpact] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
@@ -1235,6 +1241,46 @@ export default function BoardPage() {
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           ) : (
             <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' /></svg> Token Budget</>
+          )}
+        </button>
+
+        {/* Knowledge Freshness Button */}
+        <button
+          onClick={async () => {
+            setShowAgentKnowledgeFreshness(true);
+            try {
+              await agentKnowledgeFreshness.analyze();
+            } catch (error) {
+              toast.error(`Knowledge freshness analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentKnowledgeFreshness.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-cyan-600 hover:bg-cyan-700 text-white disabled:opacity-50"
+        >
+          {agentKnowledgeFreshness.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' /></svg> Knowledge</>
+          )}
+        </button>
+
+        {/* Spec. Drift Button */}
+        <button
+          onClick={async () => {
+            setShowAgentSpecializationDrift(true);
+            try {
+              await agentSpecializationDrift.analyze();
+            } catch (error) {
+              toast.error(`Specialization drift analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentSpecializationDrift.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+        >
+          {agentSpecializationDrift.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7' /></svg> Spec. Drift</>
           )}
         </button>
 
@@ -2576,6 +2622,12 @@ export default function BoardPage() {
       )}
       {showAgentTokenBudget && (
         <AgentTokenBudgetModal result={agentTokenBudget.result} isOpen={showAgentTokenBudget} loading={agentTokenBudget.loading} onClose={() => { agentTokenBudget.setResult(null); setShowAgentTokenBudget(false); }} />
+      )}
+      {showAgentKnowledgeFreshness && (
+        <AgentKnowledgeFreshnessModal result={agentKnowledgeFreshness.result} isOpen={showAgentKnowledgeFreshness} loading={agentKnowledgeFreshness.loading} onClose={() => { agentKnowledgeFreshness.setResult(null); setShowAgentKnowledgeFreshness(false); }} />
+      )}
+      {showAgentSpecializationDrift && (
+        <AgentSpecializationDriftModal result={agentSpecializationDrift.result} isOpen={showAgentSpecializationDrift} loading={agentSpecializationDrift.loading} onClose={() => { agentSpecializationDrift.setResult(null); setShowAgentSpecializationDrift(false); }} />
       )}
       {showAgentScopeAdherence && (
         <AgentScopeAdherenceModal result={agentScopeAdherence.result} isOpen={showAgentScopeAdherence} loading={agentScopeAdherence.loading} onClose={() => { agentScopeAdherence.setResult(null); setShowAgentScopeAdherence(false); }} />

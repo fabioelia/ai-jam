@@ -3272,3 +3272,178 @@ export function useAgentTokenBudget(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentSpecializationDriftMetrics {
+  personaId: string;
+  primarySpecialization: string;
+  totalTicketsHandled: number;
+  inSpecializationCount: number;
+  outOfSpecializationCount: number;
+  specializationAlignmentPct: number;
+  driftScore: number;
+  driftLevel: 'aligned' | 'minor_drift' | 'significant_drift' | 'off_track';
+  taskTypeBreakdown: Record<string, number>;
+}
+
+export interface SpecializationDriftReport {
+  agents: AgentSpecializationDriftMetrics[];
+  systemAvgAlignmentPct: number;
+  mostAlignedAgent: string | null;
+  mostDriftedAgent: string | null;
+  systemTotalTickets: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentSpecializationDrift(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SpecializationDriftReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<SpecializationDriftReport>(`/projects/${projectId}/agent-specialization-drift`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface ConcurrencyBucket {
+  concurrencyLevel: number;
+  ticketCount: number;
+  avgCompletionMs: number;
+  reworkRate: number;
+  handoffSuccessRate: number;
+}
+
+export interface AgentMultitaskingProfile {
+  personaId: string;
+  avgConcurrency: number;
+  peakConcurrency: number;
+  optimalConcurrency: number;
+  efficiencyScore: number;
+  concurrencyBuckets: ConcurrencyBucket[];
+  overloadedPct: number;
+  efficiencyTier: 'optimal' | 'acceptable' | 'degraded' | 'overloaded';
+}
+
+export interface MultitaskingEfficiencyReport {
+  agents: AgentMultitaskingProfile[];
+  systemAvgConcurrency: number;
+  mostEfficientAgent: string;
+  mostOverloadedAgent: string;
+  recommendedMaxConcurrency: number;
+  aiSummary?: string;
+  recommendations?: string[];
+}
+
+export const useAgentMultitaskingEfficiency = (projectId: string) =>
+  useMutation({
+    mutationFn: (): Promise<MultitaskingEfficiencyReport> =>
+      fetch(`/api/projects/${projectId}/agent-multitasking-efficiency`, { method: 'POST' }).then(r => r.json()),
+  });
+
+export interface CollaborationEdge {
+  sourcePersonaId: string;
+  targetPersonaId: string;
+  handoffCount: number;
+  successfulHandoffs: number;
+  successRate: number;
+  avgContextLength: number;
+  collaborationStrength: number;
+}
+
+export interface AgentNetworkProfile {
+  personaId: string;
+  totalHandoffs: number;
+  outgoingHandoffs: number;
+  incomingHandoffs: number;
+  uniqueCollaborators: number;
+  avgCollaborationStrength: number;
+  centralityScore: number;
+  role: 'hub' | 'bridge' | 'contributor' | 'isolated';
+}
+
+export interface AgentCollaborationGraphReport {
+  edges: CollaborationEdge[];
+  agents: AgentNetworkProfile[];
+  mostActiveCollaborators: string[];
+  strongestPair: { source: string; target: string; strength: number };
+  mostIsolatedAgent: string;
+  networkDensity: number;
+  aiSummary?: string;
+  recommendations?: string[];
+}
+
+export const useAgentCollaborationGraph = (projectId: string) =>
+  useMutation({ mutationFn: (): Promise<AgentCollaborationGraphReport> =>
+    fetch(`/api/projects/${projectId}/agent-collaboration-graph`, { method: 'POST' }).then(r => r.json()) });
+
+export interface AgentPersonaAlignmentMetrics {
+  personaId: string;
+  alignmentScore: number;
+  primaryTaskRate: number;
+  crossPersonaHandoffRate: number;
+  roleViolationCount: number;
+  specializationIndex: number;
+  alignmentLevel: 'exemplary' | 'aligned' | 'drifting' | 'misaligned';
+}
+
+export interface PersonaAlignmentReport {
+  agents: AgentPersonaAlignmentMetrics[];
+  avgAlignmentScore: number;
+  mostAligned: string | null;
+  mostDrifted: string | null;
+  systemCrossPersonaRate: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export const useAgentPersonaAlignment = (projectId: string) =>
+  useMutation({ mutationFn: (): Promise<PersonaAlignmentReport> =>
+    fetch(`/api/projects/${projectId}/agent-persona-alignment`, { method: 'POST' }).then(r => r.json()) });
+
+export interface AgentFreshnessProfile {
+  personaId: string;
+  avgHandoffAgeHours: number;
+  staleHandoffCount: number;
+  freshHandoffCount: number;
+  avgTicketUpdateLagHours: number;
+  freshnessScore: number;
+  freshnessCategory: 'excellent' | 'good' | 'fair' | 'stale';
+}
+
+export interface KnowledgeFreshnessReport {
+  agents: AgentFreshnessProfile[];
+  avgFreshnessScore: number;
+  freshestAgent: string;
+  staleestAgent: string;
+  systemStaleHandoffRate: number;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentKnowledgeFreshness(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<KnowledgeFreshnessReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<KnowledgeFreshnessReport>(`/projects/${projectId}/agent-knowledge-freshness`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
