@@ -46,7 +46,7 @@ export function classifyRole(sent: number, received: number): AgentHandoffRole['
   return 'isolated';
 }
 
-export async function analyzeAgentHandoffQuality(projectId: string): Promise<AgentHandoffQualityReport> {
+export async function analyzeAgentHandoffQuality(projectId: string, sessions?: any[]): Promise<AgentHandoffQualityReport> {
   const generatedAt = new Date().toISOString();
 
   const rows = await db
