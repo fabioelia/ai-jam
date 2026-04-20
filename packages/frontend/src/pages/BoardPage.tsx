@@ -2482,6 +2482,9 @@ export default function BoardPage() {
       {showAgentInterruptionImpact && (
         <AgentInterruptionImpactModal result={agentInterruptionImpact.result} isOpen={showAgentInterruptionImpact} loading={agentInterruptionImpact.loading} onClose={() => { setShowAgentInterruptionImpact(false); }} />
       )}
+      {showAgentHandoffChainDepth && (
+        <AgentHandoffChainDepthModal result={agentHandoffChainDepth.result} isOpen={showAgentHandoffChainDepth} loading={agentHandoffChainDepth.loading} onClose={() => { agentHandoffChainDepth.setResult(null); setShowAgentHandoffChainDepth(false); }} />
+      )}
     </div>
   );
 }
