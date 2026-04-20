@@ -3405,9 +3405,24 @@ export interface PersonaAlignmentReport {
   aiRecommendations: string[];
 }
 
-export const useAgentPersonaAlignment = (projectId: string) =>
-  useMutation({ mutationFn: (): Promise<PersonaAlignmentReport> =>
-    fetch(`/api/projects/${projectId}/agent-persona-alignment`, { method: 'POST' }).then(r => r.json()) });
+export function useAgentPersonaAlignment(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<PersonaAlignmentReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<PersonaAlignmentReport>(`/projects/${projectId}/agent-persona-alignment`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
 
 export interface AgentFreshnessProfile {
   personaId: string;
