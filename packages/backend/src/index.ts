@@ -37,6 +37,7 @@ import { workloadBalancerRoutes } from './routes/workload-balancer.js';
 import { agentPerformanceRoutes } from './routes/agent-performance.js';
 import { agentRoutingRoutes } from './routes/agent-routing.js';
 import { escalationDetectorRoutes } from './routes/escalation-detector.js';
+import { agentBurnoutRoutes } from './routes/agent-burnout.js';
 import { agentSkillProfilerRoutes } from './routes/agent-skill-profiler.js';
 import { agentCollaborationRoutes } from './routes/agent-collaboration.js';
 import { setupSocketServer } from './websocket/socket-server.js';
@@ -110,6 +111,7 @@ async function main() {
   await fastify.register(agentPerformanceRoutes);
   await fastify.register(agentRoutingRoutes);
   await fastify.register(escalationDetectorRoutes);
+  await fastify.register(agentBurnoutRoutes);
   await fastify.register(agentSkillProfilerRoutes);
   await fastify.register(agentCollaborationRoutes);
 

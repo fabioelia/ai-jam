@@ -1118,6 +1118,47 @@ export function useAgentCollaboration() {
   return { collaborate, loading, result, setResult };
 }
 
+export interface AgentBurnoutStatus {
+  agentName: string;
+  activeCount: number;
+  avgStaleDays: number;
+  storyPointLoad: number;
+  riskLevel: 'critical' | 'high' | 'medium';
+  overloaded: boolean;
+  degrading: boolean;
+  recommendation: string;
+}
+
+export interface BurnoutReport {
+  projectId: string;
+  atRiskAgents: AgentBurnoutStatus[];
+  totalAgents: number;
+  atRiskCount: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  analyzedAt: string;
+}
+
+export function useAgentBurnout() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<BurnoutReport | null>(null);
+
+  const detect = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<BurnoutReport>(`/projects/${projectId}/agent-burnout`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { detect, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);
