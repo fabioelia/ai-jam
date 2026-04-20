@@ -1200,29 +1200,29 @@ export interface HandoffIssue {
   description: string;
 }
 
-export interface AgentHandoffRole {
+export interface AgentHandoffQualityMetrics {
   agentId: string;
   agentName: string;
-  handoffsSent: number;
-  handoffsReceived: number;
-  avgContextScore: number;
-  avgResolutionRate: number;
-  handoffEfficiency: number;
-  role: 'initiator' | 'receiver' | 'collaborator' | 'isolated';
+  totalHandoffs: number;
+  avgContextCompleteness: number;
+  avgClarityScore: number;
+  avgTimeliness: number;
+  followUpRate: number;
+  handoffScore: number;
+  handoffTier: 'exemplary' | 'proficient' | 'adequate' | 'deficient';
 }
 
 export interface AgentHandoffQualityReport {
   projectId: string;
   generatedAt: string;
   summary: {
-    totalHandoffs: number;
-    avgContextScore: number;
-    avgResolutionRate: number;
-    topSender: string;
-    topReceiver: string;
-    lowQualityHandoffCount: number;
+    totalAgents: number;
+    avgHandoffScore: number;
+    bestHandoffAgent: string;
+    worstHandoffAgent: string;
+    highQualityHandoffCount: number;
   };
-  agents: AgentHandoffRole[];
+  agents: AgentHandoffQualityMetrics[];
   insights: string[];
   recommendations: string[];
 }

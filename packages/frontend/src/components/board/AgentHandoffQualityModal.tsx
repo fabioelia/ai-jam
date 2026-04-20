@@ -1,4 +1,4 @@
-import type { AgentHandoffQualityReport, AgentHandoffRole } from '../../api/mutations.js';
+import type { AgentHandoffQualityReport, AgentHandoffQualityMetrics } from '../../api/mutations.js';
 
 interface Props {
   result: AgentHandoffQualityReport | null;
@@ -7,11 +7,11 @@ interface Props {
   onClose: () => void;
 }
 
-const ROLE_STYLES: Record<AgentHandoffRole['role'], string> = {
-  initiator: 'bg-blue-900/50 text-blue-300 border border-blue-700/50',
-  receiver: 'bg-green-900/50 text-green-300 border border-green-700/50',
-  collaborator: 'bg-purple-900/50 text-purple-300 border border-purple-700/50',
-  isolated: 'bg-gray-800/50 text-gray-400 border border-gray-600/50',
+const TIER_STYLES: Record<AgentHandoffQualityMetrics['handoffTier'], string> = {
+  exemplary: 'bg-green-500/20 text-green-300',
+  proficient: 'bg-blue-500/20 text-blue-300',
+  adequate: 'bg-yellow-500/20 text-yellow-300',
+  deficient: 'bg-red-500/20 text-red-300',
 };
 
 export default function AgentHandoffQualityModal({ result, isOpen, loading, onClose }: Props) {
@@ -28,10 +28,10 @@ export default function AgentHandoffQualityModal({ result, isOpen, loading, onCl
       >
         <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
           <h2 className="text-white font-semibold text-lg flex items-center gap-3">
-            <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
-            Agent Handoff Quality
+            Agent Handoff Quality Analyzer
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -57,77 +57,89 @@ export default function AgentHandoffQualityModal({ result, isOpen, loading, onCl
             </div>
           ) : (
             <>
+              {/* Summary cards */}
               <div className="grid grid-cols-4 gap-3">
-                <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg px-4 py-3">
-                  <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-1">Total Handoffs</p>
-                  <p className="text-cyan-200 text-sm font-semibold">{result.summary.totalHandoffs}</p>
+                <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg px-4 py-3">
+                  <p className="text-orange-400 text-xs font-medium uppercase tracking-wide mb-1">Total Agents</p>
+                  <p className="text-orange-200 text-sm font-semibold">{result.summary.totalAgents}</p>
                 </div>
-                <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg px-4 py-3">
-                  <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-1">Avg Context Score</p>
-                  <p className="text-cyan-200 text-sm font-semibold">{result.summary.avgContextScore}</p>
+                <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg px-4 py-3">
+                  <p className="text-orange-400 text-xs font-medium uppercase tracking-wide mb-1">Avg Handoff Score</p>
+                  <p className="text-orange-200 text-sm font-semibold">{result.summary.avgHandoffScore}</p>
                 </div>
-                <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg px-4 py-3">
-                  <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-1">Top Sender</p>
-                  <p className="text-cyan-200 text-sm font-semibold truncate">{result.summary.topSender || '—'}</p>
+                <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg px-4 py-3">
+                  <p className="text-orange-400 text-xs font-medium uppercase tracking-wide mb-1">Best Handoff Agent</p>
+                  <p className="text-orange-200 text-sm font-semibold truncate">{result.summary.bestHandoffAgent || '—'}</p>
                 </div>
-                <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg px-4 py-3">
-                  <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-1">Low Quality</p>
-                  <p className="text-cyan-200 text-sm font-semibold">{result.summary.lowQualityHandoffCount}</p>
+                <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg px-4 py-3">
+                  <p className="text-orange-400 text-xs font-medium uppercase tracking-wide mb-1">High Quality Count</p>
+                  <p className="text-orange-200 text-sm font-semibold">{result.summary.highQualityHandoffCount}</p>
                 </div>
               </div>
 
+              {/* Agent table */}
               <div className="overflow-x-auto rounded-lg border border-gray-700">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-800/60 text-gray-400 text-xs uppercase tracking-wide">
                       <th className="px-4 py-3 text-left">Agent</th>
-                      <th className="px-4 py-3 text-center">Role</th>
-                      <th className="px-4 py-3 text-center">Sent</th>
-                      <th className="px-4 py-3 text-center">Received</th>
-                      <th className="px-4 py-3 text-center">Avg Context</th>
-                      <th className="px-4 py-3 text-center">Efficiency</th>
+                      <th className="px-4 py-3 text-center">Handoffs</th>
+                      <th className="px-4 py-3 text-center">Follow-Up Rate</th>
+                      <th className="px-4 py-3 text-center">Score</th>
+                      <th className="px-4 py-3 text-center">Tier</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
                     {result.agents.map((agent, i) => (
                       <tr key={i} className="hover:bg-gray-800/30 transition-colors">
                         <td className="px-4 py-3 text-white font-medium">{agent.agentName}</td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.totalHandoffs}</td>
+                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.followUpRate}%</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-gray-700 rounded-full h-1.5">
+                              <div
+                                className="bg-orange-500 h-1.5 rounded-full"
+                                style={{ width: `${agent.handoffScore}%` }}
+                              />
+                            </div>
+                            <span className="text-gray-300 font-mono text-xs w-8 text-right">{agent.handoffScore}</span>
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${ROLE_STYLES[agent.role]}`}>
-                            {agent.role}
+                          <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${TIER_STYLES[agent.handoffTier]}`}>
+                            {agent.handoffTier}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.handoffsSent}</td>
-                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.handoffsReceived}</td>
-                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{agent.avgContextScore}</td>
-                        <td className="px-4 py-3 text-center text-gray-300 font-mono text-xs">{Math.round(agent.handoffEfficiency)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
+              {/* AI Analysis */}
               {(result.insights.length > 0 || result.recommendations.length > 0) && (
-                <div className="space-y-3">
+                <div className="bg-gradient-to-br from-orange-900/20 to-orange-800/10 border border-orange-700/30 rounded-lg p-4 space-y-3">
+                  <p className="text-orange-400 text-xs font-medium uppercase tracking-wide">AI Analysis</p>
                   {result.insights.length > 0 && (
-                    <div className="bg-gray-800/40 border border-gray-700 rounded-lg px-4 py-3">
-                      <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-2">Insights</p>
+                    <div>
+                      <p className="text-gray-400 text-xs mb-1">Insights</p>
                       <ul className="space-y-1">
                         {result.insights.map((ins, i) => (
                           <li key={i} className="text-gray-300 text-sm flex gap-2">
-                            <span className="text-cyan-400 shrink-0">•</span>{ins}
+                            <span className="text-orange-400 shrink-0">•</span>{ins}
                           </li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {result.recommendations.length > 0 && (
-                    <div className="bg-gray-800/40 border border-gray-700 rounded-lg px-4 py-3">
-                      <p className="text-cyan-400 text-xs font-medium uppercase tracking-wide mb-2">Recommendations</p>
+                    <div>
+                      <p className="text-gray-400 text-xs mb-1">Recommendations</p>
                       <ul className="space-y-1">
                         {result.recommendations.map((rec, i) => (
                           <li key={i} className="text-gray-300 text-sm flex gap-2">
-                            <span className="text-cyan-400 shrink-0">•</span>{rec}
+                            <span className="text-orange-400 shrink-0">•</span>{rec}
                           </li>
                         ))}
                       </ul>

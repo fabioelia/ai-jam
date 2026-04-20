@@ -1,60 +1,119 @@
-import { describe, it, expect } from 'vitest';
-import { scoreHandoffContext, classifyRole } from '../agent-handoff-quality-service.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { computeHandoffScore, getHandoffTier, analyzeAgentHandoffQuality } from '../agent-handoff-quality-service.js';
 
-describe('scoreHandoffContext', () => {
-  it('returns base score 20 for bare handoff', () => {
-    expect(scoreHandoffContext({})).toBe(20);
+describe('computeHandoffScore', () => {
+  it('computes base from three averages', () => {
+    // base = (60+60+60)/3 = 60, penalty = 0*0.3 = 0 → 60
+    expect(computeHandoffScore(60, 60, 60, 0)).toBe(60);
   });
 
-  it('adds +40 for description > 100 chars', () => {
-    const longDesc = 'x'.repeat(101);
-    expect(scoreHandoffContext({ description: longDesc })).toBe(60);
+  it('applies follow-up penalty', () => {
+    // base = (80+80+80)/3 = 80, penalty = 20*0.3 = 6 → 74
+    expect(computeHandoffScore(80, 80, 80, 20)).toBe(74);
   });
 
-  it('adds +20 for instructions field', () => {
-    expect(scoreHandoffContext({ instructions: 'do this' })).toBe(40);
+  it('clamps to 0 at minimum', () => {
+    expect(computeHandoffScore(0, 0, 0, 100)).toBe(0);
   });
 
-  it('adds +20 for content containing "instruction"', () => {
-    expect(scoreHandoffContext({ content: 'some instruction here' })).toBe(40);
-  });
-
-  it('adds +10 for priority', () => {
-    expect(scoreHandoffContext({ priority: 'high' })).toBe(30);
-  });
-
-  it('adds +10 for acceptanceCriteria', () => {
-    expect(scoreHandoffContext({ acceptanceCriteria: 'must pass' })).toBe(30);
-  });
-
-  it('caps at 100', () => {
-    const score = scoreHandoffContext({
-      description: 'x'.repeat(101),
-      instructions: 'yes',
-      priority: 'high',
-      acceptanceCriteria: 'done',
-    });
-    expect(score).toBeLessThanOrEqual(100);
+  it('clamps to 100 at maximum', () => {
+    expect(computeHandoffScore(100, 100, 100, 0)).toBe(100);
   });
 });
 
-describe('classifyRole', () => {
-  it('returns initiator when sent > received*2', () => {
-    expect(classifyRole(6, 1)).toBe('initiator');
-    expect(classifyRole(3, 0)).toBe('initiator');
+describe('getHandoffTier', () => {
+  it('returns exemplary for score >= 80', () => {
+    expect(getHandoffTier(80)).toBe('exemplary');
+    expect(getHandoffTier(100)).toBe('exemplary');
   });
 
-  it('returns receiver when received > sent*2', () => {
-    expect(classifyRole(1, 6)).toBe('receiver');
-    expect(classifyRole(0, 3)).toBe('receiver');
+  it('returns proficient for score >= 60', () => {
+    expect(getHandoffTier(60)).toBe('proficient');
+    expect(getHandoffTier(79)).toBe('proficient');
   });
 
-  it('returns collaborator when both > 0 and neither dominant', () => {
-    expect(classifyRole(2, 2)).toBe('collaborator');
-    expect(classifyRole(1, 1)).toBe('collaborator');
+  it('returns adequate for score >= 40', () => {
+    expect(getHandoffTier(40)).toBe('adequate');
+    expect(getHandoffTier(59)).toBe('adequate');
   });
 
-  it('returns isolated when both are 0', () => {
-    expect(classifyRole(0, 0)).toBe('isolated');
+  it('returns deficient for score < 40', () => {
+    expect(getHandoffTier(39)).toBe('deficient');
+    expect(getHandoffTier(0)).toBe('deficient');
+  });
+});
+
+// Mock DB
+vi.mock('../../db/connection.js', () => ({
+  db: {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
+    where: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: class MockAnthropic {
+    messages = {
+      create: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: '{"insights": ["Test insight"], "recommendations": ["Test rec"]}' }],
+      }),
+    };
+  },
+}));
+
+describe('analyzeAgentHandoffQuality', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('returns empty report when no handoffs', async () => {
+    const { db } = await import('../../db/connection.js');
+    (db.where as any).mockResolvedValue([]);
+
+    const report = await analyzeAgentHandoffQuality('proj-1');
+    expect(report.projectId).toBe('proj-1');
+    expect(report.agents).toHaveLength(0);
+    expect(report.summary.totalAgents).toBe(0);
+    expect(report.summary.avgHandoffScore).toBe(0);
+  });
+
+  it('builds agent metrics from handoff rows', async () => {
+    const { db } = await import('../../db/connection.js');
+    (db.where as any).mockResolvedValue([
+      { id: '1', ticketId: 't1', content: 'handoff context with next steps and status update here for testing', handoffFrom: 'agent-a', handoffTo: 'agent-b', createdAt: new Date() },
+      { id: '2', ticketId: 't2', content: 'short', handoffFrom: 'agent-a', handoffTo: null, createdAt: new Date() },
+    ]);
+
+    const report = await analyzeAgentHandoffQuality('proj-1');
+    expect(report.agents).toHaveLength(1);
+    expect(report.agents[0].agentId).toBe('agent-a');
+    expect(report.agents[0].totalHandoffs).toBe(2);
+    expect(report.summary.totalAgents).toBe(1);
+  });
+
+  it('sets handoffTier on each agent', async () => {
+    const { db } = await import('../../db/connection.js');
+    (db.where as any).mockResolvedValue([
+      { id: '1', ticketId: 't1', content: 'x'.repeat(300) + ' context status next todo complete done', handoffFrom: 'high-agent', handoffTo: 'b', createdAt: new Date() },
+    ]);
+
+    const report = await analyzeAgentHandoffQuality('proj-1');
+    expect(['exemplary', 'proficient', 'adequate', 'deficient']).toContain(report.agents[0].handoffTier);
+  });
+
+  it('populates report structure fields', async () => {
+    const { db } = await import('../../db/connection.js');
+    (db.where as any).mockResolvedValue([
+      { id: '1', ticketId: 't1', content: 'context handoff status next', handoffFrom: 'agent-x', handoffTo: 'agent-y', createdAt: new Date() },
+    ]);
+
+    const report = await analyzeAgentHandoffQuality('proj-1');
+    expect(report.projectId).toBe('proj-1');
+    expect(report.generatedAt).toBeTruthy();
+    expect(report.summary.bestHandoffAgent).toBeTruthy();
+    expect(report.summary.worstHandoffAgent).toBeTruthy();
+    expect(typeof report.summary.highQualityHandoffCount).toBe('number');
+    expect(Array.isArray(report.insights)).toBe(true);
+    expect(Array.isArray(report.recommendations)).toBe(true);
   });
 });
