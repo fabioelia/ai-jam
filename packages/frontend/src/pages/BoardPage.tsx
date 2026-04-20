@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -31,6 +31,7 @@ import AgentPerformanceModal from '../components/board/AgentPerformanceModal.js'
 import AgentRoutingModal from '../components/board/AgentRoutingModal.js';
 import EscalationDetectorModal from '../components/board/EscalationDetectorModal.js';
 import AgentSkillProfilerModal from '../components/board/AgentSkillProfilerModal.js';
+import AgentCollaborationModal from '../components/board/AgentCollaborationModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -173,6 +174,8 @@ export default function BoardPage() {
   const [showEscalationDetector, setShowEscalationDetector] = useState(false);
   const skillProfiler = useAgentSkillProfiles();
   const [showSkillProfiler, setShowSkillProfiler] = useState(false);
+  const agentCollaboration = useAgentCollaboration();
+  const [showCollaboration, setShowCollaboration] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -698,6 +701,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Collaborate Button */}
+        <button
+          onClick={async () => {
+            setShowCollaboration(true);
+            try {
+              await agentCollaboration.collaborate(projectId!);
+            } catch (error) {
+              toast.error(`Collaboration analysis failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentCollaboration.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+        >
+          {agentCollaboration.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' /></svg> Collaborate</>
+          )}
+        </button>
+
         {/* Escalation Risk Button */}
         <button
           onClick={async () => {
@@ -1135,6 +1158,15 @@ export default function BoardPage() {
           isOpen={showSkillProfiler}
           loading={skillProfiler.loading}
           onClose={() => { skillProfiler.setResult(null); setShowSkillProfiler(false); }}
+        />
+      )}
+
+      {showCollaboration && (
+        <AgentCollaborationModal
+          result={agentCollaboration.result}
+          isOpen={showCollaboration}
+          loading={agentCollaboration.loading}
+          onClose={() => { agentCollaboration.setResult(null); setShowCollaboration(false); }}
         />
       )}
     </div>

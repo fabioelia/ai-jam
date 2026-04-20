@@ -1077,6 +1077,47 @@ export function useAgentSkillProfiles() {
   return { profile, loading, result, setResult };
 }
 
+export interface CollaborationPair {
+  primaryAgent: string;
+  secondaryAgent: string;
+  collaborationScore: number;
+  rationale: string;
+  suggestedSplit: string;
+}
+
+export interface CollaborationTicket {
+  ticketId: string;
+  ticketTitle: string;
+  ticketPriority: string;
+  detectedSpecializations: string[];
+  recommendedPairs: CollaborationPair[];
+}
+
+export interface CollaborationReport {
+  projectId: string;
+  complexTickets: CollaborationTicket[];
+  analyzedAt: string;
+}
+
+export function useAgentCollaboration() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CollaborationReport | null>(null);
+
+  const collaborate = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<CollaborationReport>(`/projects/${projectId}/agent-collaboration`, {
+        method: 'POST',
+      });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { collaborate, loading, result, setResult };
+}
+
 export function useEpicHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EpicHealthResult | null>(null);
