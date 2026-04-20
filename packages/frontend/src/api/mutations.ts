@@ -5469,3 +5469,51 @@ export function useAgentCollaborationScore(projectId: string) {
 
   return { analyze, loading, isPending: loading, data, setData };
 }
+
+// FEAT-140: AI Agent Throughput Analyzer
+export interface AgentThroughputMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalTasksCompleted: number;
+  avgDailyThroughput: number;
+  peakDailyThroughput: number;
+  peakPeriod: string;
+  throughputScore: number;
+  throughputTier: 'high-velocity' | 'steady' | 'moderate' | 'low-output';
+  throughputTrend: 'improving' | 'stable' | 'declining';
+}
+
+export interface AgentThroughputReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgProjectThroughput: number;
+    topPerformer: string;
+    highVelocityCount: number;
+  };
+  agents: AgentThroughputMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentThroughput(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentThroughputReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentThroughputReport>(
+        `/projects/${projectId}/agent-throughput`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, isPending: loading, data, setData };
+}
