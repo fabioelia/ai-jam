@@ -11,13 +11,15 @@ import {
 
 vi.mock('../db/connection.js', () => ({ db: { select: vi.fn() } }));
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    messages: {
-      create: vi.fn().mockResolvedValue({
-        content: [{ type: 'text', text: JSON.stringify({ summary: 'AI context summary.', recommendations: ['Improve handoff notes.'] }) }],
-      }),
-    },
-  })),
+  default: vi.fn().mockImplementation(function () {
+    return {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: JSON.stringify({ summary: 'AI context summary.', recommendations: ['Improve handoff notes.'] }) }],
+        }),
+      },
+    };
+  }),
 }));
 
 import { db } from '../db/connection.js';
