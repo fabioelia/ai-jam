@@ -1652,3 +1652,46 @@ export function useAgentStallDetector() {
 
   return { detect, loading, result, setResult };
 }
+
+export type SpecializationStrength = 'strong' | 'moderate' | 'generalist';
+
+export interface AgentSpecialization {
+  agentPersona: string;
+  totalCompleted: number;
+  topLabels: string[];
+  completionRate: number;
+  avgCompletionTimeMs: number;
+  specializationStrength: SpecializationStrength;
+  recommendation: string;
+}
+
+export interface SpecializationReport {
+  projectId: string;
+  analyzedAt: string;
+  totalAgents: number;
+  specialistAgents: number;
+  generalistAgents: number;
+  agentProfiles: AgentSpecialization[];
+  topLabel: string | null;
+  aiSummary: string;
+}
+
+export function useAgentSpecializationMapper() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SpecializationReport | null>(null);
+
+  const map = async (projectId: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<SpecializationReport>(
+        `/projects/${projectId}/agent-specialization-mapper`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { map, loading, result, setResult };
+}

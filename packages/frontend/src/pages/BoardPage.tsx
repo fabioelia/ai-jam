@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGaps, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -45,6 +45,7 @@ import AgentFocusAdvisorModal from '../components/board/AgentFocusAdvisorModal.j
 import AgentResponseTimeModal from '../components/board/AgentResponseTimeModal.js';
 import AgentPriorityAlignmentModal from '../components/board/AgentPriorityAlignmentModal.js';
 import AgentStallDetectorModal from '../components/board/AgentStallDetectorModal.js';
+import AgentSpecializationMapperModal from '../components/board/AgentSpecializationMapperModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -215,6 +216,8 @@ export default function BoardPage() {
   const [showPriorityAlignment, setShowPriorityAlignment] = useState(false);
   const agentStallDetector = useAgentStallDetector();
   const [showStallDetector, setShowStallDetector] = useState(false);
+  const agentSpecializationMapper = useAgentSpecializationMapper();
+  const [showSpecializationMapper, setShowSpecializationMapper] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1060,6 +1063,26 @@ export default function BoardPage() {
           )}
         </button>
 
+        {/* Specializations Button */}
+        <button
+          onClick={async () => {
+            setShowSpecializationMapper(true);
+            try {
+              await agentSpecializationMapper.map(projectId!);
+            } catch (error) {
+              toast.error(`Specialization mapping failed: ${getClientErrorMessage(error)}`);
+            }
+          }}
+          disabled={agentSpecializationMapper.loading}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+        >
+          {agentSpecializationMapper.loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <><svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7' /></svg> Specializations</>
+          )}
+        </button>
+
         {/* Deadline Risk Button */}
         {!deadlineDate ? (
           <input
@@ -1534,6 +1557,10 @@ export default function BoardPage() {
 
       {showStallDetector && (
         <AgentStallDetectorModal result={agentStallDetector.result} isOpen={showStallDetector} loading={agentStallDetector.loading} onClose={() => { agentStallDetector.setResult(null); setShowStallDetector(false); }} />
+      )}
+
+      {showSpecializationMapper && (
+        <AgentSpecializationMapperModal result={agentSpecializationMapper.result} isOpen={showSpecializationMapper} loading={agentSpecializationMapper.loading} onClose={() => { agentSpecializationMapper.setResult(null); setShowSpecializationMapper(false); }} />
       )}
     </div>
   );
