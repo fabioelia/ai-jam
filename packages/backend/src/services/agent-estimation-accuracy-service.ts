@@ -1,41 +1,57 @@
 import { db } from '../db/connection.js';
-import { tickets } from '../db/schema.js';
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { tickets, agentSessions } from '../db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
 import Anthropic from '@anthropic-ai/sdk';
 
-export interface AgentEstimationMetrics {
-  agentPersona: string;
-  ticketsAnalyzed: number;
-  avgAccuracyScore: number;
-  avgEstimatedHours: number;
-  avgActualHours: number;
-  bias: 'overestimator' | 'underestimator' | 'accurate';
+export interface AgentEstimationData {
+  agentId: string;
+  agentName: string;
+  estimationsProvided: number;
+  estimationsWithinRange: number;  // estimates within 20% of actual
+  avgEstimationError: number;      // % deviation from actual (absolute)
+  overestimationRate: number;      // % times predicted > actual * 1.2
+  underestimationRate: number;     // % times predicted < actual * 0.8
+  estimationBias: 'optimistic' | 'pessimistic' | 'accurate' | 'none';
+  estimationScore: number;         // 0-100
+  estimationTier: 'precise' | 'reasonable' | 'unreliable' | 'erratic';
 }
 
 export interface AgentEstimationAccuracyReport {
   projectId: string;
-  analyzedAt: string;
-  agentCount: number;
-  ticketsAnalyzed: number;
-  baselineHoursPerPoint: number;
-  avgAccuracyScore: number;
-  mostAccurateAgent: string | null;
-  leastAccurateAgent: string | null;
-  agents: AgentEstimationMetrics[];
-  aiSummary: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgEstimationScore: number;
+    mostPreciseAgent: string;    // agentName with highest estimationScore
+    mostErraticAgent: string;    // agentName with lowest estimationScore
+    accurateEstimationCount: number;  // agents with estimationTier 'precise' or 'reasonable'
+  };
+  agents: AgentEstimationData[];
+  insights: string[];
+  recommendations: string[];
 }
 
-const FALLBACK_SUMMARY = 'Review estimation accuracy to improve story point calibration and sprint planning reliability.';
-
-function extractJSONFromText(text: string): string {
-  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenceMatch) return fenceMatch[1].trim();
-  const objMatch = text.match(/\{[\s\S]*\}/);
-  if (objMatch) return objMatch[0];
-  return text;
+export function computeEstimationScore(estimationsWithinRange: number, estimationsProvided: number, avgEstimationError: number): number {
+  const base = estimationsProvided > 0 ? (estimationsWithinRange / estimationsProvided) * 100 : 50;
+  const penalty = Math.min(30, avgEstimationError * 0.3);
+  return Math.min(100, Math.max(0, base - penalty));
 }
 
-export async function analyzeEstimationAccuracy(projectId: string): Promise<AgentEstimationAccuracyReport> {
+export function getEstimationTier(estimationScore: number): AgentEstimationData['estimationTier'] {
+  if (estimationScore >= 75) return 'precise';
+  if (estimationScore >= 50) return 'reasonable';
+  if (estimationScore >= 25) return 'unreliable';
+  return 'erratic';
+}
+
+export function getEstimationBias(overestimationRate: number, underestimationRate: number): AgentEstimationData['estimationBias'] {
+  if (overestimationRate > underestimationRate + 20) return 'pessimistic';
+  if (underestimationRate > overestimationRate + 20) return 'optimistic';
+  if (overestimationRate < 30 && underestimationRate < 30) return 'accurate';
+  return 'none';
+}
+
+export async function analyzeAgentEstimationAccuracy(projectId: string): Promise<AgentEstimationAccuracyReport> {
   const now = new Date();
 
   const allTickets = await db
@@ -48,120 +64,171 @@ export async function analyzeEstimationAccuracy(projectId: string): Promise<Agen
       updatedAt: tickets.updatedAt,
     })
     .from(tickets)
-    .where(and(eq(tickets.projectId, projectId), isNotNull(tickets.assignedPersona)));
+    .where(eq(tickets.projectId, projectId));
 
-  // Only done tickets with story points
-  const eligibleTickets = allTickets.filter(t => t.status === 'done' && t.storyPoints != null);
+  const ticketIds = allTickets.map(t => t.id);
 
-  if (eligibleTickets.length === 0) {
+  let allSessions: { id: string; ticketId: string | null; personaType: string; status: string; startedAt: Date | null; completedAt: Date | null; retryCount: number }[] = [];
+
+  if (ticketIds.length > 0) {
+    allSessions = await db
+      .select({
+        id: agentSessions.id,
+        ticketId: agentSessions.ticketId,
+        personaType: agentSessions.personaType,
+        status: agentSessions.status,
+        startedAt: agentSessions.startedAt,
+        completedAt: agentSessions.completedAt,
+        retryCount: agentSessions.retryCount,
+      })
+      .from(agentSessions)
+      .where(inArray(agentSessions.ticketId, ticketIds));
+  }
+
+  if (allTickets.length === 0) {
     return {
       projectId,
-      analyzedAt: now.toISOString(),
-      agentCount: 0,
-      ticketsAnalyzed: 0,
-      baselineHoursPerPoint: 0,
-      avgAccuracyScore: 0,
-      mostAccurateAgent: null,
-      leastAccurateAgent: null,
+      generatedAt: now.toISOString(),
+      summary: { totalAgents: 0, avgEstimationScore: 0, mostPreciseAgent: '', mostErraticAgent: '', accurateEstimationCount: 0 },
       agents: [],
-      aiSummary: FALLBACK_SUMMARY,
+      insights: [],
+      recommendations: [],
     };
   }
 
-  // Compute baseline
-  const totalHours = eligibleTickets.reduce((s, t) => {
+  // Compute baseline from done tickets with story points
+  const doneTickets = allTickets.filter(t => t.status === 'done' && t.storyPoints != null);
+  const totalHours = doneTickets.reduce((s, t) => {
     const h = Math.max(0, (t.updatedAt.getTime() - t.createdAt.getTime()) / (1000 * 60 * 60));
     return s + h;
   }, 0);
-  const totalPoints = eligibleTickets.reduce((s, t) => s + (t.storyPoints ?? 0), 0);
-  const baselineHoursPerPoint = totalPoints > 0 ? totalHours / totalPoints : 0;
+  const totalPoints = doneTickets.reduce((s, t) => s + (t.storyPoints ?? 0), 0);
+  const baselineHoursPerPoint = totalPoints > 0 ? totalHours / totalPoints : 1;
 
-  // Per-agent
-  const agentMap = new Map<string, { estimatedHours: number; actualHours: number; count: number; accuracySum: number }>();
-
-  for (const t of eligibleTickets) {
-    const persona = t.assignedPersona!;
-    if (!agentMap.has(persona)) agentMap.set(persona, { estimatedHours: 0, actualHours: 0, count: 0, accuracySum: 0 });
-    const entry = agentMap.get(persona)!;
-
-    const estimatedHours = (t.storyPoints ?? 0) * baselineHoursPerPoint;
-    const actualHours = Math.max(0, (t.updatedAt.getTime() - t.createdAt.getTime()) / (1000 * 60 * 60));
-    const accuracyScore = Math.max(0, 100 - Math.abs(actualHours - estimatedHours) / Math.max(1, estimatedHours) * 100);
-
-    entry.estimatedHours += estimatedHours;
-    entry.actualHours += actualHours;
-    entry.accuracySum += accuracyScore;
-    entry.count++;
+  // Build a map: ticketId -> storyPoints
+  const ticketPointsMap = new Map<string, number>();
+  for (const t of allTickets) {
+    if (t.storyPoints != null) ticketPointsMap.set(t.id, t.storyPoints);
   }
 
-  const rawAgents: AgentEstimationMetrics[] = [...agentMap.entries()].map(([persona, data]) => {
-    const avgEstimatedHours = data.estimatedHours / data.count;
-    const avgActualHours = data.actualHours / data.count;
-    const avgAccuracyScore = Math.round(data.accuracySum / data.count * 10) / 10;
-    const deviation = ((avgActualHours - avgEstimatedHours) / Math.max(1, avgEstimatedHours)) * 100;
-    let bias: 'overestimator' | 'underestimator' | 'accurate';
-    if (Math.abs(deviation) > 20) {
-      bias = avgActualHours > avgEstimatedHours ? 'overestimator' : 'underestimator';
-    } else {
-      bias = 'accurate';
-    }
+  // Group sessions by personaType
+  const sessionsByAgent = new Map<string, typeof allSessions>();
+  for (const s of allSessions) {
+    if (!s.personaType) continue;
+    const list = sessionsByAgent.get(s.personaType) ?? [];
+    list.push(s);
+    sessionsByAgent.set(s.personaType, list);
+  }
+
+  if (sessionsByAgent.size === 0) {
     return {
-      agentPersona: persona,
-      ticketsAnalyzed: data.count,
-      avgAccuracyScore,
-      avgEstimatedHours: Math.round(avgEstimatedHours * 10) / 10,
-      avgActualHours: Math.round(avgActualHours * 10) / 10,
-      bias,
+      projectId,
+      generatedAt: now.toISOString(),
+      summary: { totalAgents: 0, avgEstimationScore: 0, mostPreciseAgent: '', mostErraticAgent: '', accurateEstimationCount: 0 },
+      agents: [],
+      insights: [],
+      recommendations: [],
     };
-  });
+  }
 
-  // Sort desc by avgAccuracyScore
-  rawAgents.sort((a, b) => b.avgAccuracyScore - a.avgAccuracyScore);
+  const agents: AgentEstimationData[] = [];
 
-  const mostAccurateAgent = rawAgents.length > 0 ? rawAgents[0].agentPersona : null;
-  const leastAccurateAgent = rawAgents.length > 1 ? rawAgents[rawAgents.length - 1].agentPersona : null;
-  const avgAccuracyScore = rawAgents.length > 0
-    ? Math.round(rawAgents.reduce((s, a) => s + a.avgAccuracyScore, 0) / rawAgents.length * 10) / 10
+  for (const [personaType, sessions] of sessionsByAgent.entries()) {
+    // estimationsProvided = sessions where startedAt is not null
+    const providedSessions = sessions.filter(s => s.startedAt !== null);
+    const estimationsProvided = providedSessions.length;
+
+    // For sessions with both startedAt and completedAt
+    const completedSessions = providedSessions.filter(s => s.completedAt !== null);
+
+    let withinRange = 0;
+    let totalError = 0;
+    let overCount = 0;
+    let underCount = 0;
+
+    for (const s of completedSessions) {
+      const points = s.ticketId ? (ticketPointsMap.get(s.ticketId) ?? 1) : 1;
+      const estimated = points * baselineHoursPerPoint;
+      const actual = Math.max(0, (s.completedAt!.getTime() - s.startedAt!.getTime()) / (1000 * 60 * 60));
+
+      const error = Math.abs(actual - estimated) / Math.max(1, estimated);
+      totalError += error;
+
+      if (error <= 0.2) withinRange++;
+      if (actual > estimated * 1.2) overCount++;
+      if (actual < estimated * 0.8) underCount++;
+    }
+
+    const estimationsWithinRange = withinRange;
+    const avgEstimationError = completedSessions.length > 0 ? (totalError / completedSessions.length) * 100 : 0;
+    const overestimationRate = estimationsProvided > 0 ? (overCount / estimationsProvided) * 100 : 0;
+    const underestimationRate = estimationsProvided > 0 ? (underCount / estimationsProvided) * 100 : 0;
+
+    const estimationScore = Math.round(computeEstimationScore(estimationsWithinRange, estimationsProvided, avgEstimationError));
+    const estimationTier = getEstimationTier(estimationScore);
+    const estimationBias = getEstimationBias(overestimationRate, underestimationRate);
+
+    agents.push({
+      agentId: personaType,
+      agentName: personaType.charAt(0).toUpperCase() + personaType.slice(1).replace(/_/g, ' '),
+      estimationsProvided,
+      estimationsWithinRange,
+      avgEstimationError: Math.round(avgEstimationError * 10) / 10,
+      overestimationRate: Math.round(overestimationRate * 10) / 10,
+      underestimationRate: Math.round(underestimationRate * 10) / 10,
+      estimationBias,
+      estimationScore,
+      estimationTier,
+    });
+  }
+
+  agents.sort((a, b) => b.estimationScore - a.estimationScore);
+
+  const avgEstimationScore = agents.length > 0
+    ? Math.round(agents.reduce((s, a) => s + a.estimationScore, 0) / agents.length)
     : 0;
+  const mostPreciseAgent = agents.length > 0 ? agents[0].agentName : '';
+  const mostErraticAgent = agents.length > 0 ? agents[agents.length - 1].agentName : '';
+  const accurateEstimationCount = agents.filter(a => a.estimationTier === 'precise' || a.estimationTier === 'reasonable').length;
 
-  const client = new Anthropic({
-    apiKey: process.env.OPENROUTER_API_KEY,
-    baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
-  });
-
-  let aiSummary = FALLBACK_SUMMARY;
+  let insights: string[] = [];
+  let recommendations: string[] = [];
 
   try {
-    const statsData = JSON.stringify({
-      baselineHoursPerPoint: Math.round(baselineHoursPerPoint * 10) / 10,
-      avgAccuracyScore,
-      agents: rawAgents.slice(0, 5).map(a => ({ agent: a.agentPersona, avgAccuracyScore: a.avgAccuracyScore, bias: a.bias })),
+    const client = new Anthropic({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
     });
-    const response = await client.messages.create({
+
+    const agentSummary = agents.slice(0, 8).map(a =>
+      `${a.agentName}: score=${a.estimationScore}, tier=${a.estimationTier}, bias=${a.estimationBias}, error=${a.avgEstimationError}%`
+    ).join('\n');
+
+    const msg = await client.messages.create({
       model: process.env.AI_MODEL || 'qwen/qwen3-6b',
-      max_tokens: 300,
-      messages: [{
-        role: 'user',
-        content: `Analyze agent estimation accuracy. Give 2-sentence summary. Output JSON: {aiSummary: string}.\n\n${statsData}`,
-      }],
+      max_tokens: 400,
+      messages: [{ role: 'user', content: `Analyze agent estimation accuracy data and provide 3 insights and 3 recommendations. Output JSON: {"insights": ["...", "...", "..."], "recommendations": ["...", "...", "..."]}\n\n${agentSummary}` }],
     });
-    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-    const parsed = JSON.parse(extractJSONFromText(text)) as { aiSummary: string };
-    if (parsed.aiSummary) aiSummary = parsed.aiSummary;
+
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+    if (raw) {
+      const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const parsed = JSON.parse(fenceMatch ? fenceMatch[1].trim() : raw);
+      if (Array.isArray(parsed.insights)) insights = parsed.insights;
+      if (Array.isArray(parsed.recommendations)) recommendations = parsed.recommendations;
+    }
   } catch (e) {
     console.warn('Agent estimation accuracy AI failed, using fallback:', e);
+    insights = [];
+    recommendations = [];
   }
 
   return {
     projectId,
-    analyzedAt: now.toISOString(),
-    agentCount: rawAgents.length,
-    ticketsAnalyzed: eligibleTickets.length,
-    baselineHoursPerPoint: Math.round(baselineHoursPerPoint * 10) / 10,
-    avgAccuracyScore,
-    mostAccurateAgent,
-    leastAccurateAgent,
-    agents: rawAgents,
-    aiSummary,
+    generatedAt: now.toISOString(),
+    summary: { totalAgents: agents.length, avgEstimationScore, mostPreciseAgent, mostErraticAgent, accurateEstimationCount },
+    agents,
+    insights,
+    recommendations,
   };
 }

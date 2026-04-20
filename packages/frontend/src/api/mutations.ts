@@ -2573,26 +2573,32 @@ export function useAgentParallelCapacity() {
   return { analyze, loading, result, setResult };
 }
 
-export interface AgentEstimationMetrics {
-  agentPersona: string;
-  ticketsAnalyzed: number;
-  avgAccuracyScore: number;
-  avgEstimatedHours: number;
-  avgActualHours: number;
-  bias: 'overestimator' | 'underestimator' | 'accurate';
+export interface AgentEstimationData {
+  agentId: string;
+  agentName: string;
+  estimationsProvided: number;
+  estimationsWithinRange: number;
+  avgEstimationError: number;
+  overestimationRate: number;
+  underestimationRate: number;
+  estimationBias: 'optimistic' | 'pessimistic' | 'accurate' | 'none';
+  estimationScore: number;
+  estimationTier: 'precise' | 'reasonable' | 'unreliable' | 'erratic';
 }
 
 export interface AgentEstimationAccuracyReport {
   projectId: string;
-  analyzedAt: string;
-  agentCount: number;
-  ticketsAnalyzed: number;
-  baselineHoursPerPoint: number;
-  avgAccuracyScore: number;
-  mostAccurateAgent: string | null;
-  leastAccurateAgent: string | null;
-  agents: AgentEstimationMetrics[];
-  aiSummary: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgEstimationScore: number;
+    mostPreciseAgent: string;
+    mostErraticAgent: string;
+    accurateEstimationCount: number;
+  };
+  agents: AgentEstimationData[];
+  insights: string[];
+  recommendations: string[];
 }
 
 export function useAgentEstimationAccuracy() {
