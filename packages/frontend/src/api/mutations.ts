@@ -5666,3 +5666,97 @@ export function useAgentThroughput(projectId: string) {
 
   return { analyze, loading, isPending: loading, data, setData };
 }
+
+// FEAT-145: Agent Workload Balance Analyzer
+export interface AgentWorkloadMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalTasksAssigned: number;
+  avgTasksPerSession: number;
+  peakWorkloadSession: number;
+  workloadVariance: number;
+  utilizationRate: number;
+  workloadScore: number;
+  workloadTier: 'balanced' | 'overloaded' | 'underutilized' | 'idle';
+}
+
+export interface AgentWorkloadReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgWorkloadScore: number;
+    mostLoaded: string;
+    balancedCount: number;
+  };
+  agents: AgentWorkloadMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentWorkloadBalance(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentWorkloadReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentWorkloadReport>(
+        `/projects/${projectId}/agent-workload-balance`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, data, setData };
+}
+
+// FEAT-146: Agent Deadline Adherence Analyzer
+export interface AgentDeadlineMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalDeadlines: number;
+  metOnTime: number;
+  avgDelayHours: number;
+  adherenceScore: number;
+  adherenceTier: 'excellent' | 'good' | 'at-risk' | 'failing';
+}
+
+export interface AgentDeadlineAdherenceReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgAdherenceScore: number;
+    excellentCount: number;
+    criticalDelays: number;
+  };
+  agents: AgentDeadlineMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentDeadlineAdherenceAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentDeadlineAdherenceReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentDeadlineAdherenceReport>(
+        `/projects/${projectId}/agent-deadline-adherence-analyzer`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, data, setData };
+}
