@@ -8975,3 +8975,69 @@ export function useAgentInstructionExecutionLatencyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentContextCompressionEfficiencyReport {
+  efficiency_score: number;
+  avg_context_size_ratio: number;
+  over_compression_rate: number;
+  under_compression_rate: number;
+  avg_tokens_per_handoff: number;
+  compression_accuracy_rate: number;
+  handoff_success_rate: number;
+  efficient_handoffs: number;
+  inefficient_handoffs: number;
+  total_handoffs: number;
+  top_compression_patterns: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  most_efficient_agent: string;
+  least_efficient_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentContextCompressionEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextCompressionEfficiencyReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentContextCompressionEfficiencyReport>(`/projects/${projectId}/agent-context-compression-efficiency-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentPromptAlignmentScoreReport {
+  alignment_score: number;
+  avg_alignment_score: number;
+  topic_drift_rate: number;
+  format_compliance_rate: number;
+  scope_overshoot_rate: number;
+  scope_undershoot_rate: number;
+  intent_mismatch_rate: number;
+  high_alignment_sessions: number;
+  low_alignment_sessions: number;
+  total_sessions: number;
+  top_misalignment_patterns: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  best_aligned_agent: string;
+  worst_aligned_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentPromptAlignmentScoreAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentPromptAlignmentScoreReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentPromptAlignmentScoreReport>(`/projects/${projectId}/agent-prompt-alignment-score-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
