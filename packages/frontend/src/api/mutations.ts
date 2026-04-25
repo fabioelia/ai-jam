@@ -7095,3 +7095,37 @@ export function useAgentErrorRecoverySpeedAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentAutonomyLevelMetric {
+  agentId: string; agentName: string; autonomyScore: number; unsupervisedCompletionRate: number; humanOverrideRate: number; escalationRatio: number; selfResolutionRate: number; totalSessionsAnalyzed: number; trend: 'improving' | 'stable' | 'degrading'; autonomyLevel: 'fully-autonomous' | 'semi-autonomous' | 'assisted' | 'dependent';
+}
+export interface AgentAutonomyLevelReport {
+  metrics: AgentAutonomyLevelMetric[]; fleetAvgAutonomyScore: number; dependentAgents: number; fullyAutonomousAgents: number; analysisTimestamp: string;
+}
+export function useAgentAutonomyLevelAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAutonomyLevelReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentAutonomyLevelReport>(`/projects/${projectId}/agent-autonomy-level-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentResourceEfficiencyMetric {
+  agentId: string; agentName: string; efficiencyScore: number; tokensPerTask: number; redundantCallRate: number; outputToResourceRatio: number; sessionOverheadRate: number; totalSessionsAnalyzed: number; trend: 'improving' | 'stable' | 'degrading'; efficiencyLevel: 'optimal' | 'efficient' | 'moderate' | 'wasteful';
+}
+export interface AgentResourceEfficiencyReport {
+  metrics: AgentResourceEfficiencyMetric[]; fleetAvgEfficiencyScore: number; wastefulAgents: number; optimalAgents: number; analysisTimestamp: string;
+}
+export function useAgentResourceEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentResourceEfficiencyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentResourceEfficiencyReport>(`/projects/${projectId}/agent-resource-efficiency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}

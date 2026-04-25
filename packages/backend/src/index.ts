@@ -189,6 +189,8 @@ import { agentGoalCompletionRateAnalyzerRoutes } from './routes/agent-goal-compl
 import { agentPromptEfficiencyAnalyzerRoutes } from './routes/agent-prompt-efficiency-analyzer-route.js';
 import { agentLearningRateAnalyzerRoutes } from './routes/agent-learning-rate-analyzer-route.js';
 import { agentErrorRecoverySpeedAnalyzerRoutes } from './routes/agent-error-recovery-speed-analyzer-route.js';
+import { agentAutonomyLevelAnalyzerRoutes } from './routes/agent-autonomy-level-analyzer-route.js';
+import { agentResourceEfficiencyAnalyzerRoutes } from './routes/agent-resource-efficiency-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -412,6 +414,8 @@ async function main() {
   await fastify.register(agentPromptEfficiencyAnalyzerRoutes);
   await fastify.register(agentLearningRateAnalyzerRoutes);
   await fastify.register(agentErrorRecoverySpeedAnalyzerRoutes);
+  await fastify.register(agentAutonomyLevelAnalyzerRoutes);
+  await fastify.register(agentResourceEfficiencyAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
