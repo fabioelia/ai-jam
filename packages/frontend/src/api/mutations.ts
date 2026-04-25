@@ -8664,3 +8664,64 @@ export function useAgentResponseCalibrationDriftAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInstructionOverloadDetectorReport {
+  overload_score: number;
+  avg_instructions_per_session: number;
+  overloaded_sessions: number;
+  total_sessions: number;
+  overload_threshold: number;
+  performance_degradation_rate: number;
+  error_rate_under_overload: number;
+  error_rate_normal: number;
+  optimal_instruction_range: { min: number; max: number };
+  trend: string;
+  most_overloaded_agent: string;
+  least_overloaded_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentInstructionOverloadDetector(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionOverloadDetectorReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInstructionOverloadDetectorReport>(`/projects/${projectId}/agent-instruction-overload-detector`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentTaskAbandonmentRateAnalyzerReport {
+  abandonment_rate: number;
+  escalation_rate: number;
+  total_tasks: number;
+  abandoned_tasks: number;
+  graceful_escalations: number;
+  silent_abandonments: number;
+  top_abandonment_reasons: string[];
+  avg_completion_depth_before_abandon: number;
+  trend: string;
+  highest_abandonment_agent: string;
+  lowest_abandonment_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentTaskAbandonmentRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTaskAbandonmentRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentTaskAbandonmentRateAnalyzerReport>(`/projects/${projectId}/agent-task-abandonment-rate-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}

@@ -264,6 +264,8 @@ import { agentUncertaintyQuantificationAnalyzerRoutes } from './routes/agent-unc
 import { agentInformationDensityAnalyzerRoutes } from './routes/agent-information-density-analyzer-route.js';
 import { agentMetacognitiveAccuracyAnalyzerRoutes } from './routes/agent-metacognitive-accuracy-analyzer-route.js';
 import { agentResponseCalibrationDriftAnalyzerRoutes } from './routes/agent-response-calibration-drift-analyzer-route.js';
+import { agentInstructionOverloadDetectorRoutes } from './routes/agent-instruction-overload-detector-route.js';
+import { agentTaskAbandonmentRateAnalyzerRoutes } from './routes/agent-task-abandonment-rate-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -562,6 +564,8 @@ async function main() {
   await fastify.register(agentInformationDensityAnalyzerRoutes);
   await fastify.register(agentMetacognitiveAccuracyAnalyzerRoutes);
   await fastify.register(agentResponseCalibrationDriftAnalyzerRoutes);
+  await fastify.register(agentInstructionOverloadDetectorRoutes);
+  await fastify.register(agentTaskAbandonmentRateAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
