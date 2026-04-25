@@ -142,3 +142,5 @@ export async function analyzeAgentResponseTimeEfficiency(
     aiRecommendations,
   };
 }
+
+export const analyzeAgentResponseTime = analyzeAgentResponseTimeEfficiency;
