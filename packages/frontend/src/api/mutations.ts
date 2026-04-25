@@ -7365,3 +7365,35 @@ export function useAgentHallucinationRateAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentToolUsageEfficiencyMetric {
+  agentId: string; agentName: string; efficiencyScore: number; totalCalls: number; successfulCalls: number; failedCalls: number; redundantCalls: number; mostUsedTool: string; leastUsedTool: string; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentToolUsageEfficiencyReport {
+  metrics: AgentToolUsageEfficiencyMetric[]; fleetAvgEfficiencyScore: number; inefficientAgents: number; analysisTimestamp: string;
+}
+export function useAgentToolUsageEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentToolUsageEfficiencyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentToolUsageEfficiencyReport>(`/projects/${projectId}/agent-tool-usage-efficiency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentInstructionParseAccuracyMetric {
+  agentId: string; agentName: string; accuracyScore: number; totalInstructions: number; correctlyParsed: number; misinterpreted: number; clarificationRequests: number; avgClarificationRounds: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentInstructionParseAccuracyReport {
+  metrics: AgentInstructionParseAccuracyMetric[]; fleetAvgAccuracyScore: number; lowAccuracyAgents: number; analysisTimestamp: string;
+}
+export function useAgentInstructionParseAccuracyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionParseAccuracyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentInstructionParseAccuracyReport>(`/projects/${projectId}/agent-instruction-parse-accuracy-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
