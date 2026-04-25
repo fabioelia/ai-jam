@@ -181,6 +181,8 @@ import { agentSelfCorrectionRateAnalyzerRoutes } from './routes/agent-self-corre
 import { agentConfidenceCalibrationAnalyzerRoutes } from './routes/agent-confidence-calibration-analyzer-route.js';
 import { agentTaskPrioritizationAccuracyAnalyzerRoutes } from './routes/agent-task-prioritization-accuracy-analyzer-route.js';
 import { agentToolSelectionAccuracyAnalyzerRoutes } from './routes/agent-tool-selection-accuracy-analyzer-route.js';
+import { agentWorkflowCoverageAnalyzerRoutes } from './routes/agent-workflow-coverage-analyzer-route.js';
+import { agentDependencyRiskAnalyzerRoutes } from './routes/agent-dependency-risk-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -396,6 +398,8 @@ async function main() {
   await fastify.register(agentConfidenceCalibrationAnalyzerRoutes);
   await fastify.register(agentTaskPrioritizationAccuracyAnalyzerRoutes);
   await fastify.register(agentToolSelectionAccuracyAnalyzerRoutes);
+  await fastify.register(agentWorkflowCoverageAnalyzerRoutes);
+  await fastify.register(agentDependencyRiskAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

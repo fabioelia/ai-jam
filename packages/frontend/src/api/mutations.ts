@@ -6959,3 +6959,37 @@ export function useAgentToolSelectionAccuracyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentWorkflowCoverageMetric {
+  agentId: string; agentName: string; coverageScore: number; autonomousSteps: number; assistedSteps: number; blockedSteps: number; totalWorkflowSteps: number; coverageTrend: 'expanding' | 'stable' | 'shrinking'; coverageLevel: 'full' | 'high' | 'partial' | 'low';
+}
+export interface AgentWorkflowCoverageReport {
+  metrics: AgentWorkflowCoverageMetric[]; fleetAvgCoverageScore: number; lowCoverageAgents: number; fullCoverageAgents: number; analysisTimestamp: string;
+}
+export function useAgentWorkflowCoverageAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentWorkflowCoverageReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentWorkflowCoverageReport>(`/projects/${projectId}/agent-workflow-coverage-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentDependencyRiskMetric {
+  agentId: string; agentName: string; riskScore: number; uniqueDependencies: number; concentrationIndex: number; criticalDependencies: number; crossAgentDependencies: number; riskLevel: 'critical' | 'high' | 'moderate' | 'low'; riskTrend: 'increasing' | 'stable' | 'decreasing';
+}
+export interface AgentDependencyRiskReport {
+  metrics: AgentDependencyRiskMetric[]; fleetAvgRiskScore: number; criticalRiskAgents: number; singlePointsOfFailure: number; analysisTimestamp: string;
+}
+export function useAgentDependencyRiskAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentDependencyRiskReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentDependencyRiskReport>(`/projects/${projectId}/agent-dependency-risk-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
