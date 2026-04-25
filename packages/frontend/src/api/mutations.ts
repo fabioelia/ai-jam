@@ -7925,3 +7925,37 @@ export function useAgentResponseLatencyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentOutputVerbosityMetric {
+  agentId: string; totalSessions: number; overVerboseCount: number; underVerboseCount: number; optimalCount: number; verbosityRatio: number; verbosityScore: number;
+}
+export interface AgentOutputVerbosityAnalyzerReport {
+  metrics: AgentOutputVerbosityMetric[]; avg_verbosity_score: number; total_sessions: number; over_verbose_rate: number; under_verbose_rate: number; optimal_rate: number; avg_verbosity_ratio: number; trend: 'improving' | 'stable' | 'degrading'; most_verbose_agent: string; least_verbose_agent: string; analysisTimestamp: string;
+}
+export function useAgentOutputVerbosityAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentOutputVerbosityAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentOutputVerbosityAnalyzerReport>(`/projects/${projectId}/agent-output-verbosity-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentFocusRetentionMetric {
+  agentId: string; totalSessions: number; sessionsWithDrift: number; driftIncidents: number; driftRate: number; avgFocusScore: number; avgDriftPoint: number;
+}
+export interface AgentFocusRetentionAnalyzerReport {
+  metrics: AgentFocusRetentionMetric[]; avg_focus_score: number; total_sessions: number; total_drift_incidents: number; overall_drift_rate: number; avg_drift_point: number; trend: 'improving' | 'stable' | 'degrading'; best_focus_agent: string; worst_focus_agent: string; topDriftTriggers: string[]; analysisTimestamp: string;
+}
+export function useAgentFocusRetentionAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentFocusRetentionAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentFocusRetentionAnalyzerReport>(`/projects/${projectId}/agent-focus-retention-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
