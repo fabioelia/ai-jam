@@ -8066,3 +8066,51 @@ export function useAgentCrossDomainTransferAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInstructionFollowingFidelityAnalyzerMetric {
+  agentId: string; agentName: string; fidelityScore: number; exactComplianceRate: number; omissionRate: number; additionRate: number; interpretationAccuracy: number; totalSessions: number; fidelityTrend: 'improving' | 'stable' | 'worsening'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentInstructionFollowingFidelityAnalyzerReport {
+  metrics: AgentInstructionFollowingFidelityAnalyzerMetric[];
+  fleetAvgFidelityScore: number;
+  lowFidelityAgents: number;
+  analysisTimestamp: string;
+}
+export function useAgentInstructionFollowingFidelityAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionFollowingFidelityAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInstructionFollowingFidelityAnalyzerReport>(`/projects/${projectId}/agent-instruction-following-fidelity-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentAdaptiveLearningRateAnalyzerMetric {
+  agentId: string; agentName: string; adaptiveLearningScore: number; feedbackIncorporationRate: number; errorCorrectionSpeed: number; patternGeneralizationRate: number; behaviorConsistencyRate: number; totalSessions: number; learningTrend: 'improving' | 'stable' | 'worsening'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentAdaptiveLearningRateAnalyzerReport {
+  metrics: AgentAdaptiveLearningRateAnalyzerMetric[];
+  fleetAvgAdaptiveLearningScore: number;
+  slowLearnerAgents: number;
+  analysisTimestamp: string;
+}
+export function useAgentAdaptiveLearningRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAdaptiveLearningRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentAdaptiveLearningRateAnalyzerReport>(`/projects/${projectId}/agent-adaptive-learning-rate-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
