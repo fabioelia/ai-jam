@@ -169,6 +169,10 @@ import { agentEscalationRateRoutes } from './routes/agent-escalation-rate-route.
 import { agentKnowledgeGapAnalyzerRoutes as agentKnowledgeGapAnalyzerV2Routes } from './routes/agent-knowledge-gap-analyzer-route.js';
 import { agentIdleTimeTrackerRoutes } from './routes/agent-idle-time-tracker-route.js';
 import { agentParallelTaskEfficiencyTrackerRoutes } from './routes/agent-parallel-task-efficiency-tracker-route.js';
+import { agentContextRetentionAnalyzerRoutes } from './routes/agent-context-retention-analyzer-route.js';
+import { agentGoalDriftAnalyzerRoutes } from './routes/agent-goal-drift-analyzer-route.js';
+import { agentDecisionLatencyAnalyzerRoutes } from './routes/agent-decision-latency-analyzer-route.js';
+import { agentOutputQualityConsistencyAnalyzerRoutes } from './routes/agent-output-quality-consistency-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -372,6 +376,10 @@ async function main() {
   await fastify.register(agentKnowledgeGapAnalyzerV2Routes);
   await fastify.register(agentIdleTimeTrackerRoutes);
   await fastify.register(agentParallelTaskEfficiencyTrackerRoutes);
+  await fastify.register(agentContextRetentionAnalyzerRoutes);
+  await fastify.register(agentGoalDriftAnalyzerRoutes);
+  await fastify.register(agentDecisionLatencyAnalyzerRoutes);
+  await fastify.register(agentOutputQualityConsistencyAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

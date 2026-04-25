@@ -6743,3 +6743,83 @@ export function useAgentParallelTaskEfficiencyTracker(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentContextRetentionAnalyzerMetric {
+  agentId: string; agentName: string; retentionScore: number; contextReuseEvents: number;
+  contextMissEvents: number; avgContextAgeSeconds: number;
+  trend: 'improving' | 'stable' | 'degrading'; riskLevel: 'low' | 'medium' | 'high';
+}
+export interface AgentContextRetentionAnalyzerReport {
+  metrics: AgentContextRetentionAnalyzerMetric[]; fleetAvgRetentionScore: number;
+  poorRetentionAgents: number; analysisTimestamp: string;
+}
+export function useAgentContextRetentionAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextRetentionAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentContextRetentionAnalyzerReport>(`/projects/${projectId}/agent-context-retention-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentGoalDriftMetric {
+  agentId: string; agentName: string; driftScore: number; onTaskRatio: number;
+  driftEvents: number; avgDriftDurationSeconds: number;
+  trend: 'improving' | 'stable' | 'worsening'; severity: 'low' | 'medium' | 'high' | 'critical';
+}
+export interface AgentGoalDriftReport {
+  metrics: AgentGoalDriftMetric[]; fleetAvgDriftScore: number;
+  highDriftAgents: number; analysisTimestamp: string;
+}
+export function useAgentGoalDriftAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentGoalDriftReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentGoalDriftReport>(`/projects/${projectId}/agent-goal-drift-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentDecisionLatencyAnalyzerMetric {
+  agentId: string; agentName: string; avgDecisionLatencyMs: number; p50LatencyMs: number;
+  p95LatencyMs: number; slowDecisions: number; fastDecisions: number;
+  trend: 'improving' | 'stable' | 'worsening'; rating: 'fast' | 'acceptable' | 'slow' | 'critical';
+}
+export interface AgentDecisionLatencyAnalyzerReport {
+  metrics: AgentDecisionLatencyAnalyzerMetric[]; fleetAvgLatencyMs: number;
+  slowAgents: number; analysisTimestamp: string;
+}
+export function useAgentDecisionLatencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentDecisionLatencyAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentDecisionLatencyAnalyzerReport>(`/projects/${projectId}/agent-decision-latency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentOutputQualityConsistencyMetric {
+  agentId: string; agentName: string; consistencyScore: number; avgQualityScore: number;
+  qualityVariance: number; highQualityRuns: number; lowQualityRuns: number;
+  trend: 'improving' | 'stable' | 'worsening'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentOutputQualityConsistencyReport {
+  metrics: AgentOutputQualityConsistencyMetric[]; fleetAvgConsistencyScore: number;
+  inconsistentAgents: number; analysisTimestamp: string;
+}
+export function useAgentOutputQualityConsistency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentOutputQualityConsistencyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentOutputQualityConsistencyReport>(`/projects/${projectId}/agent-output-quality-consistency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
