@@ -193,6 +193,10 @@ import { agentAutonomyLevelAnalyzerRoutes } from './routes/agent-autonomy-level-
 import { agentResourceEfficiencyAnalyzerRoutes } from './routes/agent-resource-efficiency-analyzer-route.js';
 import { agentMultiTurnConsistencyAnalyzerRoutes } from './routes/agent-multi-turn-consistency-analyzer-route.js';
 import { agentPromptSensitivityAnalyzerRoutes } from './routes/agent-prompt-sensitivity-analyzer-route.js';
+import { agentDecisionConfidenceAnalyzerRoutes } from './routes/agent-decision-confidence-analyzer-route.js';
+import { agentKnowledgeTransferEfficiencyAnalyzerRoutes } from './routes/agent-knowledge-transfer-efficiency-analyzer-route.js';
+import { agentInstructionComplexityAnalyzerRoutes } from './routes/agent-instruction-complexity-analyzer-route.js';
+import { agentContextWindowUtilizationAnalyzerRoutes } from './routes/agent-context-window-utilization-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -420,6 +424,10 @@ async function main() {
   await fastify.register(agentResourceEfficiencyAnalyzerRoutes);
   await fastify.register(agentMultiTurnConsistencyAnalyzerRoutes);
   await fastify.register(agentPromptSensitivityAnalyzerRoutes);
+  await fastify.register(agentDecisionConfidenceAnalyzerRoutes);
+  await fastify.register(agentKnowledgeTransferEfficiencyAnalyzerRoutes);
+  await fastify.register(agentInstructionComplexityAnalyzerRoutes);
+  await fastify.register(agentContextWindowUtilizationAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

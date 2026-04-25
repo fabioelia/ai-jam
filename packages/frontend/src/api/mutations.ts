@@ -7163,3 +7163,71 @@ export function useAgentPromptSensitivityAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentDecisionConfidenceMetric {
+  agentId: string; agentName: string; avgConfidenceScore: number; highConfidenceRate: number; lowConfidenceRate: number; overconfidentFailures: number; calibrationScore: number; confidenceTrend: 'rising' | 'stable' | 'declining'; confidenceLevel: 'well-calibrated' | 'overconfident' | 'underconfident' | 'erratic';
+}
+export interface AgentDecisionConfidenceReport {
+  metrics: AgentDecisionConfidenceMetric[]; fleetAvgConfidenceScore: number; overconfidentAgents: number; wellCalibratedAgents: number; analysisTimestamp: string;
+}
+export function useAgentDecisionConfidenceAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentDecisionConfidenceReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentDecisionConfidenceReport>(`/projects/${projectId}/agent-decision-confidence-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentKnowledgeTransferEfficiencyMetric {
+  agentId: string; agentName: string; transferEfficiencyScore: number; handoffsInitiated: number; handoffsReceived: number; knowledgeLossEvents: number; avgContextRetentionRate: number; transferLatency: number; transferTrend: 'improving' | 'stable' | 'degrading'; transferQuality: 'excellent' | 'good' | 'poor' | 'failing';
+}
+export interface AgentKnowledgeTransferEfficiencyReport {
+  metrics: AgentKnowledgeTransferEfficiencyMetric[]; fleetAvgTransferScore: number; highLossAgents: number; excellentTransferAgents: number; analysisTimestamp: string;
+}
+export function useAgentKnowledgeTransferEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentKnowledgeTransferEfficiencyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentKnowledgeTransferEfficiencyReport>(`/projects/${projectId}/agent-knowledge-transfer-efficiency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentInstructionComplexityMetric {
+  agentId: string; agentName: string; complexityScore: number; avgInstructionLength: number; ambiguityScore: number; conditionalBranchCount: number; multiStepDepth: number; totalSessionsAnalyzed: number; complexityTrend: 'increasing' | 'stable' | 'decreasing'; complexityLevel: 'simple' | 'moderate' | 'complex' | 'critical';
+}
+export interface AgentInstructionComplexityReport {
+  metrics: AgentInstructionComplexityMetric[]; fleetAvgComplexityScore: number; criticalComplexityAgents: number; simpleInstructionAgents: number; topComplexInstructions: string[]; recommendations: string[]; analysisTimestamp: string;
+}
+export function useAgentInstructionComplexityAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionComplexityReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentInstructionComplexityReport>(`/projects/${projectId}/agent-instruction-complexity-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentContextWindowUtilizationMetric {
+  agentId: string; agentName: string; avgUtilizationPct: number; peakUtilizationPct: number; truncationEvents: number; contextRefreshRate: number; highUtilizationSessions: number; totalSessionsAnalyzed: number; utilizationTrend: 'increasing' | 'stable' | 'decreasing'; utilizationLevel: 'efficient' | 'moderate' | 'high' | 'critical';
+}
+export interface AgentContextWindowUtilizationReport {
+  metrics: AgentContextWindowUtilizationMetric[]; fleetAvgUtilizationPct: number; criticalUtilizationAgents: number; efficientAgents: number; utilizationDistribution: { bucket: string; count: number }[]; criticalSessions: { agentId: string; agentName: string; utilizationPct: number }[]; recommendations: string[]; analysisTimestamp: string;
+}
+export function useAgentContextWindowUtilizationAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextWindowUtilizationReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentContextWindowUtilizationReport>(`/projects/${projectId}/agent-context-window-utilization-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
