@@ -8550,3 +8550,60 @@ export function useAgentTaskDecompositionAccuracyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentUncertaintyQuantificationAnalyzerReport {
+  uncertainty_score: number;
+  uncertainty_rate: number;
+  appropriate_escalation_rate: number;
+  overconfident_rate: number;
+  under_expressed_rate: number;
+  trend: string;
+  most_uncertain_agent: string;
+  least_uncertain_agent: string;
+  total_sessions: number;
+  analysis_timestamp: string;
+}
+
+export function useAgentUncertaintyQuantificationAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentUncertaintyQuantificationAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentUncertaintyQuantificationAnalyzerReport>(`/projects/${projectId}/agent-uncertainty-quantification-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentInformationDensityAnalyzerReport {
+  density_score: number;
+  high_density_rate: number;
+  low_density_rate: number;
+  verbosity_rate: number;
+  terseness_rate: number;
+  avg_density: number;
+  trend: string;
+  most_dense_agent: string;
+  least_dense_agent: string;
+  total_sessions: number;
+  analysis_timestamp: string;
+}
+
+export function useAgentInformationDensityAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInformationDensityAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInformationDensityAnalyzerReport>(`/projects/${projectId}/agent-information-density-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}

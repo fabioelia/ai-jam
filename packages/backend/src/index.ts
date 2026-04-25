@@ -260,6 +260,8 @@ import { agentInitiativeCalibrationAnalyzerRoutes } from './routes/agent-initiat
 import { agentOutputDiversityAnalyzerRoutes } from './routes/agent-output-diversity-analyzer-route.js';
 import { agentSemanticOverlapAnalyzerRoutes } from './routes/agent-semantic-overlap-analyzer-route.js';
 import { agentTaskDecompositionAccuracyAnalyzerRoutes } from './routes/agent-task-decomposition-accuracy-analyzer-route.js';
+import { agentUncertaintyQuantificationAnalyzerRoutes } from './routes/agent-uncertainty-quantification-analyzer-route.js';
+import { agentInformationDensityAnalyzerRoutes } from './routes/agent-information-density-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -554,6 +556,8 @@ async function main() {
   await fastify.register(agentOutputDiversityAnalyzerRoutes);
   await fastify.register(agentSemanticOverlapAnalyzerRoutes);
   await fastify.register(agentTaskDecompositionAccuracyAnalyzerRoutes);
+  await fastify.register(agentUncertaintyQuantificationAnalyzerRoutes);
+  await fastify.register(agentInformationDensityAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
