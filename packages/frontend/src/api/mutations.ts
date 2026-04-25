@@ -7129,3 +7129,37 @@ export function useAgentResourceEfficiencyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentConsistencyMetric {
+  agentId: string; agentName: string; totalSessions: number; sessionsWithContradictions: number; sessionsWithContextLoss: number; sessionsWithGoalDrift: number; consistencyScore: number; trend: 'improving' | 'stable' | 'degrading'; consistencyLevel: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentMultiTurnConsistencyReport {
+  consistencyScore: number; totalSessions: number; contradictionRate: number; contextLossRate: number; goalDriftRate: number; trend: 'improving' | 'stable' | 'degrading'; mostConsistentAgent: string; leastConsistentAgent: string; agents: AgentConsistencyMetric[]; aiSummary: string; aiRecommendations: string[]; analysisTimestamp: string;
+}
+export function useAgentMultiTurnConsistencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentMultiTurnConsistencyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentMultiTurnConsistencyReport>(`/projects/${projectId}/agent-multi-turn-consistency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentSensitivityMetric {
+  agentId: string; agentName: string; totalResponses: number; highVarianceResponses: number; ambiguityFailures: number; robustResponses: number; sensitivityScore: number; robustnessScore: number; trend: 'improving' | 'stable' | 'degrading'; sensitivityLevel: 'robust' | 'moderate' | 'sensitive' | 'highly_sensitive';
+}
+export interface AgentPromptSensitivityReport {
+  sensitivityScore: number; totalResponses: number; highVarianceRate: number; ambiguityFailureRate: number; robustnessScore: number; trend: 'improving' | 'stable' | 'degrading'; mostRobustAgent: string; mostSensitiveAgent: string; agents: AgentSensitivityMetric[]; aiSummary: string; aiRecommendations: string[]; analysisTimestamp: string;
+}
+export function useAgentPromptSensitivityAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentPromptSensitivityReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentPromptSensitivityReport>(`/projects/${projectId}/agent-prompt-sensitivity-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
