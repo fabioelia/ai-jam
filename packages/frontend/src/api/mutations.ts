@@ -5866,3 +5866,104 @@ export function useAgentSkillCoverage(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentLearningMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  earlyCompletionRate: number;
+  recentCompletionRate: number;
+  completionRateDelta: number;
+  earlyAvgDurationMs: number;
+  recentAvgDurationMs: number;
+  durationDeltaMs: number;
+  learningScore: number;
+  learningTier: 'accelerating' | 'improving' | 'stable' | 'declining';
+  trend: 'improving' | 'declining' | 'stable' | 'insufficient_data';
+}
+
+export interface AgentLearningCurveReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgLearningScore: number;
+    improvingCount: number;
+    decliningCount: number;
+    stableCount: number;
+  };
+  agents: AgentLearningMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentLearningCurveAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentLearningCurveReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentLearningCurveReport>(
+        `/projects/${projectId}/agent-learning-curve-analyzer`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentCollaborationNetworkMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  handoffsSent: number;
+  handoffsReceived: number;
+  totalHandoffs: number;
+  uniqueCollaborators: number;
+  collaborationScore: number;
+  collaborationTier: 'hub' | 'collaborative' | 'contributing' | 'isolated';
+  isHub: boolean;
+  isIsolated: boolean;
+}
+
+export interface AgentCollaborationNetworkReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalHandoffs: number;
+    avgCollaborationScore: number;
+    hubCount: number;
+    isolatedCount: number;
+    topHandoffPair: { fromAgent: string; toAgent: string; count: number } | null;
+  };
+  agents: AgentCollaborationNetworkMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentCollaborationNetworkAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCollaborationNetworkReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentCollaborationNetworkReport>(
+        `/projects/${projectId}/agent-collaboration-network-analyzer`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

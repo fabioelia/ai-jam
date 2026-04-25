@@ -146,6 +146,7 @@ import { agentDeadlineAdherenceAnalyzerRoutes } from './routes/agent-deadline-ad
 import { agentTokenCostEfficiencyRoutes } from './routes/agent-token-cost-efficiency-route.js';
 import { agentSkillCoverageRoutes } from './routes/agent-skill-coverage-route.js';
 import { agentLearningCurveAnalyzerRoutes } from './routes/agent-learning-curve-analyzer-route.js';
+import { agentCollaborationNetworkAnalyzerRoutes } from './routes/agent-collaboration-network-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -326,6 +327,7 @@ async function main() {
   await fastify.register(agentTokenCostEfficiencyRoutes);
   await fastify.register(agentSkillCoverageRoutes);
   await fastify.register(agentLearningCurveAnalyzerRoutes);
+  await fastify.register(agentCollaborationNetworkAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
