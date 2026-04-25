@@ -8018,3 +8018,51 @@ export function useAgentGoalDriftRateAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentHypothesisTestingRateAnalyzerMetric {
+  agentId: string; agentName: string; hypothesisTestingRate: number; avgIterationsPerSession: number; explorationDepth: number; quickCommitRate: number; hypothesisScore: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentHypothesisTestingRateAnalyzerReport {
+  metrics: AgentHypothesisTestingRateAnalyzerMetric[];
+  fleetAvgHypothesisScore: number;
+  quickCommitAgents: number;
+  analysisTimestamp: string;
+}
+export function useAgentHypothesisTestingRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentHypothesisTestingRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentHypothesisTestingRateAnalyzerReport>(`/projects/${projectId}/agent-hypothesis-testing-rate-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentCrossDomainTransferAnalyzerMetric {
+  agentId: string; agentName: string; domainDiversityScore: number; crossDomainConsistency: number; adaptationRate: number; specializationIndex: number; transferScore: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentCrossDomainTransferAnalyzerReport {
+  metrics: AgentCrossDomainTransferAnalyzerMetric[];
+  fleetAvgTransferScore: number;
+  narrowSpecialistAgents: number;
+  analysisTimestamp: string;
+}
+export function useAgentCrossDomainTransferAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCrossDomainTransferAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentCrossDomainTransferAnalyzerReport>(`/projects/${projectId}/agent-cross-domain-transfer-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
