@@ -7823,3 +7823,37 @@ export function useAgentSessionWarmUpTimeAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInteractionRichnessAnalyzerMetric {
+  agentId: string; agentName: string; interactionRichnessScore: number; avgTurnsPerSession: number; toolVarietyIndex: number; contextDepthScore: number; informationDensity: number; totalSessions: number; richnessCategory: 'shallow' | 'moderate' | 'rich' | 'deep';
+}
+export interface AgentInteractionRichnessAnalyzerReport {
+  metrics: AgentInteractionRichnessAnalyzerMetric[]; fleetAvgRichnessScore: number; deepInteractionAgents: number; shallowInteractionAgents: number; analysisTimestamp: string;
+}
+export function useAgentInteractionRichnessAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInteractionRichnessAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentInteractionRichnessAnalyzerReport>(`/projects/${projectId}/agent-interaction-richness-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentBoundaryViolationRateAnalyzerMetric {
+  agentId: string; agentName: string; boundaryViolationRate: number; totalActions: number; violationCount: number; violationTypes: Array<{ type: string; count: number }>; complianceScore: number; riskLevel: 'low' | 'medium' | 'high' | 'critical';
+}
+export interface AgentBoundaryViolationRateAnalyzerReport {
+  metrics: AgentBoundaryViolationRateAnalyzerMetric[]; fleetAvgComplianceScore: number; criticalRiskAgents: number; compliantAgents: number; analysisTimestamp: string;
+}
+export function useAgentBoundaryViolationRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentBoundaryViolationRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentBoundaryViolationRateAnalyzerReport>(`/projects/${projectId}/agent-boundary-violation-rate-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
