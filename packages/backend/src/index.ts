@@ -163,6 +163,8 @@ import { agentResponseLagRoutes } from './routes/agent-response-lag-route.js';
 import { agentCapacityUtilizationRoutes } from './routes/agent-capacity-utilization-route.js';
 import { agentThroughputVariabilityRoutes } from './routes/agent-throughput-variability-route.js';
 import { agentCostPerOutcomeRoutes } from './routes/agent-cost-per-outcome-route.js';
+import { agentWorkloadSaturationRoutes } from './routes/agent-workload-saturation-route.js';
+import { agentRecoveryTimeRoutes } from './routes/agent-recovery-time-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -360,6 +362,8 @@ async function main() {
   await fastify.register(agentCapacityUtilizationRoutes);
   await fastify.register(agentThroughputVariabilityRoutes);
   await fastify.register(agentCostPerOutcomeRoutes);
+  await fastify.register(agentWorkloadSaturationRoutes);
+  await fastify.register(agentRecoveryTimeRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

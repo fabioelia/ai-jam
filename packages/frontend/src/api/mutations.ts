@@ -6610,3 +6610,47 @@ export function useAgentCostPerOutcome(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentWorkloadSaturationMetrics {
+  agentId: string; agentName: string; agentRole: string; activeTickets: number;
+  completedTickets: number; inProgressTickets: number; reviewTickets: number;
+  avgTicketsPerDay: number; peakConcurrentTickets: number; saturationRate: number;
+  saturationScore: number; saturationTier: string;
+}
+export interface WorkloadSaturationReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; overloadedCount: number; saturatedCount: number; healthyCount: number; underutilizedCount: number; avgSaturationRate: number; totalActiveTickets: number; };
+  agents: AgentWorkloadSaturationMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentWorkloadSaturation(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<WorkloadSaturationReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<WorkloadSaturationReport>(`/projects/${projectId}/agent-workload-saturation`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentRecoveryTimeMetrics {
+  agentId: string; agentName: string; agentRole: string; totalTickets: number;
+  blockedTickets: number; completedAfterBlock: number; avgRecoveryTimeHours: number;
+  minRecoveryTimeHours: number; maxRecoveryTimeHours: number; recoverySuccessRate: number;
+  recoveryScore: number; recoveryTier: string;
+}
+export interface RecoveryTimeReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; fastRecoveryCount: number; slowRecoveryCount: number; chronicIssuesCount: number; avgRecoveryTimeHours: number; totalBlockedIncidents: number; };
+  agents: AgentRecoveryTimeMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentRecoveryTime(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<RecoveryTimeReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<RecoveryTimeReport>(`/projects/${projectId}/agent-recovery-time`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
