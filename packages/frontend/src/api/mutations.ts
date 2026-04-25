@@ -8847,3 +8847,66 @@ export function useAgentContextualRelevanceFilteringAnalyzer(projectId: string) 
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentSpecializationDepthReport {
+  specialization_rate: number;
+  domain_concentration_rate: number;
+  cross_domain_task_rate: number;
+  deep_specialist_count: number;
+  generalist_count: number;
+  misallocated_count: number;
+  total_agents: number;
+  avg_specialization_score: number;
+  top_specialization_domains: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  most_specialized_agent: string;
+  least_specialized_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentSpecializationDepthAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSpecializationDepthReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentSpecializationDepthReport>(`/projects/${projectId}/agent-specialization-depth-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentAttentionAllocationEfficiencyReport {
+  allocation_efficiency_rate: number;
+  primary_task_focus_rate: number;
+  subtask_over_attention_rate: number;
+  context_under_attention_rate: number;
+  attention_waste_ratio: number;
+  optimal_attention_sessions: number;
+  misallocated_attention_sessions: number;
+  total_sessions: number;
+  avg_allocation_efficiency: number;
+  top_misallocation_patterns: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  best_allocation_agent: string;
+  worst_allocation_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentAttentionAllocationEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAttentionAllocationEfficiencyReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentAttentionAllocationEfficiencyReport>(`/projects/${projectId}/agent-attention-allocation-efficiency-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
