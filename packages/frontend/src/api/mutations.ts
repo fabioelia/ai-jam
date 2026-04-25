@@ -5967,3 +5967,105 @@ export function useAgentCollaborationNetworkAnalyzer(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface WindowStats {
+  window: 'morning' | 'afternoon' | 'evening' | 'night';
+  sessionCount: number;
+  completionRate: number;
+  avgSpeedScore: number;
+  score: number;
+}
+
+export interface AgentPeakMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  windows: WindowStats[];
+  peakWindow: 'morning' | 'afternoon' | 'evening' | 'night' | 'insufficient_data';
+  peakScore: number;
+  consistency: number;
+}
+
+export interface AgentPeakPerformanceReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    agentsWithPeak: number;
+    mostCommonPeakWindow: string;
+    avgPeakScore: number;
+  };
+  agents: AgentPeakMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentPeakPerformance(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentPeakPerformanceReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentPeakPerformanceReport>(
+        `/projects/${projectId}/agent-peak-performance`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentSwitchMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  switchCount: number;
+  switchRate: number;
+  sameCategoryAvgMs: number;
+  switchCategoryAvgMs: number;
+  switchCostMs: number;
+  switchCostPct: number;
+  tier: 'high_cost' | 'moderate_cost' | 'low_cost' | 'flexible' | 'insufficient_data';
+}
+
+export interface AgentContextSwitchCostReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgSwitchCost: number;
+    highCostCount: number;
+    lowCostCount: number;
+    flexibleCount: number;
+  };
+  agents: AgentSwitchMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentContextSwitchCost(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextSwitchCostReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentContextSwitchCostReport>(
+        `/projects/${projectId}/agent-context-switch-cost`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

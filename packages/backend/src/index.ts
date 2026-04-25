@@ -147,6 +147,8 @@ import { agentTokenCostEfficiencyRoutes } from './routes/agent-token-cost-effici
 import { agentSkillCoverageRoutes } from './routes/agent-skill-coverage-route.js';
 import { agentLearningCurveAnalyzerRoutes } from './routes/agent-learning-curve-analyzer-route.js';
 import { agentCollaborationNetworkAnalyzerRoutes } from './routes/agent-collaboration-network-analyzer-route.js';
+import { agentPeakPerformanceRoutes } from './routes/agent-peak-performance-route.js';
+import { agentContextSwitchCostRoutes } from './routes/agent-context-switch-cost-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -328,6 +330,8 @@ async function main() {
   await fastify.register(agentSkillCoverageRoutes);
   await fastify.register(agentLearningCurveAnalyzerRoutes);
   await fastify.register(agentCollaborationNetworkAnalyzerRoutes);
+  await fastify.register(agentPeakPerformanceRoutes);
+  await fastify.register(agentContextSwitchCostRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
