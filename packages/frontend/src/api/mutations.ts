@@ -8485,3 +8485,68 @@ export function useAgentOutputDiversityAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentSemanticOverlapAnalyzerReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    noveltyScore: number;
+    avgOverlapRate: number;
+    repetitionBursts: number;
+    uniqueTaskTypes: number;
+    totalSessions: number;
+    trend: string;
+    rating: string;
+  }>;
+  fleetAvgNoveltyScore: number;
+  highRepetitionAgents: number;
+  analysisTimestamp: string;
+}
+
+export function useAgentSemanticOverlapAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSemanticOverlapAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentSemanticOverlapAnalyzerReport>(`/projects/${projectId}/agent-semantic-overlap-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentTaskDecompositionAccuracyAnalyzerReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    decompositionScore: number;
+    avgSubTasksPerSession: number;
+    completionRate: number;
+    overDecompositionRate: number;
+    underDecompositionRate: number;
+    totalSessions: number;
+    trend: string;
+    rating: string;
+  }>;
+  fleetAvgDecompositionScore: number;
+  poorDecomposers: number;
+  analysisTimestamp: string;
+}
+
+export function useAgentTaskDecompositionAccuracyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTaskDecompositionAccuracyAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentTaskDecompositionAccuracyAnalyzerReport>(`/projects/${projectId}/agent-task-decomposition-accuracy-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
