@@ -7027,3 +7027,37 @@ export function useAgentOutputAccuracyRateAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentGoalCompletionRateAnalyzerMetric {
+  agentId: string; agentName: string; goalCompletionRate: number; totalGoals: number; completedGoals: number; abandonedGoals: number; partialGoals: number; avgCompletionTime: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentGoalCompletionRateAnalyzerReport {
+  metrics: AgentGoalCompletionRateAnalyzerMetric[]; fleetAvgGoalCompletionRate: number; lowCompletionAgents: number; analysisTimestamp: string;
+}
+export function useAgentGoalCompletionRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentGoalCompletionRateAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentGoalCompletionRateAnalyzerReport>(`/projects/${projectId}/agent-goal-completion-rate-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentPromptEfficiencyAnalyzerMetric {
+  agentId: string; agentName: string; promptEfficiencyScore: number; avgTokensPerTask: number; avgTasksPerKTokens: number; verbosityRate: number; concisencyRate: number; totalTokensEstimate: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentPromptEfficiencyAnalyzerReport {
+  metrics: AgentPromptEfficiencyAnalyzerMetric[]; fleetAvgPromptEfficiencyScore: number; lowEfficiencyAgents: number; analysisTimestamp: string;
+}
+export function useAgentPromptEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentPromptEfficiencyAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentPromptEfficiencyAnalyzerReport>(`/projects/${projectId}/agent-prompt-efficiency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
