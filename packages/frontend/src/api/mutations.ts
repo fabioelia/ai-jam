@@ -7299,3 +7299,37 @@ export function useAgentWorkflowBottleneckAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentFeedbackIntegrationSpeedAnalyzerMetric {
+  agentId: string; agentName: string; avgIntegrationSpeedMs: number; feedbackResponseRate: number; repeatMistakeRate: number; integrationScore: number; totalFeedbackEvents: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentFeedbackIntegrationSpeedAnalyzerReport {
+  metrics: AgentFeedbackIntegrationSpeedAnalyzerMetric[]; fleetAvgIntegrationScore: number; slowLearners: number; analysisTimestamp: string;
+}
+export function useAgentFeedbackIntegrationSpeedAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentFeedbackIntegrationSpeedAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentFeedbackIntegrationSpeedAnalyzerReport>(`/projects/${projectId}/agent-feedback-integration-speed-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentScopeCreepDetectorMetric {
+  agentId: string; agentName: string; scopeCreepScore: number; avgOverrunRatio: number; outOfScopeTaskRate: number; resourceOveruseRate: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; riskLevel: 'low' | 'medium' | 'high' | 'critical';
+}
+export interface AgentScopeCreepDetectorReport {
+  metrics: AgentScopeCreepDetectorMetric[]; fleetAvgScopeCreepScore: number; highRiskAgents: number; analysisTimestamp: string;
+}
+export function useAgentScopeCreepDetector(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentScopeCreepDetectorReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentScopeCreepDetectorReport>(`/projects/${projectId}/agent-scope-creep-detector`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
