@@ -7891,3 +7891,37 @@ export function useAgentKnowledgeRecencyIndexAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentTaskScopeExpansionRateAnalyzerMetric {
+  agentId: string; totalTasks: number; inScopeTasks: number; minorExpansions: number; majorExpansions: number; scopeViolations: number; expansionRate: number;
+}
+export interface AgentTaskScopeExpansionRateAnalyzerReport {
+  metrics: AgentTaskScopeExpansionRateAnalyzerMetric[]; expansion_rate: number; total_tasks: number; in_scope_rate: number; minor_expansion_rate: number; major_expansion_rate: number; scope_violation_rate: number; trend: 'improving' | 'stable' | 'worsening'; highest_expansion_agent: string; lowest_expansion_agent: string; analysisTimestamp: string;
+}
+export function useAgentTaskScopeExpansionRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTaskScopeExpansionRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentTaskScopeExpansionRateAnalyzerReport>(`/projects/${projectId}/agent-task-scope-expansion-rate-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentResponseLatencyAnalyzerMetric {
+  agentId: string; totalSessions: number; avgLatencyMs: number; fastSessions: number; normalSessions: number; slowSessions: number; verySlowSessions: number; fastRate: number; normalRate: number; slowRate: number; verySlowRate: number;
+}
+export interface AgentResponseLatencyAnalyzerReport {
+  metrics: AgentResponseLatencyAnalyzerMetric[]; avg_latency_ms: number; total_sessions: number; fast_rate: number; normal_rate: number; slow_rate: number; very_slow_rate: number; trend: 'improving' | 'stable' | 'degrading'; fastest_agent: string; slowest_agent: string; analysisTimestamp: string;
+}
+export function useAgentResponseLatencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentResponseLatencyAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentResponseLatencyAnalyzerReport>(`/projects/${projectId}/agent-response-latency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
