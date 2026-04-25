@@ -8355,3 +8355,69 @@ export function useAgentInstructionAdherenceDecayAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentConceptGeneralizationRateAnalyzerReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    generalizationScore: number;
+    crossDomainSuccessRate: number;
+    knowledgeTransferRate: number;
+    domainAdaptationSpeed: number;
+    novelTaskHandlingRate: number;
+    totalSessions: number;
+    generalizationTrend: string;
+    rating: string;
+  }>;
+  fleetAvgGeneralizationScore: number;
+  lowGeneralizationAgents: number;
+  analysisTimestamp: string;
+}
+
+export function useAgentConceptGeneralizationRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentConceptGeneralizationRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentConceptGeneralizationRateAnalyzerReport>(`/projects/${projectId}/agent-concept-generalization-rate-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentReasoningTransparencyAnalyzerReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    transparencyScore: number;
+    reasoningExposureRate: number;
+    explainabilityIndex: number;
+    auditabilityRate: number;
+    reasoningDepthScore: number;
+    totalSessions: number;
+    transparencyTrend: string;
+    rating: string;
+  }>;
+  fleetAvgTransparencyScore: number;
+  lowTransparencyAgents: number;
+  analysisTimestamp: string;
+}
+
+export function useAgentReasoningTransparencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentReasoningTransparencyAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentReasoningTransparencyAnalyzerReport>(`/projects/${projectId}/agent-reasoning-transparency-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
