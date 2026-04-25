@@ -8162,3 +8162,65 @@ export function useAgentAdaptiveLearningRateAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentCalibrationScoreAnalyzerMetric {
+  agentId: string; agentName: string; calibrationScore: number; accuracyRate: number; confidenceRate: number; overconfidentRate: number; underconfidentRate: number; wellCalibratedRate: number; totalSessions: number; calibrationTrend: 'improving' | 'stable' | 'worsening'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentCalibrationScoreAnalyzerReport {
+  metrics: AgentCalibrationScoreAnalyzerMetric[];
+  calibrationScore: number;
+  accuracyRate: number;
+  confidenceRate: number;
+  overconfidentRate: number;
+  underconfidentRate: number;
+  wellCalibratedRate: number;
+  trend: 'improving' | 'stable' | 'worsening';
+  bestCalibratedAgent: string;
+  worstCalibratedAgent: string;
+  analysisTimestamp: string;
+}
+export function useAgentCalibrationScoreAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCalibrationScoreAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentCalibrationScoreAnalyzerReport>(`/projects/${projectId}/agent-calibration-score-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentRecoveryTimeAnalyzerMetric {
+  agentId: string; agentName: string; avgRecoveryTimeSeconds: number; maxRecoveryTimeSeconds: number; recoveryRate: number; totalFailureEvents: number; recoveredCount: number; failedRecoveryCount: number; totalSessions: number; recoveryTrend: 'improving' | 'stable' | 'worsening'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentRecoveryTimeAnalyzerReport {
+  metrics: AgentRecoveryTimeAnalyzerMetric[];
+  avgRecoveryTimeSeconds: number;
+  recoveryRate: number;
+  totalFailures: number;
+  recoveredCount: number;
+  failedRecoveryCount: number;
+  maxRecoveryTimeSeconds: number;
+  trend: 'improving' | 'stable' | 'worsening';
+  fastestRecoveryAgent: string;
+  slowestRecoveryAgent: string;
+  analysisTimestamp: string;
+}
+export function useAgentRecoveryTimeAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentRecoveryTimeAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentRecoveryTimeAnalyzerReport>(`/projects/${projectId}/agent-recovery-time-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
