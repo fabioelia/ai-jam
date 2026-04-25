@@ -6993,3 +6993,37 @@ export function useAgentDependencyRiskAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentMultiAgentSyncEfficiencyMetric {
+  agentId: string; agentName: string; syncEfficiencyScore: number; conflictRate: number; contextSharingLatency: number; stateConsistencyRate: number; coordinationEvents: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentMultiAgentSyncEfficiencyReport {
+  metrics: AgentMultiAgentSyncEfficiencyMetric[]; fleetAvgSyncEfficiencyScore: number; highConflictAgents: number; analysisTimestamp: string;
+}
+export function useAgentMultiAgentSyncEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentMultiAgentSyncEfficiencyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentMultiAgentSyncEfficiencyReport>(`/projects/${projectId}/agent-multi-agent-sync-efficiency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentOutputAccuracyRateMetric {
+  agentId: string; agentName: string; outputAccuracyRate: number; totalOutputs: number; accurateOutputs: number; inaccurateOutputs: number; hallucinationRate: number; reworkRate: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentOutputAccuracyRateReport {
+  metrics: AgentOutputAccuracyRateMetric[]; fleetAvgOutputAccuracyRate: number; lowAccuracyAgents: number; analysisTimestamp: string;
+}
+export function useAgentOutputAccuracyRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentOutputAccuracyRateReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentOutputAccuracyRateReport>(`/projects/${projectId}/agent-output-accuracy-rate-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
