@@ -6891,3 +6891,37 @@ export function useAgentAdaptationSpeedAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentSelfCorrectionRateAnalyzerMetric {
+  agentId: string; agentName: string; selfCorrectionRate: number; totalErrors: number; selfCorrected: number; externalCorrections: number; correctionSpeed: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentSelfCorrectionRateAnalyzerReport {
+  metrics: AgentSelfCorrectionRateAnalyzerMetric[]; fleetAvgSelfCorrectionRate: number; lowSelfCorrectors: number; analysisTimestamp: string;
+}
+export function useAgentSelfCorrectionRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSelfCorrectionRateAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentSelfCorrectionRateAnalyzerReport>(`/projects/${projectId}/agent-self-correction-rate-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentConfidenceCalibrationAnalyzerMetric {
+  agentId: string; agentName: string; calibrationScore: number; avgConfidenceExpressed: number; avgActualAccuracy: number; calibrationError: number; overconfidentDecisions: number; underconfidentDecisions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentConfidenceCalibrationAnalyzerReport {
+  metrics: AgentConfidenceCalibrationAnalyzerMetric[]; fleetAvgCalibrationScore: number; poorlyCalibrated: number; analysisTimestamp: string;
+}
+export function useAgentConfidenceCalibrationAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentConfidenceCalibrationAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentConfidenceCalibrationAnalyzerReport>(`/projects/${projectId}/agent-confidence-calibration-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
