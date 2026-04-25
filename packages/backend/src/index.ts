@@ -158,6 +158,11 @@ import { agentFailurePatternRoutes } from './routes/agent-failure-pattern-route.
 import { agentQueueDepthAnalyzerRoutes } from './routes/agent-queue-depth-analyzer-route.js';
 import { agentRetryRateRoutes } from './routes/agent-retry-rate-route.js';
 import { agentAvailabilityRoutes } from './routes/agent-availability-route.js';
+import { agentSpecializationIndexRoutes } from './routes/agent-specialization-index-route.js';
+import { agentResponseLagRoutes } from './routes/agent-response-lag-route.js';
+import { agentCapacityUtilizationRoutes } from './routes/agent-capacity-utilization-route.js';
+import { agentThroughputVariabilityRoutes } from './routes/agent-throughput-variability-route.js';
+import { agentCostPerOutcomeRoutes } from './routes/agent-cost-per-outcome-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -350,6 +355,11 @@ async function main() {
   await fastify.register(agentQueueDepthAnalyzerRoutes);
   await fastify.register(agentRetryRateRoutes);
   await fastify.register(agentAvailabilityRoutes);
+  await fastify.register(agentSpecializationIndexRoutes);
+  await fastify.register(agentResponseLagRoutes);
+  await fastify.register(agentCapacityUtilizationRoutes);
+  await fastify.register(agentThroughputVariabilityRoutes);
+  await fastify.register(agentCostPerOutcomeRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
