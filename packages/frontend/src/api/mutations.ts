@@ -6654,3 +6654,49 @@ export function useAgentRecoveryTime(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentEscalationRateMetrics {
+  agentId: string; agentName: string; agentRole: string; totalTickets: number;
+  escalatedTickets: number; selfResolvedTickets: number; handoffCount: number;
+  avgEscalationsPerTicket: number; escalationRate: number; escalationScore: number; escalationTier: string;
+}
+export interface EscalationRateReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; highEscalationCount: number; lowEscalationCount: number; autonomousCount: number; avgEscalationRate: number; totalEscalations: number; };
+  agents: AgentEscalationRateMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentEscalationRate(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<EscalationRateReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<EscalationRateReport>(`/projects/${projectId}/agent-escalation-rate`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface CategoryPerformance {
+  category: string; ticketCount: number; completedCount: number; blockedCount: number;
+  escalatedCount: number; avgResolutionDays: number; completionRate: number; performanceVsAvg: number;
+}
+export interface AgentKnowledgeGapMetrics {
+  agentId: string; agentName: string; agentRole: string; totalTickets: number;
+  categoryBreakdown: CategoryPerformance[]; gapCount: number; proficientCount: number;
+  avgCompletionRate: number; overallGapScore: number; gapTier: string;
+}
+export interface KnowledgeGapReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; criticalGapsCount: number; minorGapsCount: number; proficientCount: number; avgGapScore: number; totalGapsDetected: number; };
+  agents: AgentKnowledgeGapMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentKnowledgeGapAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<KnowledgeGapReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<KnowledgeGapReport>(`/projects/${projectId}/agent-knowledge-gap-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}

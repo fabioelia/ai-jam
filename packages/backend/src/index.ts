@@ -165,6 +165,8 @@ import { agentThroughputVariabilityRoutes } from './routes/agent-throughput-vari
 import { agentCostPerOutcomeRoutes } from './routes/agent-cost-per-outcome-route.js';
 import { agentWorkloadSaturationRoutes } from './routes/agent-workload-saturation-route.js';
 import { agentRecoveryTimeRoutes } from './routes/agent-recovery-time-route.js';
+import { agentEscalationRateRoutes } from './routes/agent-escalation-rate-route.js';
+import { agentKnowledgeGapAnalyzerRoutes as agentKnowledgeGapAnalyzerV2Routes } from './routes/agent-knowledge-gap-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -364,6 +366,8 @@ async function main() {
   await fastify.register(agentCostPerOutcomeRoutes);
   await fastify.register(agentWorkloadSaturationRoutes);
   await fastify.register(agentRecoveryTimeRoutes);
+  await fastify.register(agentEscalationRateRoutes);
+  await fastify.register(agentKnowledgeGapAnalyzerV2Routes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
