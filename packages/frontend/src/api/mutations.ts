@@ -8910,3 +8910,68 @@ export function useAgentAttentionAllocationEfficiencyAnalyzer(projectId: string)
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentKnowledgeSynthesisRateReport {
+  synthesis_rate: number;
+  multi_source_integration_rate: number;
+  isolated_source_rate: number;
+  avg_synthesis_speed: number;
+  cross_domain_connection_count: number;
+  synthesis_accuracy_rate: number;
+  high_synthesis_sessions: number;
+  low_synthesis_sessions: number;
+  total_sessions: number;
+  top_synthesis_patterns: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  best_synthesis_agent: string;
+  worst_synthesis_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentKnowledgeSynthesisRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentKnowledgeSynthesisRateReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentKnowledgeSynthesisRateReport>(`/projects/${projectId}/agent-knowledge-synthesis-rate-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentInstructionExecutionLatencyReport {
+  latency_score: number;
+  avg_instruction_parse_time_ms: number;
+  avg_first_output_latency_ms: number;
+  median_execution_start_ms: number;
+  p95_execution_start_ms: number;
+  disambiguation_delay_rate: number;
+  planning_overhead_rate: number;
+  fast_start_sessions: number;
+  slow_start_sessions: number;
+  total_sessions: number;
+  top_latency_patterns: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  fastest_agent: string;
+  slowest_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentInstructionExecutionLatencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionExecutionLatencyReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInstructionExecutionLatencyReport>(`/projects/${projectId}/agent-instruction-execution-latency-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
