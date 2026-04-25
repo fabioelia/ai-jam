@@ -6262,3 +6262,102 @@ export function useAgentInterruptionFrequency(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentSessionDurationMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  avgDurationMs: number;
+  medianDurationMs: number;
+  p95DurationMs: number;
+  minDurationMs: number;
+  maxDurationMs: number;
+  durationScore: number;
+  durationTier: 'high' | 'moderate' | 'low' | 'insufficient_data';
+}
+
+export interface SessionDurationReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    efficientCount: number;
+    slowCount: number;
+    avgDurationMs: number;
+    totalSessions: number;
+  };
+  agents: AgentSessionDurationMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentSessionDurationAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SessionDurationReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<SessionDurationReport>(
+        `/projects/${projectId}/agent-session-duration-analyzer`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentFailurePatternMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  failedSessions: number;
+  timedOutSessions: number;
+  failureRate: number;
+  timeoutRate: number;
+  maxConsecutiveFailures: number;
+  lastFailedAt: Date | string | null;
+  healthScore: number;
+  healthTier: 'high' | 'moderate' | 'low' | 'insufficient_data';
+}
+
+export interface FailurePatternReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    criticalCount: number;
+    healthyCount: number;
+    avgFailureRate: number;
+    totalFailedSessions: number;
+  };
+  agents: AgentFailurePatternMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentFailurePatterns(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<FailurePatternReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<FailurePatternReport>(
+        `/projects/${projectId}/agent-failure-patterns`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

@@ -153,6 +153,8 @@ import { agentBurnoutRiskRoutes } from './routes/agent-burnout-risk-route.js';
 import { agentHandoffSuccessRateRoutes } from './routes/agent-handoff-success-rate-route.js';
 import { agentTaskCompletionVelocityRoutes } from './routes/agent-task-completion-velocity-route.js';
 import { agentInterruptionFrequencyRoutes } from './routes/agent-interruption-frequency-route.js';
+import { agentSessionDurationAnalyzerRoutes } from './routes/agent-session-duration-analyzer-route.js';
+import { agentFailurePatternRoutes } from './routes/agent-failure-pattern-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -340,6 +342,8 @@ async function main() {
   await fastify.register(agentHandoffSuccessRateRoutes);
   await fastify.register(agentTaskCompletionVelocityRoutes);
   await fastify.register(agentInterruptionFrequencyRoutes);
+  await fastify.register(agentSessionDurationAnalyzerRoutes);
+  await fastify.register(agentFailurePatternRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
