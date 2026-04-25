@@ -6925,3 +6925,37 @@ export function useAgentConfidenceCalibrationAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentTaskPrioritizationAccuracyMetric {
+  agentId: string; agentName: string; prioritizationScore: number; highPriorityCompletionRate: number; priorityInversionRate: number; urgencyResponseTime: number; totalTasksAnalyzed: number; trend: 'improving' | 'stable' | 'degrading'; accuracy: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentTaskPrioritizationAccuracyReport {
+  metrics: AgentTaskPrioritizationAccuracyMetric[]; fleetAvgPrioritizationScore: number; poorPrioritizers: number; analysisTimestamp: string;
+}
+export function useAgentTaskPrioritizationAccuracyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTaskPrioritizationAccuracyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentTaskPrioritizationAccuracyReport>(`/projects/${projectId}/agent-task-prioritization-accuracy-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentToolSelectionAccuracyMetric {
+  agentId: string; agentName: string; toolSelectionScore: number; optimalToolRate: number; unnecessaryToolCallRate: number; toolMismatchRate: number; totalToolCalls: number; trend: 'improving' | 'stable' | 'degrading'; precision: 'expert' | 'proficient' | 'developing' | 'poor';
+}
+export interface AgentToolSelectionAccuracyReport {
+  metrics: AgentToolSelectionAccuracyMetric[]; fleetAvgToolSelectionScore: number; lowPrecisionAgents: number; analysisTimestamp: string;
+}
+export function useAgentToolSelectionAccuracyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentToolSelectionAccuracyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentToolSelectionAccuracyReport>(`/projects/${projectId}/agent-tool-selection-accuracy-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
