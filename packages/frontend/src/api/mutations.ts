@@ -7525,3 +7525,35 @@ export function useAgentTemporalConsistencyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentOutputFormatComplianceAnalyzerMetric {
+  agentId: string; agentName: string; complianceRate: number; formatViolations: number; partialComplianceRate: number; avgComplianceScore: number; mostCommonViolation: string; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentOutputFormatComplianceAnalyzerReport {
+  metrics: AgentOutputFormatComplianceAnalyzerMetric[]; fleetAvgComplianceScore: number; highViolationAgents: number; analysisTimestamp: string;
+}
+export function useAgentOutputFormatComplianceAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentOutputFormatComplianceAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentOutputFormatComplianceAnalyzerReport>(`/projects/${projectId}/agent-output-format-compliance-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentCapabilityBoundaryAwarenessAnalyzerMetric {
+  agentId: string; agentName: string; boundaryAwarenessScore: number; overreachRate: number; underreachRate: number; appropriateRoutingRate: number; avgTaskComplexityHandled: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentCapabilityBoundaryAwarenessAnalyzerReport {
+  metrics: AgentCapabilityBoundaryAwarenessAnalyzerMetric[]; fleetAvgBoundaryAwarenessScore: number; poorBoundaryAgents: number; analysisTimestamp: string;
+}
+export function useAgentCapabilityBoundaryAwarenessAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCapabilityBoundaryAwarenessAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentCapabilityBoundaryAwarenessAnalyzerReport>(`/projects/${projectId}/agent-capability-boundary-awareness-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
