@@ -7857,3 +7857,37 @@ export function useAgentBoundaryViolationRateAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentSemanticConsistencyRateAnalyzerMetric {
+  agentId: string; sessionId: string; semanticConsistencyRate: number; totalPromptPairs: number; consistentResponses: number; inconsistentResponses: number; driftScore: number; consistencyByCategory: Array<{ category: string; rate: number }>; stabilityTrend: 'improving' | 'stable' | 'degrading';
+}
+export interface AgentSemanticConsistencyRateAnalyzerReport {
+  metrics: AgentSemanticConsistencyRateAnalyzerMetric[]; fleetAvgConsistencyRate: number; stableAgents: number; degradingAgents: number; analysisTimestamp: string;
+}
+export function useAgentSemanticConsistencyRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSemanticConsistencyRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentSemanticConsistencyRateAnalyzerReport>(`/projects/${projectId}/agent-semantic-consistency-rate-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentKnowledgeRecencyIndexAnalyzerMetric {
+  agentId: string; sessionId: string; knowledgeRecencyIndex: number; contextUpdateCount: number; staleReferenceCount: number; freshReferenceCount: number; recencyByDomain: Array<{ domain: string; recencyScore: number }>; avgContextAge: number; recencyTrend: 'freshening' | 'stable' | 'staling';
+}
+export interface AgentKnowledgeRecencyIndexAnalyzerReport {
+  metrics: AgentKnowledgeRecencyIndexAnalyzerMetric[]; fleetAvgRecencyIndex: number; fresheningAgents: number; stalingAgents: number; analysisTimestamp: string;
+}
+export function useAgentKnowledgeRecencyIndexAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentKnowledgeRecencyIndexAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentKnowledgeRecencyIndexAnalyzerReport>(`/projects/${projectId}/agent-knowledge-recency-index-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
