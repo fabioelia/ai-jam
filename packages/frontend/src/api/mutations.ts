@@ -8725,3 +8725,64 @@ export function useAgentTaskAbandonmentRateAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentClarificationRequestRateReport {
+  clarification_rate: number;
+  assumption_rate: number;
+  total_instructions: number;
+  clarification_requests: number;
+  assumed_proceeds: number;
+  clarification_accuracy: number;
+  avg_clarifications_per_task: number;
+  top_clarification_triggers: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  highest_clarification_agent: string;
+  lowest_clarification_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentClarificationRequestRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentClarificationRequestRateReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentClarificationRequestRateReport>(`/projects/${projectId}/agent-clarification-request-rate-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentMultiStepPlanningAccuracyReport {
+  plan_accuracy_rate: number;
+  backtrack_rate: number;
+  plan_completion_rate: number;
+  total_plans: number;
+  steps_planned: number;
+  steps_executed: number;
+  steps_deviated: number;
+  avg_plan_depth: number;
+  most_common_deviation_types: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  highest_accuracy_agent: string;
+  lowest_accuracy_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentMultiStepPlanningAccuracyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentMultiStepPlanningAccuracyReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentMultiStepPlanningAccuracyReport>(`/projects/${projectId}/agent-multi-step-planning-accuracy-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
