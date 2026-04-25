@@ -7061,3 +7061,37 @@ export function useAgentPromptEfficiencyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentLearningRateMetric {
+  agentId: string; agentName: string; learningScore: number; improvementRate: number; repeatErrorRate: number; sessionSuccessProgression: number; totalSessionsAnalyzed: number; trend: 'improving' | 'stable' | 'degrading'; learningLevel: 'rapid' | 'steady' | 'slow' | 'stagnant';
+}
+export interface AgentLearningRateAnalyzerReport {
+  metrics: AgentLearningRateMetric[]; fleetAvgLearningScore: number; stagnantAgents: number; analysisTimestamp: string;
+}
+export function useAgentLearningRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentLearningRateAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentLearningRateAnalyzerReport>(`/projects/${projectId}/agent-learning-rate-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentErrorRecoverySpeedMetric {
+  agentId: string; agentName: string; recoveryScore: number; avgRecoveryTimeMs: number; recoverySuccessRate: number; errorRecurrenceRate: number; totalErrorsAnalyzed: number; trend: 'improving' | 'stable' | 'degrading'; resilience: 'resilient' | 'capable' | 'fragile' | 'critical';
+}
+export interface AgentErrorRecoverySpeedAnalyzerReport {
+  metrics: AgentErrorRecoverySpeedMetric[]; fleetAvgRecoveryScore: number; criticalAgents: number; analysisTimestamp: string;
+}
+export function useAgentErrorRecoverySpeedAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentErrorRecoverySpeedAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentErrorRecoverySpeedAnalyzerReport>(`/projects/${projectId}/agent-error-recovery-speed-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
