@@ -221,6 +221,8 @@ import { agentProactiveInitiativeRateAnalyzerRoutes } from './routes/agent-proac
 import { agentKnowledgeBoundaryMappingAnalyzerRoutes } from './routes/agent-knowledge-boundary-mapping-analyzer-route.js';
 import { agentCommunicationOverheadAnalyzerRoutes } from './routes/agent-communication-overhead-analyzer-route.js';
 import { agentSpecializationDriftAnalyzerRoutes } from './routes/agent-specialization-drift-analyzer-route.js';
+import { agentCognitiveFlexibilityAnalyzerRoutes } from './routes/agent-cognitive-flexibility-analyzer-route.js';
+import { agentDelegationAccuracyAnalyzerRoutes } from './routes/agent-delegation-accuracy-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -476,6 +478,8 @@ async function main() {
   await fastify.register(agentKnowledgeBoundaryMappingAnalyzerRoutes);
   await fastify.register(agentCommunicationOverheadAnalyzerRoutes);
   await fastify.register(agentSpecializationDriftAnalyzerRoutes);
+  await fastify.register(agentCognitiveFlexibilityAnalyzerRoutes);
+  await fastify.register(agentDelegationAccuracyAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

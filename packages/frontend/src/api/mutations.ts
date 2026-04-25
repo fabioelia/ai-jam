@@ -7621,3 +7621,35 @@ export function useAgentSpecializationDriftAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentCognitiveFlexibilityMetric {
+  agentId: string; sessionId: string; cognitiveFlexibilityScore: number; strategyPivotCount: number; avgRecoveryTimeMs: number; solutionDiversityIndex: number; failureAdaptationRate: number; rigidityRisk: 'low' | 'moderate' | 'high';
+}
+export interface AgentCognitiveFlexibilityReport {
+  agents: AgentCognitiveFlexibilityMetric[]; summary: { mostFlexible: string; leastFlexible: string; avgScore: number; };
+}
+export function useAgentCognitiveFlexibilityAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCognitiveFlexibilityReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentCognitiveFlexibilityReport>(`/projects/${projectId}/agent-cognitive-flexibility-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentDelegationAccuracyMetric {
+  agentId: string; sessionId: string; delegationAccuracyRate: number; totalDelegations: number; correctDelegations: number; reDelegationRate: number; avgDelegationLatencyMs: number; downstreamSuccessRate: number; delegationRisk: 'low' | 'moderate' | 'high';
+}
+export interface AgentDelegationAccuracyReport {
+  agents: AgentDelegationAccuracyMetric[]; summary: { mostAccurate: string; leastAccurate: string; avgRate: number; };
+}
+export function useAgentDelegationAccuracyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentDelegationAccuracyReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentDelegationAccuracyReport>(`/projects/${projectId}/agent-delegation-accuracy-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
