@@ -7557,3 +7557,35 @@ export function useAgentCapabilityBoundaryAwarenessAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentProactiveInitiativeRateAnalyzerMetric {
+  agentId: string; agentName: string; initiativeRate: number; avgInitiativesPerSession: number; highValueInitiatives: number; initiativeScore: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentProactiveInitiativeRateAnalyzerReport {
+  metrics: AgentProactiveInitiativeRateAnalyzerMetric[]; fleetAvgInitiativeScore: number; reactiveAgents: number; analysisTimestamp: string;
+}
+export function useAgentProactiveInitiativeRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentProactiveInitiativeRateAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentProactiveInitiativeRateAnalyzerReport>(`/projects/${projectId}/agent-proactive-initiative-rate-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentKnowledgeBoundaryMappingAnalyzerMetric {
+  agentId: string; agentName: string; knowledgeCoverageScore: number; boundaryRespectRate: number; silentFailureRate: number; gapDensity: number; boundaryScore: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentKnowledgeBoundaryMappingAnalyzerReport {
+  metrics: AgentKnowledgeBoundaryMappingAnalyzerMetric[]; fleetAvgBoundaryScore: number; overconfidentAgents: number; analysisTimestamp: string;
+}
+export function useAgentKnowledgeBoundaryMappingAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentKnowledgeBoundaryMappingAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentKnowledgeBoundaryMappingAnalyzerReport>(`/projects/${projectId}/agent-knowledge-boundary-mapping-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}

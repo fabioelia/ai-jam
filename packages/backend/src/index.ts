@@ -217,6 +217,8 @@ import { agentAbstractionLevelAnalyzerRoutes } from './routes/agent-abstraction-
 import { agentTemporalConsistencyAnalyzerRoutes } from './routes/agent-temporal-consistency-analyzer-route.js';
 import { agentOutputFormatComplianceAnalyzerRoutes } from './routes/agent-output-format-compliance-analyzer-route.js';
 import { agentCapabilityBoundaryAwarenessAnalyzerRoutes } from './routes/agent-capability-boundary-awareness-analyzer-route.js';
+import { agentProactiveInitiativeRateAnalyzerRoutes } from './routes/agent-proactive-initiative-rate-analyzer-route.js';
+import { agentKnowledgeBoundaryMappingAnalyzerRoutes } from './routes/agent-knowledge-boundary-mapping-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -468,6 +470,8 @@ async function main() {
   await fastify.register(agentTemporalConsistencyAnalyzerRoutes);
   await fastify.register(agentOutputFormatComplianceAnalyzerRoutes);
   await fastify.register(agentCapabilityBoundaryAwarenessAnalyzerRoutes);
+  await fastify.register(agentProactiveInitiativeRateAnalyzerRoutes);
+  await fastify.register(agentKnowledgeBoundaryMappingAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
