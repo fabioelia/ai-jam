@@ -7589,3 +7589,35 @@ export function useAgentKnowledgeBoundaryMappingAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentCommunicationOverheadAnalyzerMetric {
+  agentId: string; agentName: string; communicationOverheadRatio: number; messageCount: number; avgResponseLatencyMs: number; coordinationCostPerTask: number; overheadTrend: 'increasing' | 'stable' | 'decreasing'; totalSessions: number;
+}
+export interface AgentCommunicationOverheadAnalyzerReport {
+  metrics: AgentCommunicationOverheadAnalyzerMetric[]; fleetAvgOverheadRatio: number; highOverheadAgents: number; analysisTimestamp: string;
+}
+export function useAgentCommunicationOverheadAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCommunicationOverheadAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentCommunicationOverheadAnalyzerReport>(`/projects/${projectId}/agent-communication-overhead-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentSpecializationDriftAnalyzerMetric {
+  agentId: string; agentName: string; specializationDriftScore: number; primarySpecialty: string; driftedDomains: string[]; onSpecialtyTaskRatio: number; driftVelocity: number; riskLevel: 'low' | 'medium' | 'high' | 'critical'; totalSessions: number;
+}
+export interface AgentSpecializationDriftAnalyzerReport {
+  metrics: AgentSpecializationDriftAnalyzerMetric[]; fleetAvgDriftScore: number; criticalDriftAgents: number; analysisTimestamp: string;
+}
+export function useAgentSpecializationDriftAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSpecializationDriftAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentSpecializationDriftAnalyzerReport>(`/projects/${projectId}/agent-specialization-drift-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
