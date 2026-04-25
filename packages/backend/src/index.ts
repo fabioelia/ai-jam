@@ -167,6 +167,8 @@ import { agentWorkloadSaturationRoutes } from './routes/agent-workload-saturatio
 import { agentRecoveryTimeRoutes } from './routes/agent-recovery-time-route.js';
 import { agentEscalationRateRoutes } from './routes/agent-escalation-rate-route.js';
 import { agentKnowledgeGapAnalyzerRoutes as agentKnowledgeGapAnalyzerV2Routes } from './routes/agent-knowledge-gap-analyzer-route.js';
+import { agentIdleTimeTrackerRoutes } from './routes/agent-idle-time-tracker-route.js';
+import { agentParallelTaskEfficiencyTrackerRoutes } from './routes/agent-parallel-task-efficiency-tracker-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -368,6 +370,8 @@ async function main() {
   await fastify.register(agentRecoveryTimeRoutes);
   await fastify.register(agentEscalationRateRoutes);
   await fastify.register(agentKnowledgeGapAnalyzerV2Routes);
+  await fastify.register(agentIdleTimeTrackerRoutes);
+  await fastify.register(agentParallelTaskEfficiencyTrackerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

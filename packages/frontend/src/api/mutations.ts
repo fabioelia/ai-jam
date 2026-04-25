@@ -6700,3 +6700,46 @@ export function useAgentKnowledgeGapAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentIdleTimeTrackerMetrics {
+  agentId: string; agentName: string; agentRole: string; totalActiveTimeMs: number;
+  totalIdleTimeMs: number; totalTrackedTimeMs: number; idleTimeRatio: number;
+  avgIdlePeriodMs: number; longestIdlePeriodMs: number; idleScore: number; idleTier: string;
+}
+export interface IdleTimeTrackerReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; highIdleCount: number; lowIdleCount: number; optimalCount: number; avgIdleTimeMs: number; totalIdleTimeMs: number; };
+  agents: AgentIdleTimeTrackerMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentIdleTimeTracker(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<IdleTimeTrackerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<IdleTimeTrackerReport>(`/projects/${projectId}/agent-idle-time-tracker`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentParallelTaskTrackerMetrics {
+  agentId: string; agentName: string; agentRole: string; totalTickets: number;
+  avgConcurrentTasks: number; maxConcurrentTasks: number; soloCompletionRate: number;
+  parallelCompletionRate: number; velocityDegradationRatio: number; optimalConcurrency: number;
+  parallelEfficiencyScore: number; efficiencyTier: string;
+}
+export interface ParallelTaskEfficiencyTrackerReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; highEfficiencyCount: number; lowEfficiencyCount: number; optimalParallelism: number; avgConcurrentTasks: number; avgEfficiencyScore: number; };
+  agents: AgentParallelTaskTrackerMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentParallelTaskEfficiencyTracker(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ParallelTaskEfficiencyTrackerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<ParallelTaskEfficiencyTrackerReport>(`/projects/${projectId}/agent-parallel-task-efficiency-tracker`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
