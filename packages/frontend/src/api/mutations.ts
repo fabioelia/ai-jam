@@ -4546,6 +4546,149 @@ export function useAgentOutputConsistency(projectId: string) {
   return { analyze, loading, result, setResult };
 }
 
+// FEAT-142: Agent Idle Time Analyzer
+export interface AgentIdleTimeMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalIdleTime: number;
+  avgIdleGap: number;
+  longestIdleStreak: number;
+  responseLatency: number;
+  idleScore: number;
+  idleTier: 'highly-active' | 'active' | 'periodic' | 'dormant';
+}
+
+export interface AgentIdleTimeReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgProjectIdleGap: number;
+    mostActive: string;
+    highlyActiveCount: number;
+  };
+  agents: AgentIdleTimeMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentIdleTimeAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentIdleTimeReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentIdleTimeReport>(
+        `/projects/${projectId}/agent-idle-time-analyzer`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, data, setData };
+}
+
+// FEAT-143: Agent Response Time Efficiency
+export interface AgentResponseTimeMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalTasksReceived: number;
+  avgResponseTime: number;
+  fastResponseRate: number;
+  queueDepth: number;
+  timeToFirstAction: number;
+  responseScore: number;
+  responseTier: 'lightning' | 'responsive' | 'moderate' | 'sluggish';
+}
+
+export interface AgentResponseTimeReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgResponseScore: number;
+    fastestAgent: string;
+    lightningCount: number;
+  };
+  agents: AgentResponseTimeMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentResponseTimeEfficiency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentResponseTimeReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentResponseTimeReport>(
+        `/projects/${projectId}/agent-response-time-efficiency`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, data, setData };
+}
+
+// FEAT-144: Agent Error Recovery Rate
+export interface AgentErrorRecoveryMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalErrors: number;
+  retrySuccessRate: number;
+  avgRecoveryTime: number;
+  failureCascadeDepth: number;
+  firstAttemptSuccessRate: number;
+  recoveryScore: number;
+  recoveryTier: 'resilient' | 'recovering' | 'struggling' | 'critical';
+}
+
+export interface AgentErrorRecoveryRateReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgRecoveryScore: number;
+    fastestRecoverer: string;
+    resilientCount: number;
+  };
+  agents: AgentErrorRecoveryMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentErrorRecoveryRate(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AgentErrorRecoveryRateReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const result = await apiFetch<AgentErrorRecoveryRateReport>(
+        `/projects/${projectId}/agent-error-recovery-rate`,
+        { method: 'POST' },
+      );
+      setData(result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, data, setData };
+}
+
 // FEAT-116: Agent Collaboration Efficiency Analyzer
 export interface AgentCollaborationMetrics {
   agentId: string;
