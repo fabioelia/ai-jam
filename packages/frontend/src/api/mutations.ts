@@ -7959,3 +7959,62 @@ export function useAgentFocusRetentionAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInstructionRedundancyAnalyzerMetric {
+  agentId: string; agentName: string; redundancyScore: number;
+  uniqueInstructionRate: number; repeatInstructionRate: number;
+  avgRedundancyDepth: number; contextRetentionRate: number;
+  totalSessions: number;
+  redundancyTrend: 'improving' | 'stable' | 'worsening';
+  rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentInstructionRedundancyAnalyzerReport {
+  metrics: AgentInstructionRedundancyAnalyzerMetric[];
+  fleetAvgRedundancyScore: number;
+  highRedundancyAgents: number;
+  analysisTimestamp: string;
+}
+
+export interface AgentGoalDriftRateAnalyzerMetric {
+  agentId: string; agentName: string; goalStabilityScore: number;
+  driftRate: number; avgDriftMagnitude: number; onTaskCompletionRate: number;
+  spontaneousRescoping: number; totalSessions: number;
+  driftPattern: 'scope-creep' | 'goal-substitution' | 'tangent-pursuit' | 'stable';
+  rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentGoalDriftRateAnalyzerReport {
+  metrics: AgentGoalDriftRateAnalyzerMetric[];
+  fleetAvgGoalStabilityScore: number;
+  highDriftAgents: number;
+  analysisTimestamp: string;
+}
+
+export function useAgentInstructionRedundancyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionRedundancyAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInstructionRedundancyAnalyzerReport>(`/projects/${projectId}/agent-instruction-redundancy-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export function useAgentGoalDriftRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentGoalDriftRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentGoalDriftRateAnalyzerReport>(`/projects/${projectId}/agent-goal-drift-rate-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}

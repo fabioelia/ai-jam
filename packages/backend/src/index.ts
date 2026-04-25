@@ -241,6 +241,8 @@ import { agentTaskScopeExpansionRateAnalyzerRoutes } from './routes/agent-task-s
 import { agentResponseLatencyAnalyzerRoutes } from './routes/agent-response-latency-analyzer-route.js';
 import { agentOutputVerbosityAnalyzerRoutes } from './routes/agent-output-verbosity-analyzer-route.js';
 import { agentFocusRetentionAnalyzerRoutes } from './routes/agent-focus-retention-analyzer-route.js';
+import { agentInstructionRedundancyAnalyzerRoutes } from './routes/agent-instruction-redundancy-analyzer-route.js';
+import { agentGoalDriftRateAnalyzerRoutes } from './routes/agent-goal-drift-rate-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -516,6 +518,8 @@ async function main() {
   await fastify.register(agentResponseLatencyAnalyzerRoutes);
   await fastify.register(agentOutputVerbosityAnalyzerRoutes);
   await fastify.register(agentFocusRetentionAnalyzerRoutes);
+  await fastify.register(agentInstructionRedundancyAnalyzerRoutes);
+  await fastify.register(agentGoalDriftRateAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
