@@ -256,6 +256,8 @@ import { agentNarrativeCoherenceAnalyzerRoutes } from './routes/agent-narrative-
 import { agentInstructionAdherenceDecayAnalyzerRoutes } from './routes/agent-instruction-adherence-decay-analyzer-route.js';
 import { agentConceptGeneralizationRateAnalyzerRoutes } from './routes/agent-concept-generalization-rate-analyzer-route.js';
 import { agentReasoningTransparencyAnalyzerRoutes } from './routes/agent-reasoning-transparency-analyzer-route.js';
+import { agentInitiativeCalibrationAnalyzerRoutes } from './routes/agent-initiative-calibration-analyzer-route.js';
+import { agentOutputDiversityAnalyzerRoutes } from './routes/agent-output-diversity-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -546,6 +548,8 @@ async function main() {
   await fastify.register(agentInstructionAdherenceDecayAnalyzerRoutes);
   await fastify.register(agentConceptGeneralizationRateAnalyzerRoutes);
   await fastify.register(agentReasoningTransparencyAnalyzerRoutes);
+  await fastify.register(agentInitiativeCalibrationAnalyzerRoutes);
+  await fastify.register(agentOutputDiversityAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

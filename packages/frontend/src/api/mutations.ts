@@ -8421,3 +8421,67 @@ export function useAgentReasoningTransparencyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInitiativeCalibrationAnalyzerReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    calibrationScore: number;
+    avgSessionDuration: number;
+    durationVariance: number;
+    overReachRate: number;
+    underReachRate: number;
+    trend: string;
+    rating: string;
+  }>;
+  fleetAvgCalibrationScore: number;
+  poorlyCalibrated: number;
+  analysisTimestamp: string;
+}
+
+export function useAgentInitiativeCalibrationAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInitiativeCalibrationAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInitiativeCalibrationAnalyzerReport>(`/projects/${projectId}/agent-initiative-calibration-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentOutputDiversityAnalyzerReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    diversityScore: number;
+    uniqueStatusCount: number;
+    statusDistribution: Record<string, number>;
+    repetitionRate: number;
+    adaptabilityScore: number;
+    trend: string;
+    rating: string;
+  }>;
+  fleetAvgDiversityScore: number;
+  lowDiversityAgents: number;
+  analysisTimestamp: string;
+}
+
+export function useAgentOutputDiversityAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentOutputDiversityAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentOutputDiversityAnalyzerReport>(`/projects/${projectId}/agent-output-diversity-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
