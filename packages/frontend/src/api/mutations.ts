@@ -7493,3 +7493,35 @@ export function useAgentErrorPropagationAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentAbstractionLevelAnalyzerMetric {
+  agentId: string; agentName: string; abstractionAgilityScore: number; lowLevelProficiency: number; highLevelProficiency: number; levelSwitchSuccessRate: number; abstractionMismatchRate: number; totalSessions: number; dominantLevel: 'low' | 'mid' | 'high' | 'balanced'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentAbstractionLevelAnalyzerReport {
+  metrics: AgentAbstractionLevelAnalyzerMetric[]; fleetAvgAgilityScore: number; balancedAgents: number; analysisTimestamp: string;
+}
+export function useAgentAbstractionLevelAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAbstractionLevelAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentAbstractionLevelAnalyzerReport>(`/projects/${projectId}/agent-abstraction-level-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentTemporalConsistencyAnalyzerMetric {
+  agentId: string; agentName: string; temporalConsistencyScore: number; shortTermConsistency: number; longTermConsistency: number; performanceDrift: number; stabilityIndex: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentTemporalConsistencyAnalyzerReport {
+  metrics: AgentTemporalConsistencyAnalyzerMetric[]; fleetAvgConsistencyScore: number; unstableAgents: number; analysisTimestamp: string;
+}
+export function useAgentTemporalConsistencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTemporalConsistencyAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentTemporalConsistencyAnalyzerReport>(`/projects/${projectId}/agent-temporal-consistency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
