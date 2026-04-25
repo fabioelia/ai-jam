@@ -7397,3 +7397,35 @@ export function useAgentInstructionParseAccuracyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentResponseCoherenceMetric {
+  agentId: string; agentName: string; coherenceScore: number; totalResponses: number; incoherentResponses: number; contradictionCount: number; reasoningGapCount: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentResponseCoherenceReport {
+  metrics: AgentResponseCoherenceMetric[]; coherenceScore: number; incoherentResponses: number; contradictionCount: number; reasoningGapCount: number; trend: 'improving' | 'stable' | 'degrading'; mostCoherentAgent: string; leastCoherentAgent: string; fleetAvgCoherenceScore: number; lowCoherenceAgents: number; analysisTimestamp: string;
+}
+export function useAgentResponseCoherenceAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentResponseCoherenceReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentResponseCoherenceReport>(`/projects/${projectId}/agent-response-coherence-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentSemanticDriftMetric {
+  agentId: string; agentName: string; driftScore: number; totalSessions: number; sessionsWithDrift: number; driftRate: number; averageDriftMagnitude: number; peakDriftSession: string; trend: 'improving' | 'stable' | 'degrading'; rating: 'stable' | 'mild' | 'moderate' | 'severe';
+}
+export interface AgentSemanticDriftReport {
+  metrics: AgentSemanticDriftMetric[]; driftScore: number; driftRate: number; averageDriftMagnitude: number; peakDriftSession: string; trend: 'improving' | 'stable' | 'degrading'; mostStableAgent: string; mostDriftedAgent: string; fleetAvgDriftScore: number; highDriftAgents: number; analysisTimestamp: string;
+}
+export function useAgentSemanticDriftAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSemanticDriftReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentSemanticDriftReport>(`/projects/${projectId}/agent-semantic-drift-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
