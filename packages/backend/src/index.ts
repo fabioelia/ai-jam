@@ -199,6 +199,8 @@ import { agentInstructionComplexityAnalyzerRoutes } from './routes/agent-instruc
 import { agentContextWindowUtilizationAnalyzerRoutes } from './routes/agent-context-window-utilization-analyzer-route.js';
 import { agentCognitiveLoadEstimatorRoutes } from './routes/agent-cognitive-load-estimator-route.js';
 import { agentGoalAlignmentScoreRoutes } from './routes/agent-goal-alignment-score-route.js';
+import { agentTrustScoreAnalyzerRoutes } from './routes/agent-trust-score-analyzer-route.js';
+import { agentWorkflowBottleneckAnalyzerRoutes } from './routes/agent-workflow-bottleneck-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -432,6 +434,8 @@ async function main() {
   await fastify.register(agentContextWindowUtilizationAnalyzerRoutes);
   await fastify.register(agentCognitiveLoadEstimatorRoutes);
   await fastify.register(agentGoalAlignmentScoreRoutes);
+  await fastify.register(agentTrustScoreAnalyzerRoutes);
+  await fastify.register(agentWorkflowBottleneckAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

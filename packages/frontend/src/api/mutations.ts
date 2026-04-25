@@ -7265,3 +7265,37 @@ export function useAgentGoalAlignmentScore(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentTrustScoreAnalyzerMetric {
+  agentId: string; agentName: string; trustScore: number; reliabilityRate: number; consistencyScore: number; promiseKeptRate: number; errorFrequency: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentTrustScoreAnalyzerReport {
+  metrics: AgentTrustScoreAnalyzerMetric[]; fleetAvgTrustScore: number; lowTrustAgents: number; analysisTimestamp: string;
+}
+export function useAgentTrustScoreAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTrustScoreAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentTrustScoreAnalyzerReport>(`/projects/${projectId}/agent-trust-score-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentWorkflowBottleneckAnalyzerMetric {
+  agentId: string; agentName: string; bottleneckScore: number; avgQueueWaitTime: number; stallFrequency: number; throughputImpactScore: number; bottleneckEvents: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; severity: 'critical' | 'high' | 'medium' | 'low';
+}
+export interface AgentWorkflowBottleneckAnalyzerReport {
+  metrics: AgentWorkflowBottleneckAnalyzerMetric[]; fleetAvgBottleneckScore: number; criticalBottlenecks: number; analysisTimestamp: string;
+}
+export function useAgentWorkflowBottleneckAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentWorkflowBottleneckAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentWorkflowBottleneckAnalyzerReport>(`/projects/${projectId}/agent-workflow-bottleneck-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
