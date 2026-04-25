@@ -7687,3 +7687,37 @@ export function useAgentContextUtilizationEfficiencyAnalyzer(projectId: string) 
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentMultiModalProcessingEfficiencyMetric {
+  agentId: string; efficiencyScore: number; totalMultiModalInputs: number; textInputsProcessed: number; codeInputsProcessed: number; structuredDataInputsProcessed: number; crossModalIntegrationEvents: number; processingFailures: number; textProcessingRate: number; codeProcessingRate: number; structuredDataRate: number; crossModalIntegrationRate: number; failureRate: number; trend: 'improving' | 'stable' | 'declining';
+}
+export interface AgentMultiModalProcessingEfficiencyReport {
+  agents: AgentMultiModalProcessingEfficiencyMetric[]; summary: { efficiencyScore: number; textProcessingRate: number; codeProcessingRate: number; structuredDataRate: number; crossModalIntegrationRate: number; failureRateByModality: { text: number; code: number; structuredData: number }; trend: 'improving' | 'stable' | 'declining'; mostEfficientAgent: string; leastEfficientAgent: string; };
+}
+export function useAgentMultiModalProcessingEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentMultiModalProcessingEfficiencyReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentMultiModalProcessingEfficiencyReport>(`/projects/${projectId}/agent-multi-modal-processing-efficiency-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentConstraintSatisfactionMetric {
+  agentId: string; satisfactionRate: number; totalConstraints: number; satisfiedConstraints: number; formatViolations: number; scopeViolations: number; safetyViolations: number; requirementGaps: number; formatComplianceRate: number; scopeAdherenceRate: number; safetyComplianceRate: number; requirementFulfillmentRate: number; trend: 'improving' | 'stable' | 'declining';
+}
+export interface AgentConstraintSatisfactionReport {
+  agents: AgentConstraintSatisfactionMetric[]; summary: { satisfactionRate: number; totalConstraints: number; formatComplianceRate: number; scopeAdherenceRate: number; safetyComplianceRate: number; requirementFulfillmentRate: number; violationBreakdown: { format: number; scope: number; safety: number; requirements: number }; trend: 'improving' | 'stable' | 'declining'; mostCompliantAgent: string; leastCompliantAgent: string; };
+}
+export function useAgentConstraintSatisfactionRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentConstraintSatisfactionReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentConstraintSatisfactionReport>(`/projects/${projectId}/agent-constraint-satisfaction-rate-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
