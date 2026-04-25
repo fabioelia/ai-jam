@@ -7755,3 +7755,37 @@ export function useAgentInstructionDisambiguationRateAnalyzer(projectId: string)
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentParallelismEfficiencyAnalyzerMetric {
+  agentId: string; agentName: string; parallelismRate: number; maxConcurrentSessions: number; avgConcurrentSessions: number; idleGapRate: number; parallelismScore: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentParallelismEfficiencyAnalyzerReport {
+  metrics: AgentParallelismEfficiencyAnalyzerMetric[]; fleetAvgParallelismScore: number; highIdleAgents: number; analysisTimestamp: string;
+}
+export function useAgentParallelismEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentParallelismEfficiencyAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentParallelismEfficiencyAnalyzerReport>(`/projects/${projectId}/agent-parallelism-efficiency-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentDecisionReversalRateAnalyzerMetric {
+  agentId: string; agentName: string; reversalRate: number; totalReversals: number; avgReversalsPerSession: number; abandonmentRate: number; stabilityScore: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentDecisionReversalRateAnalyzerReport {
+  metrics: AgentDecisionReversalRateAnalyzerMetric[]; fleetAvgStabilityScore: number; highReversalAgents: number; analysisTimestamp: string;
+}
+export function useAgentDecisionReversalRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentDecisionReversalRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentDecisionReversalRateAnalyzerReport>(`/projects/${projectId}/agent-decision-reversal-rate-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}

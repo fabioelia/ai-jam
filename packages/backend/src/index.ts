@@ -229,6 +229,8 @@ import { agentMultiModalProcessingEfficiencyAnalyzerRoutes } from './routes/agen
 import { agentConstraintSatisfactionRateAnalyzerRoutes } from './routes/agent-constraint-satisfaction-rate-analyzer-route.js';
 import { agentOutputCompletenessAnalyzerRoutes } from './routes/agent-output-completeness-analyzer-route.js';
 import { agentInstructionDisambiguationRateAnalyzerRoutes } from './routes/agent-instruction-disambiguation-rate-analyzer-route.js';
+import { agentParallelismEfficiencyAnalyzerRoutes } from './routes/agent-parallelism-efficiency-analyzer-route.js';
+import { agentDecisionReversalRateAnalyzerRoutes } from './routes/agent-decision-reversal-rate-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -492,6 +494,8 @@ async function main() {
   await fastify.register(agentConstraintSatisfactionRateAnalyzerRoutes);
   await fastify.register(agentOutputCompletenessAnalyzerRoutes);
   await fastify.register(agentInstructionDisambiguationRateAnalyzerRoutes);
+  await fastify.register(agentParallelismEfficiencyAnalyzerRoutes);
+  await fastify.register(agentDecisionReversalRateAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
