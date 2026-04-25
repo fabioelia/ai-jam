@@ -6165,3 +6165,100 @@ export function useAgentHandoffSuccessRate(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentVelocityMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalCompletedSessions: number;
+  analysisWindowWeeks: number;
+  avgSessionsPerWeek: number;
+  recentWeekSessions: number;
+  allTimeWeeklyPeak: number;
+  velocityTrend: 'improving' | 'declining' | 'stable' | 'insufficient_data';
+  velocityScore: number;
+  velocityTier: 'high' | 'moderate' | 'low' | 'insufficient_data';
+}
+
+export interface TaskCompletionVelocityReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    highVelocityCount: number;
+    decliningCount: number;
+    avgTicketsPerWeek: number;
+    totalCompletedSessions: number;
+  };
+  agents: AgentVelocityMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentTaskCompletionVelocity(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<TaskCompletionVelocityReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<TaskCompletionVelocityReport>(
+        `/projects/${projectId}/agent-task-completion-velocity`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentInterruptionMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  interruptedSessions: number;
+  interruptionsPerSession: number;
+  avgInterruptedSessionMs: number;
+  focusRatio: number;
+  interruptionScore: number;
+  interruptionTier: 'high' | 'moderate' | 'low' | 'insufficient_data';
+}
+
+export interface InterruptionFrequencyReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    highInterruptionCount: number;
+    lowInterruptionCount: number;
+    avgInterruptionsPerSession: number;
+    totalInterruptions: number;
+  };
+  agents: AgentInterruptionMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentInterruptionFrequency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<InterruptionFrequencyReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<InterruptionFrequencyReport>(
+        `/projects/${projectId}/agent-interruption-frequency`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
