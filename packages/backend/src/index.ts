@@ -211,6 +211,8 @@ import { agentResponseCoherenceAnalyzerRoutes } from './routes/agent-response-co
 import { agentSemanticDriftAnalyzerRoutes } from './routes/agent-semantic-drift-analyzer-route.js';
 import { agentBiasDetectionRateAnalyzerRoutes } from './routes/agent-bias-detection-rate-analyzer-route.js';
 import { agentMemoryPersistenceAnalyzerRoutes } from './routes/agent-memory-persistence-analyzer-route.js';
+import { agentReasoningChainDepthAnalyzerRoutes } from './routes/agent-reasoning-chain-depth-analyzer-route.js';
+import { agentErrorPropagationAnalyzerRoutes } from './routes/agent-error-propagation-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -456,6 +458,8 @@ async function main() {
   await fastify.register(agentSemanticDriftAnalyzerRoutes);
   await fastify.register(agentBiasDetectionRateAnalyzerRoutes);
   await fastify.register(agentMemoryPersistenceAnalyzerRoutes);
+  await fastify.register(agentReasoningChainDepthAnalyzerRoutes);
+  await fastify.register(agentErrorPropagationAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

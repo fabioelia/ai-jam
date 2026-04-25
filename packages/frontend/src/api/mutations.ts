@@ -7461,3 +7461,35 @@ export function useAgentMemoryPersistenceAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentReasoningChainDepthMetric {
+  agentId: string; agentName: string; avgChainDepth: number; maxChainDepth: number; minChainDepth: number; optimalRangeRate: number; overReasoningRate: number; underReasoningRate: number; trend: 'increasing' | 'stable' | 'decreasing'; rating: 'optimal' | 'adequate' | 'shallow' | 'excessive';
+}
+export interface AgentReasoningChainDepthReport {
+  metrics: AgentReasoningChainDepthMetric[]; fleetAvgChainDepth: number; optimalAgents: number; analysisTimestamp: string;
+}
+export function useAgentReasoningChainDepthAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentReasoningChainDepthReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentReasoningChainDepthReport>(`/projects/${projectId}/agent-reasoning-chain-depth-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentErrorPropagationMetric {
+  agentId: string; agentName: string; errorPropagationRate: number; avgCascadeLength: number; selfCorrectionRate: number; criticalCascades: number; containmentSpeed: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentErrorPropagationReport {
+  metrics: AgentErrorPropagationMetric[]; fleetAvgPropagationRate: number; highRiskAgents: number; analysisTimestamp: string;
+}
+export function useAgentErrorPropagationAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentErrorPropagationReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentErrorPropagationReport>(`/projects/${projectId}/agent-error-propagation-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
