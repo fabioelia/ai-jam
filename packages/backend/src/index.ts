@@ -149,6 +149,8 @@ import { agentLearningCurveAnalyzerRoutes } from './routes/agent-learning-curve-
 import { agentCollaborationNetworkAnalyzerRoutes } from './routes/agent-collaboration-network-analyzer-route.js';
 import { agentPeakPerformanceRoutes } from './routes/agent-peak-performance-route.js';
 import { agentContextSwitchCostRoutes } from './routes/agent-context-switch-cost-route.js';
+import { agentBurnoutRiskRoutes } from './routes/agent-burnout-risk-route.js';
+import { agentHandoffSuccessRateRoutes } from './routes/agent-handoff-success-rate-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -332,6 +334,8 @@ async function main() {
   await fastify.register(agentCollaborationNetworkAnalyzerRoutes);
   await fastify.register(agentPeakPerformanceRoutes);
   await fastify.register(agentContextSwitchCostRoutes);
+  await fastify.register(agentBurnoutRiskRoutes);
+  await fastify.register(agentHandoffSuccessRateRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

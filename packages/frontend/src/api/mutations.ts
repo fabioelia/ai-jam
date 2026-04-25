@@ -6069,3 +6069,99 @@ export function useAgentContextSwitchCost(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentBurnoutMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  analysisWindowDays: number;
+  sessionsPerDay: number;
+  maxConsecutiveDays: number;
+  avgRestIntervalHours: number;
+  longestSessionMs: number;
+  burnoutScore: number;
+  riskTier: 'high' | 'moderate' | 'low' | 'insufficient_data';
+}
+
+export interface BurnoutRiskReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    highRiskCount: number;
+    moderateRiskCount: number;
+    lowRiskCount: number;
+    avgSessionsPerDay: number;
+  };
+  agents: AgentBurnoutMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentBurnoutRisk(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<BurnoutRiskReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<BurnoutRiskReport>(
+        `/projects/${projectId}/agent-burnout-risk`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentHandoffMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  completedSessions: number;
+  stalledSessions: number;
+  successRate: number;
+  avgCompletionMs: number;
+  reliabilityTier: 'high' | 'moderate' | 'low' | 'insufficient_data';
+}
+
+export interface HandoffSuccessRateReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    highSuccessCount: number;
+    lowSuccessCount: number;
+    avgSuccessRate: number;
+    totalHandoffs: number;
+  };
+  agents: AgentHandoffMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentHandoffSuccessRate(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<HandoffSuccessRateReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<HandoffSuccessRateReport>(
+        `/projects/${projectId}/agent-handoff-success-rate`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
