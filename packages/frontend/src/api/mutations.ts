@@ -6361,3 +6361,100 @@ export function useAgentFailurePatterns(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentQueueDepthMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  queuedTickets: number;
+  inProgressTickets: number;
+  totalActiveTickets: number;
+  avgTicketAgeHours: number;
+  oldestTicketAgeHours: number;
+  queueScore: number;
+  queueTier: 'overloaded' | 'busy' | 'normal' | 'idle';
+}
+
+export interface QueueDepthReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    overloadedCount: number;
+    idleCount: number;
+    avgQueueDepth: number;
+    totalQueuedTickets: number;
+  };
+  agents: AgentQueueDepthMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentQueueDepthAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<QueueDepthReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<QueueDepthReport>(
+        `/projects/${projectId}/agent-queue-depth-analyzer`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentRetryRateMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalTicketsAttempted: number;
+  retriedTickets: number;
+  totalSessions: number;
+  retryRate: number;
+  avgSessionsPerTicket: number;
+  maxSessionsOnOneTicket: number;
+  efficiencyScore: number;
+  efficiencyTier: 'high' | 'moderate' | 'low' | 'insufficient_data';
+}
+
+export interface RetryRateReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    highRetryCount: number;
+    efficientCount: number;
+    avgRetryRate: number;
+    totalRetriedTickets: number;
+  };
+  agents: AgentRetryRateMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentRetryRate(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<RetryRateReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<RetryRateReport>(
+        `/projects/${projectId}/agent-retry-rate`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}

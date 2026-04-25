@@ -155,6 +155,8 @@ import { agentTaskCompletionVelocityRoutes } from './routes/agent-task-completio
 import { agentInterruptionFrequencyRoutes } from './routes/agent-interruption-frequency-route.js';
 import { agentSessionDurationAnalyzerRoutes } from './routes/agent-session-duration-analyzer-route.js';
 import { agentFailurePatternRoutes } from './routes/agent-failure-pattern-route.js';
+import { agentQueueDepthAnalyzerRoutes } from './routes/agent-queue-depth-analyzer-route.js';
+import { agentRetryRateRoutes } from './routes/agent-retry-rate-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -344,6 +346,8 @@ async function main() {
   await fastify.register(agentInterruptionFrequencyRoutes);
   await fastify.register(agentSessionDurationAnalyzerRoutes);
   await fastify.register(agentFailurePatternRoutes);
+  await fastify.register(agentQueueDepthAnalyzerRoutes);
+  await fastify.register(agentRetryRateRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
