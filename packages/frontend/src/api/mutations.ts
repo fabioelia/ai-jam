@@ -8317,3 +8317,41 @@ export function useAgentNarrativeCoherenceAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInstructionAdherenceDecayReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    initialAdherence: number;
+    finalAdherence: number;
+    decayRate: number;
+    decayRating: string;
+    totalSessions: number;
+    avgSessionDurationMs: number;
+    worstDecaySession: number;
+    trend: string;
+  }>;
+  avgDecayRate: number;
+  avgInitialAdherence: number;
+  avgFinalAdherence: number;
+  fleetTrend: string;
+  mostStableAgent: string;
+  highestDecayAgent: string;
+  sessionTimelineByDecay: Array<{ sessionIndex: number; avgInitial: number; avgFinal: number }>;
+  analysisTimestamp: string;
+}
+
+export function useAgentInstructionAdherenceDecayAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionAdherenceDecayReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInstructionAdherenceDecayReport>(`/projects/${projectId}/agent-instruction-adherence-decay-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
