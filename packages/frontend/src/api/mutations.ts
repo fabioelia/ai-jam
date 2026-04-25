@@ -6458,3 +6458,155 @@ export function useAgentRetryRate(projectId: string) {
 
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentAvailabilityMetrics {
+  agentId: string;
+  agentName: string;
+  agentRole: string;
+  totalSessions: number;
+  totalActiveHours: number;
+  avgSessionGapHours: number;
+  longestIdleHours: number;
+  availabilityRate: number;
+  availabilityScore: number;
+  availabilityTier: 'high' | 'moderate' | 'low' | 'insufficient_data';
+}
+
+export interface AvailabilityReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    highAvailabilityCount: number;
+    lowAvailabilityCount: number;
+    avgAvailabilityRate: number;
+    totalActiveHours: number;
+  };
+  agents: AgentAvailabilityMetrics[];
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentAvailability(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AvailabilityReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AvailabilityReport>(
+        `/projects/${projectId}/agent-availability`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentSpecializationIndexMetrics {
+  agentId: string; agentName: string; agentRole: string; totalTickets: number;
+  uniqueEpics: number; uniqueStatuses: number; dominantEpicId: string | null;
+  dominantEpicTickets: number; dominantEpicRatio: number; specializationScore: number; specializationTier: string;
+}
+export interface SpecializationIndexReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; specialistCount: number; generalistCount: number; avgSpecializationScore: number; avgEpicsPerAgent: number; };
+  agents: AgentSpecializationIndexMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentSpecializationIndex(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SpecializationIndexReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<SpecializationIndexReport>(`/projects/${projectId}/agent-specialization-index`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentResponseLagMetrics {
+  agentId: string; agentName: string; agentRole: string; totalTicketsAnalyzed: number;
+  avgLagHours: number; medianLagHours: number; maxLagHours: number; minLagHours: number;
+  slowTickets: number; lagScore: number; lagTier: string;
+}
+export interface ResponseLagReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; slowCount: number; fastCount: number; avgLagHours: number; totalTicketsAnalyzed: number; };
+  agents: AgentResponseLagMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentResponseLag(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ResponseLagReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<ResponseLagReport>(`/projects/${projectId}/agent-response-lag`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentCapacityUtilizationMetrics {
+  agentId: string; agentName: string; agentRole: string; totalSessions: number;
+  totalSessionHours: number; avgSessionHours: number; observationWindowHours: number;
+  utilizationRate: number; utilizationScore: number; utilizationTier: string;
+}
+export interface CapacityUtilizationReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; overloadedCount: number; underutilizedCount: number; avgUtilizationRate: number; totalSessionHours: number; };
+  agents: AgentCapacityUtilizationMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentCapacityUtilization(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CapacityUtilizationReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<CapacityUtilizationReport>(`/projects/${projectId}/agent-capacity-utilization`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentThroughputVariabilityMetrics {
+  agentId: string; agentName: string; agentRole: string; totalTicketsAnalyzed: number;
+  weeklyThroughputs: number[]; avgWeeklyThroughput: number; stdDevWeeklyThroughput: number;
+  coefficientOfVariation: number; variabilityScore: number; variabilityTier: string;
+}
+export interface ThroughputVariabilityReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; highVariabilityCount: number; stableCount: number; avgCoefficientOfVariation: number; totalTicketsAnalyzed: number; };
+  agents: AgentThroughputVariabilityMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentThroughputVariability(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ThroughputVariabilityReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<ThroughputVariabilityReport>(`/projects/${projectId}/agent-throughput-variability`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentCostPerOutcomeMetrics {
+  agentId: string; agentName: string; agentRole: string; completedTickets: number;
+  totalTokensUsed: number; costPerOutcome: number; costScore: number; costTier: string;
+}
+export interface CostPerOutcomeReport {
+  projectId: string; generatedAt: string;
+  summary: { totalAgents: number; efficientCount: number; inefficientCount: number; avgCostPerOutcome: number; totalTokensAnalyzed: number; };
+  agents: AgentCostPerOutcomeMetrics[]; aiSummary: string; aiRecommendations: string[];
+}
+export function useAgentCostPerOutcome(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CostPerOutcomeReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<CostPerOutcomeReport>(`/projects/${projectId}/agent-cost-per-outcome`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
