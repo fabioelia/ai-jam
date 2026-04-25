@@ -7429,3 +7429,35 @@ export function useAgentSemanticDriftAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentBiasDetectionMetric {
+  agentId: string; agentName: string; biasDetectionRate: number; falsePositiveRate: number; missedBiasRate: number; topBiasCategory: string; detectionTrend: 'improving' | 'stable' | 'declining'; biasRisk: 'low' | 'moderate' | 'high' | 'critical';
+}
+export interface AgentBiasDetectionReport {
+  metrics: AgentBiasDetectionMetric[]; fleetDetectionRate: number; highRiskAgents: number; lowRiskAgents: number; analysisTimestamp: string;
+}
+export function useAgentBiasDetectionRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentBiasDetectionReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentBiasDetectionReport>(`/projects/${projectId}/agent-bias-detection-rate-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentMemoryPersistenceMetric {
+  agentId: string; agentName: string; contextRecallRate: number; memoryDecayRate: number; contradictionRate: number; avgSessionTurnsBeforeDecay: number; persistenceTrend: 'improving' | 'stable' | 'declining'; memoryHealth: 'excellent' | 'good' | 'degraded' | 'poor';
+}
+export interface AgentMemoryPersistenceReport {
+  metrics: AgentMemoryPersistenceMetric[]; fleetContextRecallRate: number; poorMemoryAgents: number; excellentMemoryAgents: number; analysisTimestamp: string;
+}
+export function useAgentMemoryPersistenceAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentMemoryPersistenceReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentMemoryPersistenceReport>(`/projects/${projectId}/agent-memory-persistence-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
