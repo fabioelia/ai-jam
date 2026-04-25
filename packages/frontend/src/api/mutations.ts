@@ -8607,3 +8607,60 @@ export function useAgentInformationDensityAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentMetacognitiveAccuracyAnalyzerReport {
+  accuracy_score: number;
+  overconfidence_rate: number;
+  underconfidence_rate: number;
+  escalation_accuracy_rate: number;
+  capability_claim_accuracy_rate: number;
+  trend: string;
+  most_accurate_agent: string;
+  least_accurate_agent: string;
+  total_sessions: number;
+  analysis_timestamp: string;
+}
+
+export function useAgentMetacognitiveAccuracyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentMetacognitiveAccuracyAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentMetacognitiveAccuracyAnalyzerReport>(`/projects/${projectId}/agent-metacognitive-accuracy-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentResponseCalibrationDriftAnalyzerReport {
+  drift_score: number;
+  high_drift_rate: number;
+  stable_rate: number;
+  avg_drift: number;
+  early_late_quality_delta: number;
+  drift_acceleration_rate: number;
+  trend: string;
+  most_stable_agent: string;
+  most_drifting_agent: string;
+  total_sessions: number;
+  analysis_timestamp: string;
+}
+
+export function useAgentResponseCalibrationDriftAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentResponseCalibrationDriftAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentResponseCalibrationDriftAnalyzerReport>(`/projects/${projectId}/agent-response-calibration-drift-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
