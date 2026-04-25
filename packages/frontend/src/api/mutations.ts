@@ -5760,3 +5760,109 @@ export function useAgentDeadlineAdherenceAnalyzer(projectId: string) {
 
   return { analyze, loading, data, setData };
 }
+
+// FEAT-147: Agent Token Cost Efficiency
+export interface AgentTokenCostReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    totalTokensIn: number;
+    totalTokensOut: number;
+    totalEstimatedCost: number;
+    avgEfficiencyScore: number;
+  };
+  agents: Array<{
+    agentId: string;
+    agentName: string;
+    agentRole: string;
+    totalSessions: number;
+    totalTokensIn: number;
+    totalTokensOut: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+    ticketsCompleted: number;
+    costPerTicket: number;
+    tokensPerTicket: number;
+    efficiencyScore: number;
+    efficiencyTier: string;
+  }>;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentTokenCostEfficiency(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentTokenCostReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentTokenCostReport>(
+        `/projects/${projectId}/agent-token-cost-efficiency`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
+
+// FEAT-148: Agent Skill Coverage Analyzer
+export interface AgentSkillCoverageReport {
+  projectId: string;
+  generatedAt: string;
+  summary: {
+    totalAgents: number;
+    avgCoverageScore: number;
+    fullCoverageCount: number;
+    specializationCount: number;
+    ticketCategoriesTotal: number;
+  };
+  agents: Array<{
+    agentId: string;
+    agentName: string;
+    agentRole: string;
+    totalTickets: number;
+    priorityCoverage: {
+      urgent: number;
+      high: number;
+      medium: number;
+      low: number;
+    };
+    complexityCoverage: {
+      simple: number;
+      standard: number;
+      complex: number;
+    };
+    coverageScore: number;
+    coverageTier: string;
+    dominantPriority: string;
+    dominantComplexity: string;
+  }>;
+  aiSummary: string;
+  aiRecommendations: string[];
+}
+
+export function useAgentSkillCoverage(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSkillCoverageReport | null>(null);
+
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentSkillCoverageReport>(
+        `/projects/${projectId}/agent-skill-coverage`,
+        { method: 'POST' },
+      );
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { analyze, loading, result, setResult };
+}
