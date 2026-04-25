@@ -8224,3 +8224,96 @@ export function useAgentRecoveryTimeAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInterruptionHandlingEfficiencyReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    efficiencyScore: number;
+    totalSessions: number;
+    interruptedSessions: number;
+    successfulRecoveries: number;
+    failedRecoveries: number;
+    avgRecoveryTimeMs: number;
+    contextRetentionRate: number;
+    completionRateInterrupted: number;
+    completionRateNormal: number;
+    interruptedRate: number;
+    recoverySuccessRate: number;
+    trend: string;
+    rating: string;
+  }>;
+  efficiencyScore: number;
+  interruptedRate: number;
+  recoverySuccessRate: number;
+  avgRecoveryTimeMs: number;
+  contextRetentionRate: number;
+  completionRateInterrupted: number;
+  completionRateNormal: number;
+  trend: string;
+  mostResilientAgent: string;
+  leastResilientAgent: string;
+  analysisTimestamp: string;
+}
+
+export function useAgentInterruptionHandlingEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInterruptionHandlingEfficiencyReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInterruptionHandlingEfficiencyReport>(`/projects/${projectId}/agent-interruption-handling-efficiency-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentNarrativeCoherenceReport {
+  metrics: Array<{
+    agentId: string;
+    agentName: string;
+    coherenceScore: number;
+    totalMultiTurnSessions: number;
+    coherentSessions: number;
+    incoherentSessions: number;
+    avgCoherentTurns: number;
+    contradictionRate: number;
+    topicDriftInstances: number;
+    topicDriftRate: number;
+    coherentRate: number;
+    trend: string;
+    rating: string;
+  }>;
+  coherenceScore: number;
+  coherentRate: number;
+  contradictionRate: number;
+  topicDriftRate: number;
+  avgCoherentTurns: number;
+  incoherenceCauses: {
+    contradictions: number;
+    topicJumps: number;
+    contextLoss: number;
+  };
+  trend: string;
+  mostCoherentAgent: string;
+  leastCoherentAgent: string;
+  analysisTimestamp: string;
+}
+
+export function useAgentNarrativeCoherenceAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentNarrativeCoherenceReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentNarrativeCoherenceReport>(`/projects/${projectId}/agent-narrative-coherence-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}

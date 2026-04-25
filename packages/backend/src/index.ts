@@ -251,6 +251,8 @@ import { agentCollaborationBottleneckAnalyzerRoutes } from './routes/agent-colla
 import { agentContextSwitchingCostAnalyzerRoutes } from './routes/agent-context-switching-cost-analyzer-route.js';
 import { agentCalibrationScoreAnalyzerRoutes } from './routes/agent-calibration-score-analyzer-route.js';
 import { agentRecoveryTimeAnalyzerRoutes } from './routes/agent-recovery-time-analyzer-route.js';
+import { agentInterruptionHandlingEfficiencyAnalyzerRoutes } from './routes/agent-interruption-handling-efficiency-analyzer-route.js';
+import { agentNarrativeCoherenceAnalyzerRoutes } from './routes/agent-narrative-coherence-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -536,6 +538,8 @@ async function main() {
   await fastify.register(agentContextSwitchingCostAnalyzerRoutes);
   await fastify.register(agentCalibrationScoreAnalyzerRoutes);
   await fastify.register(agentRecoveryTimeAnalyzerRoutes);
+  await fastify.register(agentInterruptionHandlingEfficiencyAnalyzerRoutes);
+  await fastify.register(agentNarrativeCoherenceAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
