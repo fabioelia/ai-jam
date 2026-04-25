@@ -203,6 +203,8 @@ import { agentTrustScoreAnalyzerRoutes } from './routes/agent-trust-score-analyz
 import { agentWorkflowBottleneckAnalyzerRoutes } from './routes/agent-workflow-bottleneck-analyzer-route.js';
 import { agentFeedbackIntegrationSpeedAnalyzerRoutes } from './routes/agent-feedback-integration-speed-analyzer-route.js';
 import { agentScopeCreepDetectorRoutes } from './routes/agent-scope-creep-detector-route.js';
+import { agentAttentionSpanAnalyzerRoutes } from './routes/agent-attention-span-analyzer-route.js';
+import { agentHallucinationRateAnalyzerRoutes } from './routes/agent-hallucination-rate-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -440,6 +442,8 @@ async function main() {
   await fastify.register(agentWorkflowBottleneckAnalyzerRoutes);
   await fastify.register(agentFeedbackIntegrationSpeedAnalyzerRoutes);
   await fastify.register(agentScopeCreepDetectorRoutes);
+  await fastify.register(agentAttentionSpanAnalyzerRoutes);
+  await fastify.register(agentHallucinationRateAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));

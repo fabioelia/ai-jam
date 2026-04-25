@@ -7333,3 +7333,35 @@ export function useAgentScopeCreepDetector(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+export interface AgentAttentionSpanAnalyzerMetric {
+  agentId: string; agentName: string; avgSessionDurationMs: number; maxSessionDurationMs: number; contextSwitchRate: number; focusScore: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentAttentionSpanAnalyzerReport {
+  metrics: AgentAttentionSpanAnalyzerMetric[]; fleetAvgFocusScore: number; shortAttentionAgents: number; analysisTimestamp: string;
+}
+export function useAgentAttentionSpanAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAttentionSpanAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentAttentionSpanAnalyzerReport>(`/projects/${projectId}/agent-attention-span-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+export interface AgentHallucinationRateAnalyzerMetric {
+  agentId: string; agentName: string; estimatedHallucinationRate: number; correctionFrequency: number; contextAdherenceScore: number; reliabilityScore: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentHallucinationRateAnalyzerReport {
+  metrics: AgentHallucinationRateAnalyzerMetric[]; fleetAvgReliabilityScore: number; highRiskAgents: number; analysisTimestamp: string;
+}
+export function useAgentHallucinationRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentHallucinationRateAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentHallucinationRateAnalyzerReport>(`/projects/${projectId}/agent-hallucination-rate-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
