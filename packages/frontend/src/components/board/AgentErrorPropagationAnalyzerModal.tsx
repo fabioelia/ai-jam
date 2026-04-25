@@ -6,21 +6,21 @@ interface Props {
   onClose: () => void;
 }
 
-function trendBadge(trend: string): string {
-  switch (trend) {
-    case 'improving': return 'bg-green-900/30 text-green-400 border-green-700/30';
-    case 'stable': return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
-    case 'degrading': return 'bg-red-900/30 text-red-400 border-red-700/30';
-    default: return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
-  }
-}
-
 function ratingBadge(rating: string): string {
   switch (rating) {
     case 'excellent': return 'bg-green-900/30 text-green-400 border-green-700/30';
     case 'good': return 'bg-blue-900/30 text-blue-400 border-blue-700/30';
     case 'fair': return 'bg-yellow-900/30 text-yellow-400 border-yellow-700/30';
     case 'poor': return 'bg-red-900/30 text-red-400 border-red-700/30';
+    default: return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
+  }
+}
+
+function trendBadge(trend: string): string {
+  switch (trend) {
+    case 'improving': return 'bg-green-900/30 text-green-400 border-green-700/30';
+    case 'stable': return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
+    case 'degrading': return 'bg-red-900/30 text-red-400 border-red-700/30';
     default: return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
   }
 }
@@ -75,13 +75,18 @@ export default function AgentErrorPropagationAnalyzerModal({ result, loading, on
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg px-4 py-3">
+                <div className="bg-yellow-800/20 border border-yellow-500/30 rounded-lg px-4 py-3">
                   <p className="text-yellow-400 text-xs font-medium uppercase tracking-wide mb-1">Fleet Avg Propagation Rate</p>
                   <p className="text-yellow-200 text-2xl font-bold">{result.fleetAvgPropagationRate}%</p>
                 </div>
                 <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3">
                   <p className="text-red-400 text-xs font-medium uppercase tracking-wide mb-1">High Risk Agents</p>
-                  <p className="text-red-200 text-xl font-bold">{result.highRiskAgents}</p>
+                  <p className="text-red-200 text-xl font-bold flex items-center gap-2">
+                    {result.highRiskAgents}
+                    {result.highRiskAgents > 0 && (
+                      <span className="text-xs bg-red-500/20 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded-full">warning</span>
+                    )}
+                  </p>
                 </div>
               </div>
 
@@ -90,9 +95,9 @@ export default function AgentErrorPropagationAnalyzerModal({ result, loading, on
                   <thead>
                     <tr className="bg-gray-800/60 text-gray-400 text-xs uppercase tracking-wide">
                       <th className="px-4 py-3 text-left">Agent</th>
-                      <th className="px-4 py-3 text-center">Propagation %</th>
+                      <th className="px-4 py-3 text-center">Propagation%</th>
                       <th className="px-4 py-3 text-center">Cascade Length</th>
-                      <th className="px-4 py-3 text-center">Self-Correction %</th>
+                      <th className="px-4 py-3 text-center">Self-Correction%</th>
                       <th className="px-4 py-3 text-center">Critical Cascades</th>
                       <th className="px-4 py-3 text-center">Containment Speed</th>
                       <th className="px-4 py-3 text-center">Trend</th>
@@ -107,7 +112,7 @@ export default function AgentErrorPropagationAnalyzerModal({ result, loading, on
                         <td className="px-4 py-3 text-center text-gray-300">{m.avgCascadeLength}</td>
                         <td className="px-4 py-3 text-center text-green-400">{m.selfCorrectionRate}%</td>
                         <td className="px-4 py-3 text-center text-red-400">{m.criticalCascades}</td>
-                        <td className="px-4 py-3 text-center text-gray-300">{m.containmentSpeed}</td>
+                        <td className="px-4 py-3 text-center text-gray-300">{m.containmentSpeed}s</td>
                         <td className="px-4 py-3 text-center">
                           <span className={`text-xs px-2 py-0.5 rounded-full border ${trendBadge(m.trend)}`}>{m.trend}</span>
                         </td>

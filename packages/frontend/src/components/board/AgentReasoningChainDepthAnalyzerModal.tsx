@@ -6,21 +6,21 @@ interface Props {
   onClose: () => void;
 }
 
-function trendBadge(trend: string): string {
-  switch (trend) {
-    case 'increasing': return 'bg-red-900/30 text-red-400 border-red-700/30';
-    case 'stable': return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
-    case 'decreasing': return 'bg-green-900/30 text-green-400 border-green-700/30';
-    default: return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
-  }
-}
-
 function ratingBadge(rating: string): string {
   switch (rating) {
     case 'optimal': return 'bg-green-900/30 text-green-400 border-green-700/30';
     case 'adequate': return 'bg-blue-900/30 text-blue-400 border-blue-700/30';
     case 'shallow': return 'bg-yellow-900/30 text-yellow-400 border-yellow-700/30';
     case 'excessive': return 'bg-red-900/30 text-red-400 border-red-700/30';
+    default: return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
+  }
+}
+
+function trendBadge(trend: string): string {
+  switch (trend) {
+    case 'increasing': return 'bg-red-900/30 text-red-400 border-red-700/30';
+    case 'stable': return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
+    case 'decreasing': return 'bg-green-900/30 text-green-400 border-green-700/30';
     default: return 'bg-gray-900/30 text-gray-400 border-gray-700/30';
   }
 }
@@ -75,7 +75,7 @@ export default function AgentReasoningChainDepthAnalyzerModal({ result, loading,
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-900/20 border border-slate-500/30 rounded-lg px-4 py-3">
+                <div className="bg-slate-800/40 border border-slate-500/30 rounded-lg px-4 py-3">
                   <p className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-1">Fleet Avg Chain Depth</p>
                   <p className="text-slate-200 text-2xl font-bold">{result.fleetAvgChainDepth}</p>
                 </div>
@@ -93,9 +93,9 @@ export default function AgentReasoningChainDepthAnalyzerModal({ result, loading,
                       <th className="px-4 py-3 text-center">Avg Depth</th>
                       <th className="px-4 py-3 text-center">Max</th>
                       <th className="px-4 py-3 text-center">Min</th>
-                      <th className="px-4 py-3 text-center">Optimal %</th>
-                      <th className="px-4 py-3 text-center">Over %</th>
-                      <th className="px-4 py-3 text-center">Under %</th>
+                      <th className="px-4 py-3 text-center">Optimal%</th>
+                      <th className="px-4 py-3 text-center">Over%</th>
+                      <th className="px-4 py-3 text-center">Under%</th>
                       <th className="px-4 py-3 text-center">Trend</th>
                       <th className="px-4 py-3 text-center">Rating</th>
                     </tr>
@@ -104,7 +104,7 @@ export default function AgentReasoningChainDepthAnalyzerModal({ result, loading,
                     {result.metrics.map((m, i) => (
                       <tr key={i} className="hover:bg-gray-800/30 transition-colors">
                         <td className="px-4 py-3 text-white font-medium">{m.agentName}</td>
-                        <td className="px-4 py-3 text-center text-slate-200 font-mono">{m.avgChainDepth}</td>
+                        <td className="px-4 py-3 text-center text-slate-300 font-mono">{m.avgChainDepth}</td>
                         <td className="px-4 py-3 text-center text-gray-300">{m.maxChainDepth}</td>
                         <td className="px-4 py-3 text-center text-gray-300">{m.minChainDepth}</td>
                         <td className="px-4 py-3 text-center text-green-400">{m.optimalRangeRate}%</td>
