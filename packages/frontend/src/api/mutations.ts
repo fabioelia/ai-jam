@@ -7653,3 +7653,37 @@ export function useAgentDelegationAccuracyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInstructionClarityMetric {
+  agentId: string; clarityScore: number; totalInstructions: number; clearExecutions: number; ambiguousInterpretations: number; misinterpretations: number; clarificationRequests: number; clearExecutionRate: number; ambiguityRate: number; misinterpretationRate: number; clarificationRequestRate: number; trend: 'improving' | 'stable' | 'declining';
+}
+export interface AgentInstructionClarityReport {
+  agents: AgentInstructionClarityMetric[]; summary: { clarityScore: number; totalInstructions: number; clearExecutionRate: number; ambiguityRate: number; misinterpretationRate: number; clarificationRequestRate: number; trend: 'improving' | 'stable' | 'declining'; highestClarityAgent: string; lowestClarityAgent: string; };
+}
+export function useAgentInstructionClarityScoreAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionClarityReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentInstructionClarityReport>(`/projects/${projectId}/agent-instruction-clarity-score-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentContextUtilizationEfficiencyMetric {
+  agentId: string; efficiencyScore: number; totalRetrievals: number; relevantRetrievals: number; irrelevantRetrievals: number; saturationEvents: number; unusedContextRate: number; relevantRetrievalRate: number; irrelevantRetrievalRate: number; saturationEventRate: number; trend: 'improving' | 'stable' | 'declining';
+}
+export interface AgentContextUtilizationEfficiencyReport {
+  agents: AgentContextUtilizationEfficiencyMetric[]; summary: { efficiencyScore: number; totalRetrievals: number; relevantRetrievalRate: number; irrelevantRetrievalRate: number; saturationEventRate: number; unusedContextRate: number; trend: 'improving' | 'stable' | 'declining'; mostEfficientAgent: string; leastEfficientAgent: string; };
+}
+export function useAgentContextUtilizationEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextUtilizationEfficiencyReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentContextUtilizationEfficiencyReport>(`/projects/${projectId}/agent-context-utilization-efficiency-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
