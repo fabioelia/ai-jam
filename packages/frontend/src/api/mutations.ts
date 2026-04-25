@@ -7231,3 +7231,37 @@ export function useAgentContextWindowUtilizationAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentCognitiveLoadEstimatorMetric {
+  agentId: string; agentName: string; cognitiveLoadScore: number; taskComplexityIndex: number; concurrentContextCount: number; contextSwitchRate: number; overloadEvents: number; trend: 'increasing' | 'stable' | 'decreasing'; rating: 'critical' | 'high' | 'moderate' | 'low';
+}
+export interface AgentCognitiveLoadEstimatorReport {
+  metrics: AgentCognitiveLoadEstimatorMetric[]; fleetAvgCognitiveLoad: number; overloadedAgents: number; analysisTimestamp: string;
+}
+export function useAgentCognitiveLoadEstimator(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCognitiveLoadEstimatorReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentCognitiveLoadEstimatorReport>(`/projects/${projectId}/agent-cognitive-load-estimator`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentGoalAlignmentMetric {
+  agentId: string; agentName: string; alignmentScore: number; goalCompletionRate: number; deviationRate: number; midTaskAbandonmentRate: number; alignedSessions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentGoalAlignmentReport {
+  metrics: AgentGoalAlignmentMetric[]; fleetAvgAlignmentScore: number; lowAlignmentAgents: number; analysisTimestamp: string;
+}
+export function useAgentGoalAlignmentScore(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentGoalAlignmentReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentGoalAlignmentReport>(`/projects/${projectId}/agent-goal-alignment-score`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
