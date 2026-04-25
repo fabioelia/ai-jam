@@ -6823,3 +6823,71 @@ export function useAgentOutputQualityConsistency(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentCollaborationEfficiencyAnalyzerMetric {
+  agentId: string; agentName: string; collaborationScore: number; handoffSuccessRate: number; coordinationOverhead: number; sharedContextReuseRate: number; collaborationEvents: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentCollaborationEfficiencyAnalyzerReport {
+  metrics: AgentCollaborationEfficiencyAnalyzerMetric[]; fleetAvgCollaborationScore: number; poorCollaborators: number; analysisTimestamp: string;
+}
+export function useAgentCollaborationEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCollaborationEfficiencyAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentCollaborationEfficiencyAnalyzerReport>(`/projects/${projectId}/agent-collaboration-efficiency-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentInstructionAdherenceMetric {
+  agentId: string; agentName: string; adherenceScore: number; violationCount: number; constraintBreachRate: number; partialAdherenceRate: number; fullAdherenceRate: number; trend: 'improving' | 'stable' | 'degrading'; complianceLevel: 'compliant' | 'marginal' | 'non-compliant' | 'critical';
+}
+export interface AgentInstructionAdherenceReport {
+  metrics: AgentInstructionAdherenceMetric[]; fleetAvgAdherenceScore: number; nonCompliantAgents: number; analysisTimestamp: string;
+}
+export function useAgentInstructionAdherenceAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionAdherenceReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentInstructionAdherenceReport>(`/projects/${projectId}/agent-instruction-adherence-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentCommunicationQualityAnalyzerMetric {
+  agentId: string; agentName: string; qualityScore: number; clarityScore: number; completenessScore: number; actionabilityScore: number; communicationEvents: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentCommunicationQualityAnalyzerReport {
+  metrics: AgentCommunicationQualityAnalyzerMetric[]; fleetAvgQualityScore: number; poorCommunicators: number; analysisTimestamp: string;
+}
+export function useAgentCommunicationQualityAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCommunicationQualityAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentCommunicationQualityAnalyzerReport>(`/projects/${projectId}/agent-communication-quality-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentAdaptationSpeedAnalyzerMetric {
+  agentId: string; agentName: string; adaptationScore: number; contextSwitchLatency: number; recalibrationRate: number; errorRecoverySpeed: number; adaptationEvents: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentAdaptationSpeedAnalyzerReport {
+  metrics: AgentAdaptationSpeedAnalyzerMetric[]; fleetAvgAdaptationScore: number; slowAdapters: number; analysisTimestamp: string;
+}
+export function useAgentAdaptationSpeedAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentAdaptationSpeedAnalyzerReport | null>(null);
+  const analyze = async (): Promise<void> => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentAdaptationSpeedAnalyzerReport>(`/projects/${projectId}/agent-adaptation-speed-analyzer`, { method: 'POST' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}

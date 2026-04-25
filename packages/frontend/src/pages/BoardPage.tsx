@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProject, useFeatures, useBoard, useProjectSessions } from '../api/queries.js';
 import type { PlanningSession, ExecutionSession, ScanSession } from '../api/queries.js';
-import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGap, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, useAgentCostEfficiency, useAgentDeadlineAdherence, useAgentSessionDuration, useAgentRetryPattern, useAgentToolUsagePattern, useAgentPriorityAdherence, useAgentCognitiveLoad, useAgentParallelTaskEfficiency, useAgentLearningVelocity, getAgentOutputQuality, AgentOutputQualityReport, getAgentLearningCurves, LearningCurveReport, type AgentLearningVelocityReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport, useAgentGoalCompletion, useAgentCommunicationPatterns, useAgentDecisionQualityV2, useAgentSelfCorrectionRate, useAgentDependencyResolution, useAgentContextWindow, useAgentOutputConsistency, useAgentCollaborationEfficiency, type AgentCollaborationEfficiencyReport, type AgentCollaborationMetrics, useAgentAdaptationSpeed, type AgentAdaptationSpeedReport, type AgentAdaptationMetrics, useAgentScopeDrift, type AgentScopeDriftReport, type AgentScopeDriftMetrics, useAgentInstructionCompliance, type AgentInstructionComplianceReport, useAgentEscalationPatternAnalyzer, type AgentEscalationPatternAnalyzerReport, useAgentFeedbackIntegration, type AgentFeedbackIntegrationReport, useAgentProactivity, type AgentProactivityReport, type AgentProactivityMetrics, useAgentDecisionLatency, type AgentDecisionLatencyReport, type AgentDecisionLatencyMetrics, useAgentResourceConsumption, type AgentResourceConsumptionReport, type AgentResourceMetrics, useAgentSessionQuality, type AgentSessionQualityReport, type AgentSessionQualityMetrics, useAgentWorkflowTransitions, type AgentWorkflowTransitionReport, type AgentWorkflowTransitionMetrics, type WorkflowStateStats, useAgentKnowledgeTransfer, type AgentKnowledgeTransferReport, type AgentKnowledgeTransferMetrics, useAgentDelegationDepth, useAgentAutonomyIndex, useAgentBlockedTime, useAgentQualitySpeed, type AgentQualitySpeedReport, useAgentSpecialization, type AgentSpecializationReport, type AgentSpecializationMetrics, useAgentCollaborationScore, type AgentCollaborationScoreReport, useAgentThroughput, type AgentThroughputReport, useAgentIdleTimeAnalyzer, useAgentResponseTimeEfficiency, useAgentErrorRecoveryRate, useAgentWorkloadBalance, type AgentWorkloadMetrics, type AgentWorkloadReport, useAgentDeadlineAdherenceAnalyzer, type AgentDeadlineMetrics, type AgentDeadlineAdherenceReport, useAgentTokenCostEfficiency, type AgentTokenCostReport, useAgentSkillCoverage, type AgentSkillCoverageReport, useAgentLearningCurveAnalyzer, type AgentLearningCurveReport, useAgentCollaborationNetworkAnalyzer, type AgentCollaborationNetworkReport, useAgentPeakPerformance, type AgentPeakPerformanceReport, useAgentContextSwitchCost, type AgentContextSwitchCostReport, useAgentBurnoutRisk, type BurnoutRiskReport, useAgentHandoffSuccessRate, type HandoffSuccessRateReport, useAgentTaskCompletionVelocity, type TaskCompletionVelocityReport, useAgentInterruptionFrequency, type InterruptionFrequencyReport, useAgentSessionDurationAnalyzer, type SessionDurationReport, useAgentFailurePatterns, type FailurePatternReport, useAgentQueueDepthAnalyzer, type QueueDepthReport, useAgentRetryRate, type RetryRateReport, useAgentAvailability, type AvailabilityReport, useAgentSpecializationIndex, type SpecializationIndexReport, useAgentResponseLag, type ResponseLagReport, useAgentCapacityUtilization, type CapacityUtilizationReport, useAgentThroughputVariability, type ThroughputVariabilityReport, useAgentCostPerOutcome, type CostPerOutcomeReport, useAgentWorkloadSaturation, type WorkloadSaturationReport, useAgentRecoveryTime, type RecoveryTimeReport, useAgentEscalationRate, type EscalationRateReport, useAgentKnowledgeGapAnalyzer, type KnowledgeGapReport, useAgentIdleTimeTracker, type IdleTimeTrackerReport, useAgentParallelTaskEfficiencyTracker, type ParallelTaskEfficiencyTrackerReport, useAgentContextRetentionAnalyzer, type AgentContextRetentionAnalyzerReport, useAgentGoalDriftAnalyzer, type AgentGoalDriftReport, useAgentDecisionLatencyAnalyzer, type AgentDecisionLatencyAnalyzerReport, useAgentOutputQualityConsistency, type AgentOutputQualityConsistencyReport } from '../api/mutations.js';
+import { useCreateFeature, useCreateTicket, useSprintPlan, useBlockerAnalysis, useTicketPrioritizer, useEpicHealth, useProjectHealth, useDeadlineRisk, useReleaseReadiness, useWorkloadBalance, useAgentPerformance, useAgentRouting, useEscalationDetect, useAgentSkillProfiles, useAgentCollaboration, useAgentBurnout, useAgentKnowledgeGap, useAgentHandoffQuality, useAgentTaskSequence, useAgentLoadPredictor, useAgentVelocityForecast, useAgentSprintCommitment, useAgentCollaborationNetwork, useAgentContextRetention, useAgentFocusAdvisor, useAgentResponseTime, useAgentPriorityAlignment, useAgentStallDetector, useAgentSpecializationMapper, useAgentBottleneckAnalyzer, useAgentQueueDepth, useAgentSkillGap, useAgentConflictDetector, useAgentDecisionQuality, useAgentPerformanceTrend, useAgentCoverageGap, useAgentDependencyMapper, useAgentContextUtilization, useAgentHandoffSuccess, useAgentIdleTime, useAgentThroughputEfficiency, useAgentWorkloadFairness, useAgentErrorRates, useAgentEscalationPatterns, useAgentGoalAlignment, useAgentRecoveryPatterns, useAgentTaskVelocity, useAgentContextSwitch, useAgentParallelCapacity, useAgentEstimationAccuracy, useAgentTaskAbandonment, useAgentCommunicationQuality, useAgentWorkloadDistribution, useAgentTaskComplexity, useAgentSessionDepth, useAgentFeedbackLoops, useAgentReassignmentRates, useAgentAutonomy, useAgentReworkRate, useAgentDecisionSpeed, useAgentHandoffChainDepth, useAgentInterruptionImpact, useAgentScopeAdherence, useAgentBlockerFrequency, useAgentTokenBudget, useAgentSpecializationDrift, useAgentKnowledgeFreshness, useAgentPersonaAlignment, useAgentCollaborationGraph, useAgentMultitaskingEfficiency, useAgentResponseLatency, useAgentErrorRecovery, useAnalyzeAgentConfidenceCalibration, useAgentFeedbackIncorporation, useAgentThroughputRate, useAgentSuccessRate, useAgentCostEfficiency, useAgentDeadlineAdherence, useAgentSessionDuration, useAgentRetryPattern, useAgentToolUsagePattern, useAgentPriorityAdherence, useAgentCognitiveLoad, useAgentParallelTaskEfficiency, useAgentLearningVelocity, getAgentOutputQuality, AgentOutputQualityReport, getAgentLearningCurves, LearningCurveReport, type AgentLearningVelocityReport, type PersonaAlignmentReport, type AgentCollaborationGraphReport, type MultitaskingEfficiencyReport, useAgentGoalCompletion, useAgentCommunicationPatterns, useAgentDecisionQualityV2, useAgentSelfCorrectionRate, useAgentDependencyResolution, useAgentContextWindow, useAgentOutputConsistency, useAgentCollaborationEfficiency, type AgentCollaborationEfficiencyReport, type AgentCollaborationMetrics, useAgentAdaptationSpeed, type AgentAdaptationSpeedReport, type AgentAdaptationMetrics, useAgentScopeDrift, type AgentScopeDriftReport, type AgentScopeDriftMetrics, useAgentInstructionCompliance, type AgentInstructionComplianceReport, useAgentEscalationPatternAnalyzer, type AgentEscalationPatternAnalyzerReport, useAgentFeedbackIntegration, type AgentFeedbackIntegrationReport, useAgentProactivity, type AgentProactivityReport, type AgentProactivityMetrics, useAgentDecisionLatency, type AgentDecisionLatencyReport, type AgentDecisionLatencyMetrics, useAgentResourceConsumption, type AgentResourceConsumptionReport, type AgentResourceMetrics, useAgentSessionQuality, type AgentSessionQualityReport, type AgentSessionQualityMetrics, useAgentWorkflowTransitions, type AgentWorkflowTransitionReport, type AgentWorkflowTransitionMetrics, type WorkflowStateStats, useAgentKnowledgeTransfer, type AgentKnowledgeTransferReport, type AgentKnowledgeTransferMetrics, useAgentDelegationDepth, useAgentAutonomyIndex, useAgentBlockedTime, useAgentQualitySpeed, type AgentQualitySpeedReport, useAgentSpecialization, type AgentSpecializationReport, type AgentSpecializationMetrics, useAgentCollaborationScore, type AgentCollaborationScoreReport, useAgentThroughput, type AgentThroughputReport, useAgentIdleTimeAnalyzer, useAgentResponseTimeEfficiency, useAgentErrorRecoveryRate, useAgentWorkloadBalance, type AgentWorkloadMetrics, type AgentWorkloadReport, useAgentDeadlineAdherenceAnalyzer, type AgentDeadlineMetrics, type AgentDeadlineAdherenceReport, useAgentTokenCostEfficiency, type AgentTokenCostReport, useAgentSkillCoverage, type AgentSkillCoverageReport, useAgentLearningCurveAnalyzer, type AgentLearningCurveReport, useAgentCollaborationNetworkAnalyzer, type AgentCollaborationNetworkReport, useAgentPeakPerformance, type AgentPeakPerformanceReport, useAgentContextSwitchCost, type AgentContextSwitchCostReport, useAgentBurnoutRisk, type BurnoutRiskReport, useAgentHandoffSuccessRate, type HandoffSuccessRateReport, useAgentTaskCompletionVelocity, type TaskCompletionVelocityReport, useAgentInterruptionFrequency, type InterruptionFrequencyReport, useAgentSessionDurationAnalyzer, type SessionDurationReport, useAgentFailurePatterns, type FailurePatternReport, useAgentQueueDepthAnalyzer, type QueueDepthReport, useAgentRetryRate, type RetryRateReport, useAgentAvailability, type AvailabilityReport, useAgentSpecializationIndex, type SpecializationIndexReport, useAgentResponseLag, type ResponseLagReport, useAgentCapacityUtilization, type CapacityUtilizationReport, useAgentThroughputVariability, type ThroughputVariabilityReport, useAgentCostPerOutcome, type CostPerOutcomeReport, useAgentWorkloadSaturation, type WorkloadSaturationReport, useAgentRecoveryTime, type RecoveryTimeReport, useAgentEscalationRate, type EscalationRateReport, useAgentKnowledgeGapAnalyzer, type KnowledgeGapReport, useAgentIdleTimeTracker, type IdleTimeTrackerReport, useAgentParallelTaskEfficiencyTracker, type ParallelTaskEfficiencyTrackerReport, useAgentContextRetentionAnalyzer, type AgentContextRetentionAnalyzerReport, useAgentGoalDriftAnalyzer, type AgentGoalDriftReport, useAgentDecisionLatencyAnalyzer, type AgentDecisionLatencyAnalyzerReport, useAgentOutputQualityConsistency, type AgentOutputQualityConsistencyReport, useAgentCollaborationEfficiencyAnalyzer, type AgentCollaborationEfficiencyAnalyzerReport, useAgentInstructionAdherenceAnalyzer, type AgentInstructionAdherenceReport, useAgentCommunicationQualityAnalyzer, type AgentCommunicationQualityAnalyzerReport, useAgentAdaptationSpeedAnalyzer, type AgentAdaptationSpeedAnalyzerReport } from '../api/mutations.js';
 import { useAuthStore } from '../stores/auth-store.js';
 import { useBoardSync } from '../hooks/useBoardSync.js';
 import { useAgentSync } from '../hooks/useAgentSync.js';
@@ -165,6 +165,10 @@ import AgentContextRetentionAnalyzerModal from '../components/board/AgentContext
 import AgentGoalDriftAnalyzerModal from '../components/board/AgentGoalDriftAnalyzerModal.js';
 import AgentDecisionLatencyAnalyzerModal from '../components/board/AgentDecisionLatencyAnalyzerModal.js';
 import AgentOutputQualityConsistencyModal from '../components/board/AgentOutputQualityConsistencyModal.js';
+import AgentCollaborationEfficiencyAnalyzerModal from '../components/board/AgentCollaborationEfficiencyAnalyzerModal.js';
+import AgentInstructionAdherenceAnalyzerModal from '../components/board/AgentInstructionAdherenceAnalyzerModal.js';
+import AgentCommunicationQualityAnalyzerModal from '../components/board/AgentCommunicationQualityAnalyzerModal.js';
+import AgentAdaptationSpeedAnalyzerModal from '../components/board/AgentAdaptationSpeedAnalyzerModal.js';
 import HelpModal from '../components/common/HelpModal.js';
 import HelpContent from '../components/common/HelpContent.js';
 import HelpTooltip from '../components/common/HelpTooltip.js';
@@ -578,6 +582,14 @@ export default function BoardPage() {
   const [showAgentDecisionLatencyAnalyzer, setShowAgentDecisionLatencyAnalyzer] = useState(false);
   const agentOutputQualityConsistency = useAgentOutputQualityConsistency(projectId!);
   const [showAgentOutputQualityConsistency, setShowAgentOutputQualityConsistency] = useState(false);
+  const agentCollaborationEfficiencyAnalyzer = useAgentCollaborationEfficiencyAnalyzer(projectId!);
+  const [showAgentCollaborationEfficiencyAnalyzer, setShowAgentCollaborationEfficiencyAnalyzer] = useState(false);
+  const agentInstructionAdherenceAnalyzer = useAgentInstructionAdherenceAnalyzer(projectId!);
+  const [showAgentInstructionAdherenceAnalyzer, setShowAgentInstructionAdherenceAnalyzer] = useState(false);
+  const agentCommunicationQualityAnalyzer = useAgentCommunicationQualityAnalyzer(projectId!);
+  const [showAgentCommunicationQualityAnalyzer, setShowAgentCommunicationQualityAnalyzer] = useState(false);
+  const agentAdaptationSpeedAnalyzer = useAgentAdaptationSpeedAnalyzer(projectId!);
+  const [showAgentAdaptationSpeedAnalyzer, setShowAgentAdaptationSpeedAnalyzer] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState('');
   const [helpView, setHelpView] = useState<'overview' | 'getting-started' | 'features' | 'shortcuts'>('overview');
 
@@ -1639,6 +1651,42 @@ export default function BoardPage() {
           className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 disabled:opacity-50"
         >
           {agentOutputQualityConsistency.loading ? 'Analyzing...' : 'Output Quality'}
+        </button>
+
+        {/* FEAT-177: Agent Collaboration Efficiency Analyzer Button */}
+        <button
+          onClick={() => agentCollaborationEfficiencyAnalyzer.analyze().then(() => setShowAgentCollaborationEfficiencyAnalyzer(true))}
+          disabled={agentCollaborationEfficiencyAnalyzer.loading}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 disabled:opacity-50"
+        >
+          {agentCollaborationEfficiencyAnalyzer.loading ? 'Analyzing...' : 'Collab Efficiency'}
+        </button>
+
+        {/* FEAT-178: Agent Instruction Adherence Analyzer Button */}
+        <button
+          onClick={() => agentInstructionAdherenceAnalyzer.analyze().then(() => setShowAgentInstructionAdherenceAnalyzer(true))}
+          disabled={agentInstructionAdherenceAnalyzer.loading}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all bg-amber-600 hover:bg-amber-500 text-white border-amber-500/30 disabled:opacity-50"
+        >
+          {agentInstructionAdherenceAnalyzer.loading ? 'Analyzing...' : 'Instruction Adherence'}
+        </button>
+
+        {/* FEAT-179: Agent Communication Quality Analyzer Button */}
+        <button
+          onClick={() => agentCommunicationQualityAnalyzer.analyze().then(() => setShowAgentCommunicationQualityAnalyzer(true))}
+          disabled={agentCommunicationQualityAnalyzer.loading}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500/30 disabled:opacity-50"
+        >
+          {agentCommunicationQualityAnalyzer.loading ? 'Analyzing...' : 'Comms Quality'}
+        </button>
+
+        {/* FEAT-180: Agent Adaptation Speed Analyzer Button */}
+        <button
+          onClick={() => agentAdaptationSpeedAnalyzer.analyze().then(() => setShowAgentAdaptationSpeedAnalyzer(true))}
+          disabled={agentAdaptationSpeedAnalyzer.loading}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all bg-pink-600 hover:bg-pink-500 text-white border-pink-500/30 disabled:opacity-50"
+        >
+          {agentAdaptationSpeedAnalyzer.loading ? 'Analyzing...' : 'Adaptation Speed'}
         </button>
 
         {/* Agent Autonomy Button */}
@@ -4045,6 +4093,22 @@ export default function BoardPage() {
 
       {showAgentOutputQualityConsistency && (
         <AgentOutputQualityConsistencyModal result={agentOutputQualityConsistency.result} loading={agentOutputQualityConsistency.loading} onClose={() => { agentOutputQualityConsistency.setResult(null); setShowAgentOutputQualityConsistency(false); }} />
+      )}
+
+      {showAgentCollaborationEfficiencyAnalyzer && (
+        <AgentCollaborationEfficiencyAnalyzerModal result={agentCollaborationEfficiencyAnalyzer.result} loading={agentCollaborationEfficiencyAnalyzer.loading} onClose={() => { agentCollaborationEfficiencyAnalyzer.setResult(null); setShowAgentCollaborationEfficiencyAnalyzer(false); }} />
+      )}
+
+      {showAgentInstructionAdherenceAnalyzer && (
+        <AgentInstructionAdherenceAnalyzerModal result={agentInstructionAdherenceAnalyzer.result} loading={agentInstructionAdherenceAnalyzer.loading} onClose={() => { agentInstructionAdherenceAnalyzer.setResult(null); setShowAgentInstructionAdherenceAnalyzer(false); }} />
+      )}
+
+      {showAgentCommunicationQualityAnalyzer && (
+        <AgentCommunicationQualityAnalyzerModal result={agentCommunicationQualityAnalyzer.result} loading={agentCommunicationQualityAnalyzer.loading} onClose={() => { agentCommunicationQualityAnalyzer.setResult(null); setShowAgentCommunicationQualityAnalyzer(false); }} />
+      )}
+
+      {showAgentAdaptationSpeedAnalyzer && (
+        <AgentAdaptationSpeedAnalyzerModal result={agentAdaptationSpeedAnalyzer.result} loading={agentAdaptationSpeedAnalyzer.loading} onClose={() => { agentAdaptationSpeedAnalyzer.setResult(null); setShowAgentAdaptationSpeedAnalyzer(false); }} />
       )}
 
       {showAgentFocusAdvisor && (

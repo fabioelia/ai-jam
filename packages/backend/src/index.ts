@@ -173,6 +173,10 @@ import { agentContextRetentionAnalyzerRoutes } from './routes/agent-context-rete
 import { agentGoalDriftAnalyzerRoutes } from './routes/agent-goal-drift-analyzer-route.js';
 import { agentDecisionLatencyAnalyzerRoutes } from './routes/agent-decision-latency-analyzer-route.js';
 import { agentOutputQualityConsistencyAnalyzerRoutes } from './routes/agent-output-quality-consistency-analyzer-route.js';
+import { agentCollaborationEfficiencyAnalyzerRoutes } from './routes/agent-collaboration-efficiency-analyzer-route.js';
+import { agentCommunicationQualityAnalyzerRoutes } from './routes/agent-communication-quality-analyzer-route.js';
+import { agentInstructionAdherenceAnalyzerRoutes } from './routes/agent-instruction-adherence-analyzer-route.js';
+import { agentAdaptationSpeedAnalyzerRoutes } from './routes/agent-adaptation-speed-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -380,6 +384,10 @@ async function main() {
   await fastify.register(agentGoalDriftAnalyzerRoutes);
   await fastify.register(agentDecisionLatencyAnalyzerRoutes);
   await fastify.register(agentOutputQualityConsistencyAnalyzerRoutes);
+  await fastify.register(agentCollaborationEfficiencyAnalyzerRoutes);
+  await fastify.register(agentCommunicationQualityAnalyzerRoutes);
+  await fastify.register(agentInstructionAdherenceAnalyzerRoutes);
+  await fastify.register(agentAdaptationSpeedAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
