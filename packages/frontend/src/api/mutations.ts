@@ -9041,3 +9041,69 @@ export function useAgentPromptAlignmentScoreAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentSelfMonitoringRateReport {
+  monitoring_score: number;
+  avg_monitoring_rate: number;
+  progress_check_frequency: number;
+  mid_task_correction_rate: number;
+  pre_delivery_review_rate: number;
+  external_correction_avoidance_rate: number;
+  monitoring_overhead_rate: number;
+  high_monitoring_sessions: number;
+  low_monitoring_sessions: number;
+  total_sessions: number;
+  top_monitoring_patterns: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  most_self_aware_agent: string;
+  least_self_aware_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentSelfMonitoringRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSelfMonitoringRateReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentSelfMonitoringRateReport>(`/projects/${projectId}/agent-self-monitoring-rate-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentCognitiveStateTrackingEfficiencyReport {
+  efficiency_score: number;
+  avg_efficiency_score: number;
+  state_loss_events: number;
+  redundant_action_rate: number;
+  context_recovery_rate: number;
+  multi_step_completion_rate: number;
+  dependency_tracking_accuracy: number;
+  longest_coherent_chain: number;
+  high_efficiency_sessions: number;
+  low_efficiency_sessions: number;
+  total_sessions: number;
+  trend: 'improving' | 'stable' | 'degrading';
+  most_coherent_agent: string;
+  least_coherent_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentCognitiveStateTrackingEfficiencyAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCognitiveStateTrackingEfficiencyReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentCognitiveStateTrackingEfficiencyReport>(`/projects/${projectId}/agent-cognitive-state-tracking-efficiency-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
