@@ -7789,3 +7789,37 @@ export function useAgentDecisionReversalRateAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentPriorityAlignmentRateAnalyzerMetric {
+  agentId: string; agentName: string; alignmentRate: number; highPriorityFirst: number; misalignedSessions: number; alignmentScore: number; avgResponseToHighPriority: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentPriorityAlignmentRateAnalyzerReport {
+  metrics: AgentPriorityAlignmentRateAnalyzerMetric[]; fleetAvgAlignmentScore: number; poorAlignmentAgents: number; analysisTimestamp: string;
+}
+export function useAgentPriorityAlignmentRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentPriorityAlignmentRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentPriorityAlignmentRateAnalyzerReport>(`/projects/${projectId}/agent-priority-alignment-rate-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentSessionWarmUpTimeAnalyzerMetric {
+  agentId: string; agentName: string; avgWarmUpMs: number; warmUpRatio: number; coldStartSessions: number; hotStartSessions: number; warmUpScore: number; totalSessions: number; trend: 'improving' | 'stable' | 'degrading'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentSessionWarmUpTimeAnalyzerReport {
+  metrics: AgentSessionWarmUpTimeAnalyzerMetric[]; fleetAvgWarmUpScore: number; slowWarmUpAgents: number; analysisTimestamp: string;
+}
+export function useAgentSessionWarmUpTimeAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentSessionWarmUpTimeAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentSessionWarmUpTimeAnalyzerReport>(`/projects/${projectId}/agent-session-warm-up-time-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
