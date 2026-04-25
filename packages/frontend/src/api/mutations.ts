@@ -8091,6 +8091,54 @@ export function useAgentInstructionFollowingFidelityAnalyzer(projectId: string) 
   return { analyze, loading, result, setResult };
 }
 
+export interface AgentCollaborationBottleneckAnalyzerMetric {
+  agentId: string; agentName: string; collaborationScore: number; handoffSuccessRate: number; contextAbsorptionRate: number; bottleneckFrequency: number; clarificationRequestRate: number; totalSessions: number; collaborationTrend: 'improving' | 'stable' | 'worsening'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentCollaborationBottleneckAnalyzerReport {
+  metrics: AgentCollaborationBottleneckAnalyzerMetric[];
+  fleetAvgCollaborationScore: number;
+  bottleneckAgents: number;
+  analysisTimestamp: string;
+}
+export function useAgentCollaborationBottleneckAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentCollaborationBottleneckAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentCollaborationBottleneckAnalyzerReport>(`/projects/${projectId}/agent-collaboration-bottleneck-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentContextSwitchingCostAnalyzerMetric {
+  agentId: string; agentName: string; switchingCostScore: number; reorientationLatency: number; postSwitchErrorRate: number; domainSwitchFrequency: number; recoveryEfficiency: number; totalSessions: number; switchingTrend: 'improving' | 'stable' | 'worsening'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentContextSwitchingCostAnalyzerReport {
+  metrics: AgentContextSwitchingCostAnalyzerMetric[];
+  fleetAvgSwitchingCostScore: number;
+  highCostAgents: number;
+  analysisTimestamp: string;
+}
+export function useAgentContextSwitchingCostAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextSwitchingCostAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentContextSwitchingCostAnalyzerReport>(`/projects/${projectId}/agent-context-switching-cost-analyzer`, { method: 'POST' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
 export interface AgentAdaptiveLearningRateAnalyzerMetric {
   agentId: string; agentName: string; adaptiveLearningScore: number; feedbackIncorporationRate: number; errorCorrectionSpeed: number; patternGeneralizationRate: number; behaviorConsistencyRate: number; totalSessions: number; learningTrend: 'improving' | 'stable' | 'worsening'; rating: 'excellent' | 'good' | 'fair' | 'poor';
 }

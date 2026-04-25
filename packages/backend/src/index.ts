@@ -247,6 +247,8 @@ import { agentHypothesisTestingRateAnalyzerRoutes } from './routes/agent-hypothe
 import { agentCrossDomainTransferAnalyzerRoutes } from './routes/agent-cross-domain-transfer-analyzer-route.js';
 import { agentInstructionFollowingFidelityAnalyzerRoutes } from './routes/agent-instruction-following-fidelity-analyzer-route.js';
 import { agentAdaptiveLearningRateAnalyzerRoutes } from './routes/agent-adaptive-learning-rate-analyzer-route.js';
+import { agentCollaborationBottleneckAnalyzerRoutes } from './routes/agent-collaboration-bottleneck-analyzer-route.js';
+import { agentContextSwitchingCostAnalyzerRoutes } from './routes/agent-context-switching-cost-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -528,6 +530,8 @@ async function main() {
   await fastify.register(agentCrossDomainTransferAnalyzerRoutes);
   await fastify.register(agentInstructionFollowingFidelityAnalyzerRoutes);
   await fastify.register(agentAdaptiveLearningRateAnalyzerRoutes);
+  await fastify.register(agentCollaborationBottleneckAnalyzerRoutes);
+  await fastify.register(agentContextSwitchingCostAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
