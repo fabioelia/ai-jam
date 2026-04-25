@@ -9107,3 +9107,67 @@ export function useAgentCognitiveStateTrackingEfficiencyAnalyzer(projectId: stri
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentInstructionInterpretationVarianceReport {
+  variance_score: number;
+  avg_variance_score: number;
+  repeated_instruction_groups: number;
+  consistent_interpretations: number;
+  inconsistent_interpretations: number;
+  phrasing_sensitivity_rate: number;
+  context_noise_sensitivity: number;
+  interpretation_drift_over_time: number;
+  high_variance_sessions: number;
+  low_variance_sessions: number;
+  total_sessions: number;
+  trend: 'improving' | 'stable' | 'degrading';
+  most_consistent_agent: string;
+  least_consistent_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentInstructionInterpretationVarianceAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionInterpretationVarianceReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentInstructionInterpretationVarianceReport>(`/projects/${projectId}/agent-instruction-interpretation-variance-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentOutputConsistencyRateReport {
+  consistency_rate: number;
+  format_consistency_rate: number;
+  tone_consistency_rate: number;
+  structural_variance_score: number;
+  total_output_pairs: number;
+  consistent_outputs: number;
+  inconsistent_outputs: number;
+  avg_output_length_variance: number;
+  most_inconsistent_task_types: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  highest_consistency_agent: string;
+  lowest_consistency_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentOutputConsistencyRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentOutputConsistencyRateReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentOutputConsistencyRateReport>(`/projects/${projectId}/agent-output-consistency-rate-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}

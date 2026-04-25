@@ -278,6 +278,8 @@ import { agentContextCompressionEfficiencyAnalyzerRoutes } from './routes/agent-
 import { agentPromptAlignmentScoreAnalyzerRoutes } from './routes/agent-prompt-alignment-score-analyzer-route.js';
 import { agentSelfMonitoringRateAnalyzerRoutes } from './routes/agent-self-monitoring-rate-analyzer-route.js';
 import { agentCognitiveStateTrackingEfficiencyAnalyzerRoutes } from './routes/agent-cognitive-state-tracking-efficiency-analyzer-route.js';
+import { agentInstructionInterpretationVarianceAnalyzerRoutes } from './routes/agent-instruction-interpretation-variance-analyzer-route.js';
+import { agentOutputConsistencyRateAnalyzerRoutes } from './routes/agent-output-consistency-rate-analyzer-route.js';
 import { setupSocketServer } from './websocket/socket-server.js';
 import { startRuntime } from './agent-runtime/runtime-manager.js';
 import { startPtyDaemon } from './agent-runtime/pty-daemon-manager.js';
@@ -590,6 +592,8 @@ async function main() {
   await fastify.register(agentPromptAlignmentScoreAnalyzerRoutes);
   await fastify.register(agentSelfMonitoringRateAnalyzerRoutes);
   await fastify.register(agentCognitiveStateTrackingEfficiencyAnalyzerRoutes);
+  await fastify.register(agentInstructionInterpretationVarianceAnalyzerRoutes);
+  await fastify.register(agentOutputConsistencyRateAnalyzerRoutes);
 
   // Health check
   fastify.get('/api/health', async () => ({ status: 'ok' }));
