@@ -8786,3 +8786,64 @@ export function useAgentMultiStepPlanningAccuracyAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentResponseDepthCalibrationReport {
+  calibration_rate: number;
+  complexity_mismatch_rate: number;
+  over_explained_count: number;
+  under_explained_count: number;
+  well_calibrated_count: number;
+  total_responses: number;
+  avg_depth_score: number;
+  most_miscalibrated_task_types: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  highest_calibration_agent: string;
+  lowest_calibration_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentResponseDepthCalibrationAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentResponseDepthCalibrationReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentResponseDepthCalibrationReport>(`/projects/${projectId}/agent-response-depth-calibration-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentContextualRelevanceFilteringReport {
+  relevance_filtering_rate: number;
+  context_overload_rate: number;
+  noise_distraction_count: number;
+  high_relevance_sessions: number;
+  low_relevance_sessions: number;
+  total_sessions: number;
+  avg_relevance_score: number;
+  irrelevant_context_ratio: number;
+  top_distraction_patterns: string[];
+  trend: 'improving' | 'stable' | 'degrading';
+  best_filtering_agent: string;
+  worst_filtering_agent: string;
+  analysis_timestamp: string;
+}
+
+export function useAgentContextualRelevanceFilteringAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentContextualRelevanceFilteringReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AgentContextualRelevanceFilteringReport>(`/projects/${projectId}/agent-contextual-relevance-filtering-analyzer`, { method: 'GET' });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return { analyze, loading, result, setResult };
+}
