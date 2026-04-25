@@ -7721,3 +7721,37 @@ export function useAgentConstraintSatisfactionRateAnalyzer(projectId: string) {
   };
   return { analyze, loading, result, setResult };
 }
+
+export interface AgentOutputCompletenessAnalyzerMetric {
+  agentId: string; agentName: string; completenessScore: number; fullCompletionRate: number; partialCompletionRate: number; abandonmentRate: number; avgOutputCoverage: number; totalSessions: number; completionTrend: 'improving' | 'stable' | 'declining'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentOutputCompletenessAnalyzerReport {
+  metrics: AgentOutputCompletenessAnalyzerMetric[]; fleetAvgCompletenessScore: number; incompleteAgents: number; analysisTimestamp: string;
+}
+export function useAgentOutputCompletenessAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentOutputCompletenessAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentOutputCompletenessAnalyzerReport>(`/projects/${projectId}/agent-output-completeness-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
+
+export interface AgentInstructionDisambiguationRateAnalyzerMetric {
+  agentId: string; agentName: string; disambiguationScore: number; selfDisambiguationRate: number; clarificationRequestRate: number; avgResolutionTime: number; firstPassSuccessRate: number; totalSessions: number; clarityAdaptation: 'high' | 'medium' | 'low'; rating: 'excellent' | 'good' | 'fair' | 'poor';
+}
+export interface AgentInstructionDisambiguationRateAnalyzerReport {
+  metrics: AgentInstructionDisambiguationRateAnalyzerMetric[]; fleetAvgDisambiguationScore: number; highClarificationAgents: number; analysisTimestamp: string;
+}
+export function useAgentInstructionDisambiguationRateAnalyzer(projectId: string) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AgentInstructionDisambiguationRateAnalyzerReport | null>(null);
+  const analyze = async () => {
+    setLoading(true);
+    try { const data = await apiFetch<AgentInstructionDisambiguationRateAnalyzerReport>(`/projects/${projectId}/agent-instruction-disambiguation-rate-analyzer`, { method: 'GET' }); setResult(data); }
+    finally { setLoading(false); }
+  };
+  return { analyze, loading, result, setResult };
+}
